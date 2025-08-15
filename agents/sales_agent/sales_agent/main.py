@@ -1,11 +1,10 @@
-import asyncio
-from inspect import signature
+import os
+from dotenv import load_dotenv
 
-from mcp_agent.app import MCPApp
-from adeptly_mcp_sdk.mcp.servers import configure_app
-from adeptly_mcp_sdk.core.agent_base import AgentBase, AgentContract
-from adeptly_mcp_sdk.core.storage import save_artifact, log_run
-from adeptly_mcp_sdk.core.governance import review_text
+# Load environment variables from the .env file in the project root
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+assert OPENAI_API_KEY, "OPENAI_API_KEY not found. Put it in your .env file."
 
 contract = AgentContract(
     name="sales_agent",
@@ -22,7 +21,7 @@ async def main():
     # 3) Attach registry in a version-compatible way
     attached = False
     if hasattr(app, "set_mcp_servers"):
-        app.set_mcp_servers(registry)
+        app.set_mcp_servers(registry)x
         attached = True
     elif hasattr(app, "set_servers"):
         app.set_servers(registry)
