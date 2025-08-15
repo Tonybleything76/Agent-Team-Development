@@ -6,3 +6,5 @@
 *.pem
 config.local.*
 .env
+.env
+.env
