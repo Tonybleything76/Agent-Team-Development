@@ -1,0 +1,15 @@
+# mcp/registry.yaml
+servers:
+  filesystem:
+    transport: stdio
+    command: npx
+    args:
+      - -y
+      - @modelcontextprotocol/server-filesystem
+      - .
+  fetch:
+    transport: stdio
+    command: npx
+    args:
+      - -y
+      - @modelcontextprotocol/server-fetch

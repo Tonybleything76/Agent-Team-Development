@@ -1,0 +1,14 @@
+version: "3.9"
+services:
+  mcp-filesystem:
+    image: node:20
+    command: ["npx","-y","@modelcontextprotocol/server-filesystem","/data"]
+    volumes: ["../:/data"]
+  mcp-fetch:
+    image: ghcr.io/astral-sh/uv:latest
+    command: ["uvx","mcp-server-fetch"]
+  sales-agent:
+    build: ..
+    command: ["python","-m","sales_agent.main"]
+    volumes: ["../:/app"]
+    depends_on: ["mcp-filesystem","mcp-fetch"]
