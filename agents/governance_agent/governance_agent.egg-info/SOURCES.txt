@@ -1,0 +1,8 @@
+pyproject.toml
+governance_agent/__init__.py
+governance_agent/main.py
+governance_agent.egg-info/PKG-INFO
+governance_agent.egg-info/SOURCES.txt
+governance_agent.egg-info/dependency_links.txt
+governance_agent.egg-info/requires.txt
+governance_agent.egg-info/top_level.txt

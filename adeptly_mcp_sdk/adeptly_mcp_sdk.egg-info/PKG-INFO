@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: adeptly-mcp-sdk
+Version: 0.1.0
+Summary: Internal SDK for Adeptly agents (contracts, governance, MCP wiring)
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: mcp-agent@ git+https://github.com/lastmile-ai/mcp-agent.git@main
+
+# Adeptly MCP SDK
+
+Internal SDK used by all agents.

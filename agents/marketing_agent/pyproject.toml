@@ -1,0 +1,6 @@
+[project]
+name = "marketing_agent"
+version = "0.1.0"
+description = "Marketing agent package"
+requires-python = ">=3.10"
+dependencies = ["adeptly-mcp-sdk>=0.1.0","mcp-agent @ git+https://github.com/lastmile-ai/mcp-agent.git@main"]

@@ -1,0 +1,223 @@
+[INFO] 2025-08-14T15:20:55 mcp_agent.core.context - Configuring logger with 
+level: info
+[INFO] 2025-08-14T15:20:55 mcp_agent.sales_agent - Loading subagents from 
+configuration...
+[INFO] 2025-08-14T15:20:55 mcp_agent.sales_agent - MCPApp initialized
+{
+  "data": {
+    "progress_action": "Running",
+    "target": "sales_agent",
+    "agent_name": "mcp_application_loop",
+    "session_id": "76b94f8b-66f8-4b17-865f-e5611561688f"
+  }
+}
+out/artifact_20250814_152055.txt
+[ERROR] 2025-08-14T15:20:55 mcp_agent.mcp.mcp_aggregator.sales_agent - Error 
+loading server data: Server 'fetch' not found in registry.. Attempting to 
+continue
+[ERROR] 2025-08-14T15:20:55 mcp_agent.mcp.mcp_aggregator.sales_agent - Error 
+loading server data: Server 'filesystem' not found in registry.. Attempting to 
+continue
+[INFO] 2025-08-14T15:20:55 mcp_agent.mcp.mcp_aggregator.sales_agent - Last 
+aggregator closing, shutting down all persistent connections...
+[INFO] 2025-08-14T15:20:55 mcp_agent.mcp.mcp_connection_manager - Disconnecting 
+all persistent server connections...
+[INFO] 2025-08-14T15:20:55 mcp_agent.mcp.mcp_aggregator.sales_agent - Connection
+manager successfully closed and removed from context
+[INFO] 2025-08-14T15:20:55 mcp_agent.sales_agent - MCPApp cleanup
+{
+  "data": {
+    "progress_action": "Finished",
+    "target": "sales_agent",
+    "agent_name": "mcp_application_loop"
+  }
+}
+[mcp_agent.mcp.mcp_aggregator.sales_agent] Error loading server data: Server 'fetch' not found in registry.. Attempting to continue
+[mcp_agent.mcp.mcp_aggregator.sales_agent] Error loading server data: Server 'filesystem' not found in registry.. Attempting to continue
+[INFO] 2025-08-14T15:40:14 mcp_agent.core.context - Configuring logger with 
+level: info
+[INFO] 2025-08-14T15:40:14 mcp_agent.sales_agent - Loading subagents from 
+configuration...
+[INFO] 2025-08-14T15:40:14 mcp_agent.sales_agent - MCPApp initialized
+{
+  "data": {
+    "progress_action": "Running",
+    "target": "sales_agent",
+    "agent_name": "mcp_application_loop",
+    "session_id": "e8c70c5e-b243-4d1b-942d-35d1569adea8"
+  }
+}
+out/artifact_20250814_154014.txt
+[ERROR] 2025-08-14T15:40:14 mcp_agent.mcp.mcp_aggregator.sales_agent - Error 
+loading server data: Server 'fetch' not found in registry.. Attempting to 
+continue
+[ERROR] 2025-08-14T15:40:14 mcp_agent.mcp.mcp_aggregator.sales_agent - Error 
+loading server data: Server 'filesystem' not found in registry.. Attempting to 
+continue
+[INFO] 2025-08-14T15:40:14 mcp_agent.mcp.mcp_aggregator.sales_agent - Last 
+aggregator closing, shutting down all persistent connections...
+[INFO] 2025-08-14T15:40:14 mcp_agent.mcp.mcp_connection_manager - Disconnecting 
+all persistent server connections...
+[INFO] 2025-08-14T15:40:14 mcp_agent.mcp.mcp_aggregator.sales_agent - Connection
+manager successfully closed and removed from context
+[INFO] 2025-08-14T15:40:14 mcp_agent.sales_agent - MCPApp cleanup
+{
+  "data": {
+    "progress_action": "Finished",
+    "target": "sales_agent",
+    "agent_name": "mcp_application_loop"
+  }
+}
+[mcp_agent.mcp.mcp_aggregator.sales_agent] Error loading server data: Server 'fetch' not found in registry.. Attempting to continue
+[mcp_agent.mcp.mcp_aggregator.sales_agent] Error loading server data: Server 'filesystem' not found in registry.. Attempting to continue
+[INFO] 2025-08-14T16:02:03 mcp_agent.core.context - Configuring logger with 
+level: info
+[INFO] 2025-08-14T16:02:03 mcp_agent.sales_agent - Loading subagents from 
+configuration...
+[INFO] 2025-08-14T16:02:03 mcp_agent.sales_agent - MCPApp initialized
+{
+  "data": {
+    "progress_action": "Running",
+    "target": "sales_agent",
+    "agent_name": "mcp_application_loop",
+    "session_id": "c57a36cf-cd51-4f58-b7dc-7e509a62359b"
+  }
+}
+out/artifact_20250814_160203.txt
+[ERROR] 2025-08-14T16:02:03 mcp_agent.mcp.mcp_aggregator.sales_agent - Error 
+loading server data: Server 'fetch' not found in registry.. Attempting to 
+continue
+[ERROR] 2025-08-14T16:02:03 mcp_agent.mcp.mcp_aggregator.sales_agent - Error 
+loading server data: Server 'filesystem' not found in registry.. Attempting to 
+continue
+[INFO] 2025-08-14T16:02:03 mcp_agent.mcp.mcp_aggregator.sales_agent - Last 
+aggregator closing, shutting down all persistent connections...
+[INFO] 2025-08-14T16:02:03 mcp_agent.mcp.mcp_connection_manager - Disconnecting 
+all persistent server connections...
+[INFO] 2025-08-14T16:02:03 mcp_agent.mcp.mcp_aggregator.sales_agent - Connection
+manager successfully closed and removed from context
+[INFO] 2025-08-14T16:02:03 mcp_agent.sales_agent - MCPApp cleanup
+{
+  "data": {
+    "progress_action": "Finished",
+    "target": "sales_agent",
+    "agent_name": "mcp_application_loop"
+  }
+}
+[mcp_agent.mcp.mcp_aggregator.sales_agent] Error loading server data: Server 'fetch' not found in registry.. Attempting to continue
+[mcp_agent.mcp.mcp_aggregator.sales_agent] Error loading server data: Server 'filesystem' not found in registry.. Attempting to continue
+[INFO] 2025-08-14T17:22:31 mcp_agent.core.context - Configuring logger with 
+level: info
+[INFO] 2025-08-14T17:22:31 mcp_agent.sales_agent - Loading subagents from 
+configuration...
+[INFO] 2025-08-14T17:22:31 mcp_agent.sales_agent - MCPApp initialized
+{
+  "data": {
+    "progress_action": "Running",
+    "target": "sales_agent",
+    "agent_name": "mcp_application_loop",
+    "session_id": "6336e5d2-fa6f-45b6-95c1-002ab90b431e"
+  }
+}
+out/artifact_20250814_172231.txt
+[ERROR] 2025-08-14T17:22:31 mcp_agent.mcp.mcp_aggregator.sales_agent - Error 
+loading server data: Server 'fetch' not found in registry.. Attempting to 
+continue
+[ERROR] 2025-08-14T17:22:31 mcp_agent.mcp.mcp_aggregator.sales_agent - Error 
+loading server data: Server 'filesystem' not found in registry.. Attempting to 
+continue
+[INFO] 2025-08-14T17:22:31 mcp_agent.mcp.mcp_aggregator.sales_agent - Last 
+aggregator closing, shutting down all persistent connections...
+[INFO] 2025-08-14T17:22:31 mcp_agent.mcp.mcp_connection_manager - Disconnecting 
+all persistent server connections...
+[INFO] 2025-08-14T17:22:31 mcp_agent.mcp.mcp_aggregator.sales_agent - Connection
+manager successfully closed and removed from context
+[INFO] 2025-08-14T17:22:31 mcp_agent.sales_agent - MCPApp cleanup
+{
+  "data": {
+    "progress_action": "Finished",
+    "target": "sales_agent",
+    "agent_name": "mcp_application_loop"
+  }
+}
+[mcp_agent.mcp.mcp_aggregator.sales_agent] Error loading server data: Server 'fetch' not found in registry.. Attempting to continue
+[mcp_agent.mcp.mcp_aggregator.sales_agent] Error loading server data: Server 'filesystem' not found in registry.. Attempting to continue
+[INFO] 2025-08-14T17:40:01 mcp_agent.core.context - Configuring logger with 
+level: info
+[INFO] 2025-08-14T17:40:01 mcp_agent.sales_agent - Loading subagents from 
+configuration...
+[INFO] 2025-08-14T17:40:01 mcp_agent.sales_agent - MCPApp initialized
+{
+  "data": {
+    "progress_action": "Running",
+    "target": "sales_agent",
+    "agent_name": "mcp_application_loop",
+    "session_id": "f6b55ef3-5ea9-4f9d-a3be-648cb5596fd6"
+  }
+}
+[INFO] 2025-08-14T17:40:01 mcp_agent.sales_agent - MCPApp cleanup
+{
+  "data": {
+    "progress_action": "Finished",
+    "target": "sales_agent",
+    "agent_name": "mcp_application_loop"
+  }
+}
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/jbleyta/Documents/adeptly-agents/agents/sales_agent/sales_agent/main.py", line 36, in <module>
+    asyncio.run(main())
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 691, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/Users/jbleyta/Documents/adeptly-agents/agents/sales_agent/sales_agent/main.py", line 18, in main
+    registry = configure_app(app)
+               ^^^^^^^^^^^^^^^^^^
+  File "/Users/jbleyta/Documents/adeptly-agents/adeptly_mcp_sdk/adeptly_mcp_sdk/mcp/servers.py", line 54, in configure_app
+    app.set_mcp_servers(servers)
+    ^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MCPApp' object has no attribute 'set_mcp_servers'
+WARNING: could not attach MCP servers; continuing without them.
+[INFO] 2025-08-14T18:01:10 mcp_agent.core.context - Configuring logger with 
+level: info
+[INFO] 2025-08-14T18:01:10 mcp_agent.sales_agent - Loading subagents from 
+configuration...
+[INFO] 2025-08-14T18:01:10 mcp_agent.sales_agent - MCPApp initialized
+{
+  "data": {
+    "progress_action": "Running",
+    "target": "sales_agent",
+    "agent_name": "mcp_application_loop",
+    "session_id": "cce2870a-c615-4e9b-addb-401572d9b2d4"
+  }
+}
+out/artifact_20250814_180110.txt
+[ERROR] 2025-08-14T18:01:10 mcp_agent.mcp.mcp_aggregator.sales_agent - Error 
+loading server data: Server 'fetch' not found in registry.. Attempting to 
+continue
+[ERROR] 2025-08-14T18:01:10 mcp_agent.mcp.mcp_aggregator.sales_agent - Error 
+loading server data: Server 'filesystem' not found in registry.. Attempting to 
+continue
+[INFO] 2025-08-14T18:01:10 mcp_agent.mcp.mcp_aggregator.sales_agent - Last 
+aggregator closing, shutting down all persistent connections...
+[INFO] 2025-08-14T18:01:10 mcp_agent.mcp.mcp_connection_manager - Disconnecting 
+all persistent server connections...
+[INFO] 2025-08-14T18:01:10 mcp_agent.mcp.mcp_aggregator.sales_agent - Connection
+manager successfully closed and removed from context
+[INFO] 2025-08-14T18:01:10 mcp_agent.sales_agent - MCPApp cleanup
+{
+  "data": {
+    "progress_action": "Finished",
+    "target": "sales_agent",
+    "agent_name": "mcp_application_loop"
+  }
+}
+[mcp_agent.mcp.mcp_aggregator.sales_agent] Error loading server data: Server 'fetch' not found in registry.. Attempting to continue
+[mcp_agent.mcp.mcp_aggregator.sales_agent] Error loading server data: Server 'filesystem' not found in registry.. Attempting to continue

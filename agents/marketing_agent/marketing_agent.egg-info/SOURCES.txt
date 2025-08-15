@@ -1,0 +1,8 @@
+pyproject.toml
+marketing_agent/__init__.py
+marketing_agent/main.py
+marketing_agent.egg-info/PKG-INFO
+marketing_agent.egg-info/SOURCES.txt
+marketing_agent.egg-info/dependency_links.txt
+marketing_agent.egg-info/requires.txt
+marketing_agent.egg-info/top_level.txt

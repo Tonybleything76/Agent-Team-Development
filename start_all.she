@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")"
+
+# 0) venv check
+if [[ ! -f ".venv/bin/activate" ]]; then
+  echo "ERROR: .venv not found. Create/activate it first:"
+  echo "  python3 -m venv .venv && source .venv/bin/activate"
+  echo "  pip install -e ./adeptly_mcp_sdk && pip install -e ./agents/sales_agent && pip install mcp-server-fetch"
+  exit 1
+fi
+
+# 1) Activate venv
+source .venv/bin/activate
+
+# 2) Load .env (optional)
+if [[ -f ".env" ]]; then
+  set -a
+  source .env || true
+  set +a
+fi
+
+mkdir -p logs .pids
+
+# 3) Start MCP servers in background
+echo "[start_all] Launching MCP filesystem server…"
+npx -y @modelcontextprotocol/server-filesystem . > logs/filesystem.log 2>&1 &
+FS_PID=$!
+echo $FS_PID > .pids/filesystem.pid
+echo "[start_all] filesystem PID: $FS_PID (logs/filesystem.log)"
+
+echo "[start_all] Launching MCP fetch server…"
+python -m mcp_server_fetch > logs/fetch.log 2>&1 &
+FETCH_PID=$!
+echo $FETCH_PID > .pids/fetch.pid
+echo "[start_all] fetch PID: $FETCH_PID (logs/fetch.log)"
+
+# 4) Run agent in foreground (logs to file and console)
+echo "[start_all] Starting Sales Agent…"
+python -m sales_agent.main 2>&1 | tee -a logs/agent.log
+

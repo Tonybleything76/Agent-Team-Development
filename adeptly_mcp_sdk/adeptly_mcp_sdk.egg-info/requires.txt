@@ -1,0 +1,1 @@
+mcp-agent@ git+https://github.com/lastmile-ai/mcp-agent.git@main
