@@ -1,11 +1,28 @@
 import argparse
 import json
 import logging
+import os
 import sys
+from pathlib import Path
 
 from . import __version__, gate, orchestrator
-from .llm import get_llm
+from .llm import PROVIDERS, get_llm
 from .roles import ROLES
+from .storage import ROOT_ENV, STATES, StorageError, artifact_root, find_run, read_manifest
+
+
+def load_dotenv(path: Path) -> None:
+    """Minimal .env loader: KEY=value lines, '#' comments; never overrides the real environment."""
+    if not path.exists():
+        return
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key, value = key.strip(), value.strip().strip("'\"")
+        if key and key not in os.environ:
+            os.environ[key] = value
 
 
 def _cmd_run(args) -> int:
@@ -35,60 +52,60 @@ def _cmd_pending(args) -> int:
         print(f"no {args.state} runs")
         return 0
     for m in runs:
-        verdicts = [a["review"]["verdict"] if a.get("review") else "ERROR" for a in m["artifacts"]]
-        print(f"{m['run_id']}  {m['created_at']}  {m['task'][:50]!r}  {verdicts}")
+        verdicts = [(a.get("review") or {}).get("verdict", "ERROR") for a in m.get("artifacts", [])]
+        status = m.get("status", "")
+        flag = "" if status in STATES else f"  [{status}]"
+        task = m.get("task", "")[:50]
+        print(f"{m['run_id']}  {m.get('created_at', ''):<25} {task!r} {verdicts}{flag}")
     return 0
 
 
 def _cmd_show(args) -> int:
-    found = gate.find_run(gate.artifact_root(None), args.run_id)
+    found = find_run(artifact_root(None), args.run_id)
     if not found:
         print(f"run {args.run_id} not found", file=sys.stderr)
         return 1
     state, d = found
-    print(json.dumps(gate.read_manifest(d), indent=2))
+    print(json.dumps(read_manifest(d), indent=2))
     for f in sorted(d.glob("*.md")):
         print(f"\n===== {state}/{f.name} =====\n{f.read_text(encoding='utf-8')}")
     return 0
 
 
 def _cmd_approve(args) -> int:
-    try:
-        m = gate.approve(args.run_id, args.by, args.note or "", force=args.force)
-    except gate.GateError as e:
-        print(f"refused: {e}", file=sys.stderr)
-        return 2
+    m = gate.approve(args.run_id, args.by, args.note or "", force=args.force)
     print(f"approved {m['run_id']} by {m['decision']['by']}")
     return 0
 
 
 def _cmd_reject(args) -> int:
-    try:
-        m = gate.reject(args.run_id, args.by, args.reason)
-    except gate.GateError as e:
-        print(f"refused: {e}", file=sys.stderr)
-        return 2
+    m = gate.reject(args.run_id, args.by, args.reason)
     print(f"rejected {m['run_id']} by {m['decision']['by']}")
     return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="adeptly", description="Hierarchical agent team with a human gate"
+        prog="adeptly", description="Hierarchical agent team with a human approval gate"
     )
     p.add_argument("--version", action="version", version=f"adeptly {__version__}")
     p.add_argument("-v", "--verbose", action="store_true")
+    p.add_argument(
+        "--root",
+        help="directory holding out/ and logs/ (default: $ADEPTLY_ROOT or current directory)",
+    )
+    p.add_argument("--env-file", default=".env", help="dotenv file to load (default: .env)")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     s = sub.add_parser("run", help="route a task to specialists and park output in pending/")
     s.add_argument("task")
-    s.add_argument("--provider", choices=["dryrun", "openai", "anthropic"])
+    s.add_argument("--provider", choices=PROVIDERS)
     s.set_defaults(fn=_cmd_run)
 
     sub.add_parser("roles", help="list the team").set_defaults(fn=_cmd_roles)
 
     s = sub.add_parser("pending", help="list runs awaiting a human decision")
-    s.add_argument("--state", default="pending", choices=["pending", "approved", "rejected"])
+    s.add_argument("--state", default="pending", choices=STATES)
     s.set_defaults(fn=_cmd_pending)
 
     s = sub.add_parser("show", help="print a run's manifest and artifacts")
@@ -116,7 +133,14 @@ def main(argv: list[str] | None = None) -> int:
         level=logging.DEBUG if args.verbose else logging.WARNING,
         format="%(levelname)s %(name)s: %(message)s",
     )
-    return args.fn(args)
+    if args.root:
+        os.environ[ROOT_ENV] = args.root
+    load_dotenv(Path(args.env_file))
+    try:
+        return args.fn(args)
+    except (gate.GateError, StorageError, ValueError, RuntimeError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

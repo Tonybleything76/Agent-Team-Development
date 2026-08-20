@@ -1,20 +1,35 @@
 import json
 import os
+import re
 import secrets
 from datetime import UTC, datetime
 from pathlib import Path
 
+ROOT_ENV = "ADEPTLY_ROOT"
 ARTIFACT_DIR_ENV = "ARTIFACT_DIR"
 LOG_DIR_ENV = "LOG_DIR"
 STATES = ("pending", "approved", "rejected")
+RUN_ID_RE = re.compile(r"^\d{8}_\d{6}_[0-9a-f]{6}$")
+
+
+class StorageError(Exception):
+    pass
+
+
+def base_root() -> Path:
+    return Path(os.getenv(ROOT_ENV, "."))
 
 
 def artifact_root(override: str | os.PathLike | None = None) -> Path:
-    return Path(override or os.getenv(ARTIFACT_DIR_ENV, "out"))
+    if override:
+        return Path(override)
+    return base_root() / os.getenv(ARTIFACT_DIR_ENV, "out")
 
 
 def log_path(override: str | os.PathLike | None = None) -> Path:
-    return Path(override or os.getenv(LOG_DIR_ENV, "logs")) / "runs.jsonl"
+    if override:
+        return Path(override)
+    return base_root() / os.getenv(LOG_DIR_ENV, "logs") / "runs.jsonl"
 
 
 def new_run_id(now: datetime | None = None) -> str:
@@ -22,13 +37,21 @@ def new_run_id(now: datetime | None = None) -> str:
     return now.strftime("%Y%m%d_%H%M%S") + "_" + secrets.token_hex(3)
 
 
+def validate_run_id(run_id: str) -> str:
+    """run_id is joined onto a filesystem path; only the generated shape is ever accepted."""
+    if not isinstance(run_id, str) or not RUN_ID_RE.match(run_id):
+        raise StorageError(f"invalid run_id {run_id!r}")
+    return run_id
+
+
 def run_dir(root: Path, state: str, run_id: str) -> Path:
     if state not in STATES:
         raise ValueError(f"unknown state '{state}'")
-    return root / state / run_id
+    return root / state / validate_run_id(run_id)
 
 
 def find_run(root: Path, run_id: str) -> tuple[str, Path] | None:
+    validate_run_id(run_id)
     for state in STATES:
         d = run_dir(root, state, run_id)
         if (d / "manifest.json").exists():
@@ -37,14 +60,21 @@ def find_run(root: Path, run_id: str) -> tuple[str, Path] | None:
 
 
 def write_manifest(d: Path, manifest: dict) -> Path:
+    """Write via temp file + atomic rename so a crash never leaves a half-written manifest."""
     d.mkdir(parents=True, exist_ok=True)
-    p = d / "manifest.json"
-    p.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
-    return p
+    final = d / "manifest.json"
+    tmp = d / ".manifest.json.tmp"
+    tmp.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
+    os.replace(tmp, final)
+    return final
 
 
 def read_manifest(d: Path) -> dict:
-    return json.loads((d / "manifest.json").read_text(encoding="utf-8"))
+    p = d / "manifest.json"
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise StorageError(f"unreadable manifest at {p}: {exc}") from exc
 
 
 def append_log(event: dict, path: Path | None = None) -> None:

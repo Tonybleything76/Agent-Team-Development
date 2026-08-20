@@ -1,24 +1,48 @@
 {
   "version": "0.2.0",
-  "ran_at": "2026-08-20T22:08:42+00:00",
+  "ran_at": "2026-08-20T23:22:14+00:00",
   "how_measured": {
     "router_exact_plan_rate": "share of router cases whose full ordered plan equals the expected",
+    "router_easy_exact_rate": "same, over cases that contain a rule keyword (regression guard)",
+    "router_hard_exact_rate": "same, over realistic ambiguous cases; expected to be well below 1.0",
     "router_first_role_rate": "share of router cases whose first dispatched role matches",
     "governance_verdict_rate": "share of governance cases with the expected APPROVE/REVISE verdict",
     "governance_issue_recall": "share of governance cases where every expected issue was reported",
     "dryrun_specialists_governance_clean": "share of specialists whose dry-run output passes"
   },
   "metrics": {
-    "router_exact_plan_rate": 1.0,
-    "router_first_role_rate": 1.0,
-    "router_cases": 24,
+    "router_exact_plan_rate": 0.96875,
+    "router_first_role_rate": 0.96875,
+    "router_easy_exact_rate": 1.0,
+    "router_hard_exact_rate": 0.875,
+    "router_cases": 32,
+    "router_hard_cases": 8,
     "governance_verdict_rate": 1.0,
     "governance_issue_recall": 1.0,
-    "governance_cases": 12,
+    "governance_cases": 18,
     "dryrun_specialists_governance_clean": 1.0,
     "dryrun_specialists": 20
   },
-  "failures": [],
+  "failures": [
+    {
+      "id": "h05",
+      "hard": true,
+      "note": "genuinely ambiguous: EA summary vs cybersecurity",
+      "task": "Summarize the thread from the security meeting",
+      "expected": [
+        "ea"
+      ],
+      "got": [
+        "cybersecurity"
+      ],
+      "rules": [
+        "security"
+      ],
+      "exact": false,
+      "first_role_ok": false,
+      "borderline": false
+    }
+  ],
   "borderline_for_human_review": [
     {
       "id": "g12",
@@ -30,11 +54,24 @@
       "issues_ok": true,
       "borderline": true,
       "note": "heading-like text inside a section; rule-based parser may mis-split"
+    },
+    {
+      "id": "g18",
+      "expected_verdict": "APPROVE",
+      "got_verdict": "APPROVE",
+      "expected_issues": [],
+      "got_issues": [],
+      "verdict_ok": true,
+      "issues_ok": true,
+      "borderline": true,
+      "note": "section word at line start inside body without colon"
     }
   ],
   "router_rows": [
     {
       "id": "r01",
+      "hard": false,
+      "note": "",
       "task": "Build an AI transformation roadmap and ROI model for a manufacturer",
       "expected": [
         "strategist",
@@ -53,6 +90,8 @@
     },
     {
       "id": "r02",
+      "hard": false,
+      "note": "",
       "task": "Draft an RFP response and SOW for an AI readiness engagement",
       "expected": [
         "pre_sales",
@@ -73,7 +112,9 @@
     },
     {
       "id": "r03",
-      "task": "Write follow-up sequences for the new leads in the pipeline",
+      "hard": false,
+      "note": "",
+      "task": "Write follow-up sequences for the new leads in the sales pipeline",
       "expected": [
         "sales"
       ],
@@ -89,6 +130,8 @@
     },
     {
       "id": "r04",
+      "hard": false,
+      "note": "",
       "task": "Plan the Q4 content calendar and campaign briefs",
       "expected": [
         "marketing",
@@ -109,6 +152,8 @@
     },
     {
       "id": "r05",
+      "hard": false,
+      "note": "",
       "task": "Turn the white paper into a LinkedIn thread",
       "expected": [
         "social_manager",
@@ -127,6 +172,8 @@
     },
     {
       "id": "r06",
+      "hard": false,
+      "note": "",
       "task": "Write the PRD with user stories and acceptance criteria",
       "expected": [
         "product_manager",
@@ -147,6 +194,8 @@
     },
     {
       "id": "r07",
+      "hard": false,
+      "note": "",
       "task": "Build a POC connector for the CRM",
       "expected": [
         "product_developer",
@@ -165,6 +214,8 @@
     },
     {
       "id": "r08",
+      "hard": false,
+      "note": "",
       "task": "Define KPIs and a baseline dashboard",
       "expected": [
         "data_scientist"
@@ -181,6 +232,8 @@
     },
     {
       "id": "r09",
+      "hard": false,
+      "note": "",
       "task": "Run a threat model and vendor review for the new platform",
       "expected": [
         "cybersecurity"
@@ -197,7 +250,9 @@
     },
     {
       "id": "r10",
-      "task": "Complete the DPIA and retention schedule",
+      "hard": false,
+      "note": "",
+      "task": "Complete the DPIA and data retention schedule",
       "expected": [
         "privacy",
         "legal"
@@ -215,6 +270,8 @@
     },
     {
       "id": "r11",
+      "hard": false,
+      "note": "",
       "task": "Redline the MSA and prepare NDAs",
       "expected": [
         "legal"
@@ -231,6 +288,8 @@
     },
     {
       "id": "r12",
+      "hard": false,
+      "note": "",
       "task": "Create onboarding SOPs and a skills matrix",
       "expected": [
         "hr",
@@ -249,6 +308,8 @@
     },
     {
       "id": "r13",
+      "hard": false,
+      "note": "",
       "task": "Design a training curriculum for the enablement program",
       "expected": [
         "ld"
@@ -265,6 +326,8 @@
     },
     {
       "id": "r14",
+      "hard": false,
+      "note": "",
       "task": "Prepare the pricing sheet and Q3 forecast",
       "expected": [
         "finance"
@@ -281,6 +344,8 @@
     },
     {
       "id": "r15",
+      "hard": false,
+      "note": "",
       "task": "Capacity and burn report for the delivery team",
       "expected": [
         "operations"
@@ -297,6 +362,8 @@
     },
     {
       "id": "r16",
+      "hard": false,
+      "note": "",
       "task": "Provision accounts and set up monitoring and backups",
       "expected": [
         "it"
@@ -313,6 +380,8 @@
     },
     {
       "id": "r17",
+      "hard": false,
+      "note": "",
       "task": "Select an OEM partner and draft the co-marketing MDF plan",
       "expected": [
         "oem_partner"
@@ -329,6 +398,8 @@
     },
     {
       "id": "r18",
+      "hard": false,
+      "note": "",
       "task": "Schedule the weekly agenda and travel for the kickoff meeting",
       "expected": [
         "ea"
@@ -345,6 +416,8 @@
     },
     {
       "id": "r19",
+      "hard": false,
+      "note": "",
       "task": "Something with no recognisable keywords",
       "expected": [
         "strategist"
@@ -359,6 +432,8 @@
     },
     {
       "id": "r20",
+      "hard": false,
+      "note": "",
       "task": "Produce a GDPR data map and the contract data clauses",
       "expected": [
         "privacy",
@@ -378,6 +453,8 @@
     },
     {
       "id": "r21",
+      "hard": false,
+      "note": "",
       "task": "Write a blog post and schedule a LinkedIn thread about the campaign",
       "expected": [
         "marketing",
@@ -399,6 +476,8 @@
     },
     {
       "id": "r22",
+      "hard": false,
+      "note": "",
       "task": "Monthly invoice run and month-end close",
       "expected": [
         "finance"
@@ -415,6 +494,8 @@
     },
     {
       "id": "r23",
+      "hard": false,
+      "note": "",
       "task": "Incident response runbook for the IT team",
       "expected": [
         "it"
@@ -431,6 +512,8 @@
     },
     {
       "id": "r24",
+      "hard": false,
+      "note": "",
       "task": "Map current state to future state for the service desk",
       "expected": [
         "strategist",
@@ -442,6 +525,154 @@
       ],
       "rules": [
         "strategy"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "h01",
+      "hard": true,
+      "note": "HVAC phrase shares words with sales vocabulary",
+      "task": "Sequence of operations for the chiller plant",
+      "expected": [
+        "strategist"
+      ],
+      "got": [
+        "strategist"
+      ],
+      "rules": [],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "h02",
+      "hard": true,
+      "note": "'lead' as verb, 'discovery' without 'call'",
+      "task": "Lead a discovery workshop on building operations",
+      "expected": [
+        "strategist"
+      ],
+      "got": [
+        "strategist"
+      ],
+      "rules": [],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "h03",
+      "hard": true,
+      "note": "'script' is a video script, not code",
+      "task": "Write a script for the onboarding training video",
+      "expected": [
+        "hr",
+        "ld"
+      ],
+      "got": [
+        "hr",
+        "ld"
+      ],
+      "rules": [
+        "people",
+        "enablement"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "h04",
+      "hard": true,
+      "note": "'retention' is people, not data",
+      "task": "Employee retention strategy for the delivery team",
+      "expected": [
+        "strategist",
+        "data_scientist"
+      ],
+      "got": [
+        "strategist",
+        "data_scientist"
+      ],
+      "rules": [
+        "strategy"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "h05",
+      "hard": true,
+      "note": "genuinely ambiguous: EA summary vs cybersecurity",
+      "task": "Summarize the thread from the security meeting",
+      "expected": [
+        "ea"
+      ],
+      "got": [
+        "cybersecurity"
+      ],
+      "rules": [
+        "security"
+      ],
+      "exact": false,
+      "first_role_ok": false,
+      "borderline": false
+    },
+    {
+      "id": "h06",
+      "hard": true,
+      "note": "'partner' as verb",
+      "task": "Partner with finance to review the pricing model",
+      "expected": [
+        "finance"
+      ],
+      "got": [
+        "finance"
+      ],
+      "rules": [
+        "finance"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "h07",
+      "hard": true,
+      "note": "",
+      "task": "Draft the kickoff meeting agenda and book travel",
+      "expected": [
+        "ea"
+      ],
+      "got": [
+        "ea"
+      ],
+      "rules": [
+        "admin"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "h08",
+      "hard": true,
+      "note": "",
+      "task": "Assess vendor security before signing the contract",
+      "expected": [
+        "cybersecurity",
+        "legal"
+      ],
+      "got": [
+        "cybersecurity",
+        "legal"
+      ],
+      "rules": [
+        "security",
+        "legal"
       ],
       "exact": true,
       "first_role_ok": true,
@@ -480,10 +711,10 @@
       "expected_verdict": "REVISE",
       "got_verdict": "REVISE",
       "expected_issues": [
-        "Missing citation URL(s)"
+        "Missing https citation URL in Citations section"
       ],
       "got_issues": [
-        "Missing citation URL(s)"
+        "Missing https citation URL in Citations section"
       ],
       "verdict_ok": true,
       "issues_ok": true,
@@ -614,6 +845,84 @@
       "issues_ok": true,
       "borderline": true,
       "note": "heading-like text inside a section; rule-based parser may mis-split"
+    },
+    {
+      "id": "g13",
+      "expected_verdict": "APPROVE",
+      "got_verdict": "APPROVE",
+      "expected_issues": [],
+      "got_issues": [],
+      "verdict_ok": true,
+      "issues_ok": true,
+      "borderline": false,
+      "note": ""
+    },
+    {
+      "id": "g14",
+      "expected_verdict": "APPROVE",
+      "got_verdict": "APPROVE",
+      "expected_issues": [],
+      "got_issues": [],
+      "verdict_ok": true,
+      "issues_ok": true,
+      "borderline": false,
+      "note": ""
+    },
+    {
+      "id": "g15",
+      "expected_verdict": "REVISE",
+      "got_verdict": "REVISE",
+      "expected_issues": [
+        "Section too short: risks"
+      ],
+      "got_issues": [
+        "Section too short: risks"
+      ],
+      "verdict_ok": true,
+      "issues_ok": true,
+      "borderline": false,
+      "note": ""
+    },
+    {
+      "id": "g16",
+      "expected_verdict": "REVISE",
+      "got_verdict": "REVISE",
+      "expected_issues": [
+        "Possible PII: SSN-shaped number present"
+      ],
+      "got_issues": [
+        "Possible PII: SSN-shaped number present"
+      ],
+      "verdict_ok": true,
+      "issues_ok": true,
+      "borderline": false,
+      "note": ""
+    },
+    {
+      "id": "g17",
+      "expected_verdict": "REVISE",
+      "got_verdict": "REVISE",
+      "expected_issues": [
+        "Missing https citation URL in Citations section"
+      ],
+      "got_issues": [
+        "Missing https citation URL in Citations section"
+      ],
+      "verdict_ok": true,
+      "issues_ok": true,
+      "borderline": false,
+      "note": ""
+    },
+    {
+      "id": "g18",
+      "expected_verdict": "APPROVE",
+      "got_verdict": "APPROVE",
+      "expected_issues": [],
+      "got_issues": [],
+      "verdict_ok": true,
+      "issues_ok": true,
+      "borderline": true,
+      "note": "section word at line start inside body without colon"
     }
   ]
 }

@@ -11,6 +11,7 @@ from .router import Plan, Router
 from .storage import append_log, artifact_root, new_run_id, run_dir, write_manifest
 
 log = logging.getLogger(__name__)
+# Each specialist sees at most this many characters of every predecessor's artifact.
 CONTEXT_CHARS = 600
 
 
@@ -29,7 +30,7 @@ class RunRecord:
     provider: str
     plan: dict
     artifacts: list[ArtifactRecord] = field(default_factory=list)
-    status: str = "pending"
+    status: str = "running"
     created_at: str = ""
     version: str = __version__
 
@@ -59,7 +60,11 @@ def run(
     root: Path | None = None,
     log_file: Path | None = None,
 ) -> RunRecord:
-    """Route a task, run specialists in order, governance-check each artifact, park in pending/."""
+    """Route a task, run specialists in order, governance-check each artifact, park in pending/.
+
+    The manifest is written before the first specialist runs and after every artifact, so an
+    interrupted run is still visible (status 'running') and can be rejected by a human.
+    """
     if not task or not task.strip():
         raise ValueError("task must be a non-empty string")
     llm = llm or get_llm()
@@ -70,11 +75,12 @@ def run(
         run_id=run_id,
         task=task,
         provider=llm.name,
-        plan=asdict(plan),
+        plan={"roles": plan.roles, "matched_rules": plan.matched_rules},
         created_at=datetime.now(UTC).isoformat(timespec="seconds"),
     )
     out = run_dir(artifact_root(root), "pending", run_id)
-    out.mkdir(parents=True, exist_ok=True)
+    out.mkdir(parents=True, exist_ok=False)  # a collision is a bug, never a silent merge
+    write_manifest(out, asdict(record))
     append_log(
         {
             "event": "run_start",
@@ -103,6 +109,7 @@ def run(
                 },
                 log_file,
             )
+            write_manifest(out, asdict(record))
             continue
         path = out / f"{role_key}.md"
         path.write_text(text, encoding="utf-8")
@@ -119,7 +126,9 @@ def run(
             },
             log_file,
         )
+        write_manifest(out, asdict(record))
 
+    record.status = "pending"
     write_manifest(out, asdict(record))
     append_log(
         {

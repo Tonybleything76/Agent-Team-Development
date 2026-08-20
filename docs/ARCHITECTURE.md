@@ -9,7 +9,7 @@
 | Specialist producer | `adeptly/orchestrator.py::produce` | Builds the system/user prompt for a role, calls the LLM, runs Governance. |
 | Governance evaluator | `adeptly/governance.py` | Rule-based checks: required sections, no placeholders, ≥1 https citation, no email/phone. |
 | Orchestrator | `adeptly/orchestrator.py::run` | Runs the plan sequentially, passes prior output as context, isolates per-specialist failures, writes manifest + log. |
-| Human gate | `adeptly/gate.py` | pending → approved/rejected by a named person; refuses approval of governance-flagged runs without `--force` + note. |
+| Human gate | `adeptly/gate.py` | pending → approved/rejected by a named person; refuses approval of governance-flagged or errored runs without `--force` + note; validates `run_id`; records the decision in the manifest before moving. |
 | Storage | `adeptly/storage.py` | `out/<state>/<run_id>/{manifest.json,<role>.md}` and `logs/runs.jsonl`. |
 | LLM layer | `adeptly/llm.py` | `dryrun` (default, offline, deterministic), `openai`, `anthropic`. |
 | CLI | `adeptly/cli.py` | `run`, `roles`, `pending`, `show`, `approve`, `reject`. |
@@ -32,8 +32,13 @@ grep, and easy to replace with a real queue later.
 this repo proves. Everything runs in CI without a key. Real providers are opt-in extras.
 
 **Failures are isolated and logged.** A specialist that raises is recorded in the manifest with
-`error`, logged to `runs.jsonl`, and the run continues. A run with errors can still be reviewed
-and rejected by a human.
+`error`, logged to `runs.jsonl`, and the run continues. The manifest is written before the first
+specialist runs and after every artifact (status `running` until the end), so an interrupted run
+is visible in `adeptly pending` and can be rejected. A run with errors can be reviewed and
+rejected, or approved with `--force` and a note.
+
+**Manifests are written atomically** (temp file + rename). `pending` surfaces directories with a
+missing or corrupt manifest instead of hiding them.
 
 ## Data shapes
 
@@ -42,6 +47,22 @@ file, review{ok, issues, verdict}, error}], status, created_at, version, decisio
 note, at}` (decision appears after approve/reject).
 
 `logs/runs.jsonl` events: `run_start, artifact, specialist_error, run_end, approved, rejected`.
+
+## Accepted limitations (reviewed 2026-08-20)
+
+These were raised in adversarial review and accepted deliberately rather than fixed:
+
+- **The gate records a human decision; it does not authenticate the human.** `--by` is any
+  non-empty name. Adding identity/auth would be over-engineering for a single-operator CLI; the
+  value is that "who decided, when, why" is a grep-able fact.
+- **The eval is a regression harness, not a quality benchmark.** Router and governance are
+  rule-based, so fixed cases mostly pass by construction. Eight realistic "hard" router cases are
+  included and allowed to fail; their score is reported, not hidden.
+- **Context truncation.** Each specialist sees 600 characters of every predecessor's artifact.
+- **Concurrency.** Atomic rename is the only primitive; no locking. Two operators deciding the
+  same run at once will see one succeed and one get a clear error.
+- **`repr(exc)` in manifests.** Provider exceptions are recorded verbatim in runtime output
+  (git-ignored); readability beats the theoretical leak.
 
 ## Next
 

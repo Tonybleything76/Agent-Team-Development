@@ -17,7 +17,7 @@ def test_full_cli_flow(workdir, capsys):
 
     assert main(["approve", run_id, "--by", "Tony"]) == 0
     assert main(["approve", run_id, "--by", "Tony"]) == 2  # already decided
-    assert "refused" in capsys.readouterr().err
+    assert "error: run" in capsys.readouterr().err
 
 
 def test_reject_requires_reason_flag(workdir):
@@ -25,6 +25,55 @@ def test_reject_requires_reason_flag(workdir):
         main(["reject", "abc", "--by", "Tony"])
 
 
-def test_provider_without_key_fails_clearly(workdir):
-    with pytest.raises(RuntimeError, match="OPENAI_API_KEY"):
-        main(["run", "x", "--provider", "openai"])
+def test_provider_without_key_fails_with_one_line_not_a_traceback(workdir, capsys):
+    assert main(["run", "x", "--provider", "openai"]) == 2
+    err = capsys.readouterr().err
+    assert err.startswith("error: ") and "OPENAI_API_KEY" in err and "Traceback" not in err
+
+
+def test_empty_task_is_a_clean_error(workdir, capsys):
+    assert main(["run", "   "]) == 2
+    assert "non-empty" in capsys.readouterr().err
+
+
+class JunkLLM:
+    name = "junk"
+
+    def generate(self, system, prompt):
+        return "Objective: x\nBody: y\nCitations: none\nRisks: TBD\nNext Steps: z\n"
+
+
+def test_revise_path_through_cli_blocks_approval(workdir, capsys, monkeypatch):
+    import adeptly.cli as cli
+
+    monkeypatch.setattr(cli, "get_llm", lambda provider=None: JunkLLM())
+    assert main(["run", "Define KPIs"]) == 0
+    out = capsys.readouterr().out
+    run_id = out.split("run_id: ")[1].split()[0]
+    assert "REVISE" in out and "Placeholder content in section: risks" in out
+    assert main(["approve", run_id, "--by", "Tony"]) == 2
+    assert "governance flagged" in capsys.readouterr().err
+    assert main(["approve", run_id, "--by", "Tony", "--force"]) == 2  # force needs a note
+    assert main(["approve", run_id, "--by", "Tony", "--force", "--note", "checked"]) == 0
+
+
+def test_dotenv_is_loaded_without_overriding_environment(workdir, tmp_path, monkeypatch):
+    from adeptly.cli import load_dotenv
+
+    env = tmp_path / "x.env"
+    env.write_text("# comment\nFOO_FROM_FILE=abc\nBAR='quoted'\nPRESET=file\n")
+    monkeypatch.setenv("PRESET", "env")
+    monkeypatch.delenv("FOO_FROM_FILE", raising=False)
+    load_dotenv(env)
+    import os
+
+    assert os.environ["FOO_FROM_FILE"] == "abc" and os.environ["BAR"] == "quoted"
+    assert os.environ["PRESET"] == "env"
+
+
+def test_root_flag_relocates_output(workdir, tmp_path, capsys, monkeypatch):
+    monkeypatch.delenv("ARTIFACT_DIR")
+    monkeypatch.delenv("LOG_DIR")
+    other = tmp_path / "elsewhere"
+    assert main(["--root", str(other), "run", "Define KPIs"]) == 0
+    assert (other / "out" / "pending").exists() and (other / "logs" / "runs.jsonl").exists()

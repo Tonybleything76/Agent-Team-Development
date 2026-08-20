@@ -37,6 +37,28 @@ def test_one_failing_specialist_does_not_hide_the_others(workdir):
     assert events[-1]["event"] == "run_end" and events[-1]["errors"] == 1
 
 
+def test_manifest_exists_from_the_start_and_tracks_progress(workdir):
+    from adeptly.storage import artifact_root
+
+    class Spy:
+        name = "spy"
+
+        def __init__(self):
+            self.seen = []
+
+        def generate(self, system, prompt):
+            # Capture the manifest status while a specialist is "running".
+            d = next((artifact_root() / "pending").iterdir())
+            self.seen.append(json.loads((d / "manifest.json").read_text())["status"])
+            return "Objective: t\nBody: b\nCitations: https://x.io\nRisks: r\nNext Steps: n\n"
+
+    spy = Spy()
+    rec = orchestrator.run("Draft an RFP response and SOW", llm=spy)
+    assert spy.seen == ["running", "running", "running"]
+    final = json.loads((artifact_root() / "pending" / rec.run_id / "manifest.json").read_text())
+    assert final["status"] == "pending" and len(final["artifacts"]) == 3
+
+
 def test_empty_task_is_rejected(workdir, fake_llm):
     with pytest.raises(ValueError):
         orchestrator.run("   ", llm=fake_llm)

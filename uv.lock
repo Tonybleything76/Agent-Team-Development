@@ -4,7 +4,6 @@ requires-python = ">=3.11"
 
 [[package]]
 name = "adeptly-agents"
-version = "0.2.0"
 source = { editable = "." }
 
 [package.optional-dependencies]
@@ -26,7 +25,7 @@ requires-dist = [
     { name = "anthropic", marker = "extra == 'anthropic'", specifier = ">=0.40,<1" },
     { name = "openai", marker = "extra == 'openai'", specifier = ">=1.40,<2" },
 ]
-provides-extras = ["openai", "anthropic"]
+provides-extras = ["anthropic", "openai"]
 
 [package.metadata.requires-dev]
 dev = [

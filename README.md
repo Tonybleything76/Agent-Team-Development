@@ -14,7 +14,9 @@ as 20 specialist agents plus two supervisor roles, and puts the part that matter
 decides what goes out the door — in a place you can read, test and audit.
 
 The design principle is the one I use in consulting: humans own judgment and release; agents
-execute analysis and drafting at speed. The code enforces it rather than asserting it.
+execute analysis and drafting at speed. The code enforces a recorded human decision before
+anything leaves `pending/`; it does not authenticate who that human is (it is a single-operator
+CLI), and it says so.
 
 ## How it works
 
@@ -35,14 +37,20 @@ task ──▶ Router ──▶ [specialist 1] ─▶ [specialist 2] ─▶ … 
    fall back to the Strategist.
 2. **Specialists** (`adeptly/roles.py`): a registry of 22 roles in three tiers — supervisor,
    client-facing, support. Each is a title and a remit; the orchestrator turns that into a system
-   prompt. Adding a role is one line.
-3. **Governance** (`adeptly/governance.py`): every artifact must carry Objective, Citations (with
-   an https URL), Risks and Next Steps, with no placeholder text and no obvious PII. Verdict is
-   APPROVE or REVISE and is recorded in the run manifest.
+   prompt. Adding a specialist is one `Role(...)` entry plus a routing rule. Each specialist sees
+   the first 600 characters of every predecessor's artifact as context.
+3. **Governance** (`adeptly/governance.py`): every artifact must carry Objective, Body, Citations
+   (with an https URL inside that section), Risks and Next Steps — plain, markdown or bold
+   headings — with no placeholder text (`TBD`, `...`, `-`), nothing shorter than three characters,
+   and no email, phone, SSN- or card-shaped numbers. Rule-based, so it catches shape and obvious
+   leaks, not judgment. Verdict is APPROVE or REVISE and is recorded in the run manifest.
 4. **The human gate** (`adeptly/gate.py`): every run lands in `out/pending/`. A run moves to
    `out/approved/` only when someone runs `adeptly approve <run_id> --by "<name>"`. If Governance
-   flagged anything, approval is refused unless you pass `--force` *and* a `--note` saying why.
-   Rejections require a reason. Every decision is appended to `logs/runs.jsonl` with who and when.
+   flagged anything — or a specialist errored — approval is refused unless you pass `--force`
+   *and* a `--note` saying why. Rejections require a reason. The decision is written into the
+   manifest before the directory moves, so an interrupted decision is never lost, and every
+   decision is appended to `logs/runs.jsonl` with who and when. `run_id`s are validated against
+   the generated shape; nothing outside `out/` can be addressed.
 5. **LLM layer** (`adeptly/llm.py`): `LLM_PROVIDER=dryrun` (default) needs no key and produces
    deterministic output so the whole loop — including the gate — runs in CI. `openai` and
    `anthropic` providers are optional extras.
@@ -63,9 +71,11 @@ uv run adeptly approve <run_id> --by "Your Name"
 uv run adeptly reject  <run_id> --by "Your Name" --reason "placeholder content"
 ```
 
-To use a real model: `cp .env.example .env`, set a key, then
-`uv sync --extra openai` (or `--extra anthropic`) and run with `--provider openai`.
-`.env` is git-ignored; the CLI reads it from the environment only.
+To use a real model: `cp .env.example .env`, set `LLM_PROVIDER` and a key, then
+`uv sync --extra openai` (or `--extra anthropic`) and run as above (or pass `--provider`).
+The CLI loads `.env` from the current directory (values already in the environment win);
+`.env` is git-ignored. Output goes to `./out` and `./logs` — pass `--root <dir>` or set
+`ADEPTLY_ROOT` to put them elsewhere. All variables are listed in `.env.example`.
 
 ## Test it
 
@@ -77,9 +87,10 @@ uv run python -m evals.run   # scored eval of router + governance; writes evals/
 
 ## What this is not
 
-- Not a production deployment. There is no queue, no UI, no auth; the gate is a file move and a log line, on purpose.
+- Not a production deployment. There is no queue, no UI, no auth; the gate is an atomic file move and a log line, on purpose.
 - Not connected to tools yet. MCP server wiring from the first sketch was removed because it never worked; re-adding it is the next step once the gate is proven.
-- Not a claim about output quality. The dry-run provider exists to prove the control flow, not the content.
+- Not a claim about output quality. The dry-run provider exists to prove the control flow, not the content, and the eval is a regression harness over fixed cases — it measures that the rules do what they say, not that routing or governance is good in the wild. The eval's "hard" router cases are there to keep that honest; see `evals/results/latest.json`.
+- Not yet exercised against a real model in this repo. The OpenAI and Anthropic providers are unit-tested with fake clients only.
 
 ## History
 

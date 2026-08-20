@@ -3,9 +3,10 @@ from dataclasses import dataclass, field
 
 from .roles import SPECIALISTS
 
-# Each rule: (keywords that trigger it, specialists it adds, in dispatch order).
-# Rules are evaluated in order; every matching rule contributes. Order matters
-# downstream: earlier specialists' output is passed as context to later ones.
+# Each rule: (name, keywords that trigger it, specialists it adds in dispatch order).
+# Rules are evaluated in order; every matching rule contributes. Order matters downstream:
+# earlier specialists' output is passed as context to later ones. Keywords are matched as
+# whole words (optional plural); common single English words are avoided on purpose.
 ROUTING_RULES: list[tuple[str, tuple[str, ...], tuple[str, ...]]] = [
     (
         "strategy",
@@ -19,15 +20,30 @@ ROUTING_RULES: list[tuple[str, tuple[str, ...], tuple[str, ...]]] = [
     ),
     (
         "sales",
-        ("lead", "sequence", "follow-up", "follow up", "pipeline", "discovery call"),
+        (
+            "leads",
+            "lead list",
+            "sales lead",
+            "email sequence",
+            "outreach sequence",
+            "follow-up sequence",
+            "follow-up email",
+            "sales pipeline",
+            "pipeline review",
+            "discovery call",
+        ),
         ("sales",),
     ),
     (
         "campaign",
-        ("blog", "calendar", "campaign", "content brief"),
+        ("blog", "content calendar", "campaign", "content brief", "editorial"),
         ("marketing", "content_creator", "social_manager"),
     ),
-    ("social", ("linkedin", "thread", "social post"), ("social_manager", "content_creator")),
+    (
+        "social",
+        ("linkedin", "social post", "social thread", "twitter thread", "x thread"),
+        ("social_manager", "content_creator"),
+    ),
     (
         "product",
         ("prd", "backlog", "user story", "user stories", "acceptance criteria"),
@@ -35,20 +51,58 @@ ROUTING_RULES: list[tuple[str, tuple[str, ...], tuple[str, ...]]] = [
     ),
     (
         "build",
-        ("poc", "connector", "script", "mcp tool", "prototype"),
+        ("poc", "connector", "python script", "automation script", "mcp tool", "prototype"),
         ("product_developer", "qa_qc"),
     ),
     ("analytics", ("kpi", "kpis", "dashboard", "baseline", "a/b"), ("data_scientist",)),
-    ("security", ("threat", "security", "vendor review", "key management"), ("cybersecurity",)),
-    ("privacy", ("dpia", "privacy", "retention", "consent", "gdpr", "pii"), ("privacy", "legal")),
-    ("legal", ("nda", "msa", "contract", "redline"), ("legal",)),
+    (
+        "security",
+        ("threat", "security", "vendor review", "key management"),
+        ("cybersecurity",),
+    ),
+    (
+        "privacy",
+        (
+            "dpia",
+            "privacy",
+            "data retention",
+            "retention schedule",
+            "retention policy",
+            "consent",
+            "gdpr",
+            "pii",
+            "data map",
+        ),
+        ("privacy", "legal"),
+    ),
+    ("legal", ("nda", "msa", "contract", "redline", "clause"), ("legal",)),
     ("people", ("onboard", "onboarding", "sop", "skills matrix", "hiring"), ("hr", "ld")),
     ("enablement", ("curriculum", "training", "course", "enablement"), ("ld",)),
     ("finance", ("invoice", "forecast", "pricing", "budget", "month-end"), ("finance",)),
     ("operations", ("capacity", "burn", "vendor management"), ("operations",)),
-    ("it", ("provision", "provisioning", "backup", "monitoring", "incident"), ("it",)),
-    ("partner", ("partner", "oem", "co-marketing", "mdf"), ("oem_partner",)),
-    ("admin", ("agenda", "meeting", "travel", "summary"), ("ea",)),
+    (
+        "it",
+        ("provision", "provisioning", "backup", "monitoring", "incident"),
+        ("it",),
+    ),
+    (
+        "partner",
+        (
+            "oem",
+            "co-marketing",
+            "mdf",
+            "partner program",
+            "partner selection",
+            "channel partner",
+            "partnership",
+        ),
+        ("oem_partner",),
+    ),
+    (
+        "admin",
+        ("agenda", "travel", "meeting summary", "meeting notes", "calendar invite"),
+        ("ea",),
+    ),
 ]
 
 DEFAULT_ROLES: tuple[str, ...] = ("strategist",)

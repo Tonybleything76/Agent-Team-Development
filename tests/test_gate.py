@@ -41,7 +41,50 @@ def test_reject_requires_reason(workdir, fake_llm):
 
 def test_unknown_run_is_refused(workdir):
     with pytest.raises(gate.GateError, match="not found"):
-        gate.approve("nope", by="Tony")
+        gate.approve("20260101_000000_abcdef", by="Tony")
+
+
+def test_path_traversal_run_ids_are_refused(workdir, fake_llm):
+    rec = _run(fake_llm)
+    gate.approve(rec.run_id, by="Tony")
+    for evil in (f"../approved/{rec.run_id}", "../../etc", "nope", "20260101_000000_ABCDEF"):
+        with pytest.raises(gate.GateError, match="invalid run_id"):
+            gate.reject(evil, by="Mallory", reason="flip it")
+    assert gate.find_run(artifact_root(), rec.run_id)[0] == "approved"
+
+
+def test_run_with_errored_specialist_is_flagged_not_crashing(workdir):
+    from tests.conftest import RecordingLLM
+
+    rec = orchestrator.run("Draft an RFP response and SOW", llm=RecordingLLM(fail_roles=["Legal"]))
+    with pytest.raises(gate.GateError, match="governance flagged \\['legal'\\]"):
+        gate.approve(rec.run_id, by="Tony")
+    m = gate.approve(rec.run_id, by="Tony", force=True, note="legal reviewed offline")
+    assert m["status"] == "approved"
+
+
+def test_decision_is_recorded_in_manifest_before_move(workdir, fake_llm, monkeypatch):
+    import shutil
+
+    rec = _run(fake_llm)
+    monkeypatch.setattr(shutil, "move", lambda *a, **k: (_ for _ in ()).throw(OSError("disk")))
+    with pytest.raises(OSError):
+        gate.approve(rec.run_id, by="Tony")
+    state, d = gate.find_run(artifact_root(), rec.run_id)
+    assert state == "pending" and gate.read_manifest(d)["decision"]["by"] == "Tony"
+
+
+def test_incomplete_and_corrupt_runs_are_surfaced(workdir, fake_llm):
+    rec = _run(fake_llm)
+    (artifact_root() / "pending" / "20260101_000000_aaaaaa").mkdir(parents=True)
+    (artifact_root() / "pending" / "20260101_000000_bbbbbb").mkdir()
+    (artifact_root() / "pending" / "20260101_000000_bbbbbb" / "manifest.json").write_text(
+        "{not json"
+    )
+    statuses = {m["run_id"]: m["status"] for m in gate.list_runs("pending")}
+    assert statuses[rec.run_id] == "pending"
+    assert statuses["20260101_000000_aaaaaa"].startswith("incomplete")
+    assert statuses["20260101_000000_bbbbbb"].startswith("corrupt")
 
 
 class FlaggedLLM:

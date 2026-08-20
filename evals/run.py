@@ -25,6 +25,8 @@ RESULTS = HERE / "results"
 BASELINE = RESULTS / "baseline.json"
 HOW_MEASURED = {
     "router_exact_plan_rate": "share of router cases whose full ordered plan equals the expected",
+    "router_easy_exact_rate": "same, over cases that contain a rule keyword (regression guard)",
+    "router_hard_exact_rate": "same, over realistic ambiguous cases; expected to be well below 1.0",
     "router_first_role_rate": "share of router cases whose first dispatched role matches",
     "governance_verdict_rate": "share of governance cases with the expected APPROVE/REVISE verdict",
     "governance_issue_recall": "share of governance cases where every expected issue was reported",
@@ -44,6 +46,8 @@ def eval_router(cases: list[dict]) -> tuple[dict, list[dict]]:
         rows.append(
             {
                 "id": c["id"],
+                "hard": bool(c.get("hard")),
+                "note": c.get("note", ""),
                 "task": c["task"],
                 "expected": c["expect_roles"],
                 "got": plan.roles,
@@ -54,10 +58,15 @@ def eval_router(cases: list[dict]) -> tuple[dict, list[dict]]:
             }
         )
     n = len(cases)
+    hard = [r for r, c in zip(rows, cases, strict=True) if c.get("hard")]
+    easy = [r for r, c in zip(rows, cases, strict=True) if not c.get("hard")]
     return {
         "router_exact_plan_rate": exact / n,
         "router_first_role_rate": first / n,
+        "router_easy_exact_rate": sum(r["exact"] for r in easy) / max(len(easy), 1),
+        "router_hard_exact_rate": sum(r["exact"] for r in hard) / max(len(hard), 1),
         "router_cases": n,
+        "router_hard_cases": len(hard),
     }, rows
 
 
@@ -102,6 +111,11 @@ def eval_dry_run_end_to_end() -> dict:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--set-baseline", action="store_true", help="write current metrics as baseline")
+    ap.add_argument(
+        "--allow-failures",
+        action="store_true",
+        help="with --set-baseline: record a baseline even though some cases fail",
+    )
     args = ap.parse_args(argv)
 
     cases = json.loads(CASES.read_text())
@@ -142,6 +156,9 @@ def main(argv=None) -> int:
         )
 
     if args.set_baseline:
+        if failures and not args.allow_failures:
+            print("  refusing to set a baseline with failures (use --allow-failures to override)")
+            return 1
         BASELINE.write_text(
             json.dumps(
                 {"version": __version__, "ran_at": result["ran_at"], "metrics": metrics}, indent=2
@@ -151,18 +168,18 @@ def main(argv=None) -> int:
         return 0
     if BASELINE.exists():
         base = json.loads(BASELINE.read_text())["metrics"]
-        regressions = {
-            k: (base[k], metrics[k])
-            for k in base
-            if isinstance(base[k], float) and metrics.get(k, 0) < base[k]
-        }
+        # Rates must not drop; case counts must not shrink (deleting hard cases is a regression).
+        regressions = {k: (base[k], metrics.get(k, 0)) for k in base if metrics.get(k, 0) < base[k]}
         if regressions:
             print(f"  REGRESSION vs baseline: {regressions}")
             return 1
         print("  no regression vs baseline")
     else:
         print("  no baseline yet (run with --set-baseline)")
-    return 1 if failures else 0
+    # Hard cases are allowed to fail (that is the point of them); easy cases are not.
+    hard_ids = {r["id"] for r in r_rows if r["hard"]}
+    blocking = [f for f in failures if f["id"] not in hard_ids]
+    return 1 if blocking else 0
 
 
 if __name__ == "__main__":
