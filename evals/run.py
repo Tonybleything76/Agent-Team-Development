@@ -155,8 +155,12 @@ def main(argv=None) -> int:
             f"got {f.get('got') or f.get('got_verdict')}"
         )
 
+    # Hard cases are allowed to fail (that is the point of them); easy cases are not.
+    hard_ids = {r["id"] for r in r_rows if r["hard"]}
+    blocking = [f for f in failures if f["id"] not in hard_ids]
+
     if args.set_baseline:
-        if failures and not args.allow_failures:
+        if blocking and not args.allow_failures:
             print("  refusing to set a baseline with failures (use --allow-failures to override)")
             return 1
         BASELINE.write_text(
@@ -176,9 +180,6 @@ def main(argv=None) -> int:
         print("  no regression vs baseline")
     else:
         print("  no baseline yet (run with --set-baseline)")
-    # Hard cases are allowed to fail (that is the point of them); easy cases are not.
-    hard_ids = {r["id"] for r in r_rows if r["hard"]}
-    blocking = [f for f in failures if f["id"] not in hard_ids]
     return 1 if blocking else 0
 
 
