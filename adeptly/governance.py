@@ -20,7 +20,7 @@ class Review:
 
 def _section_body(text: str, section: str) -> str | None:
     """Return the text following 'Section:' up to the next 'Word:' line, or None if absent."""
-    m = re.search(rf"(?im)^\s*{re.escape(section)}\s*:\s*(.*)$", text)
+    m = re.search(rf"(?im)^[ \t]*{re.escape(section)}[ \t]*:[ \t]*(.*)$", text)
     if not m:
         return None
     start = m.end(1)

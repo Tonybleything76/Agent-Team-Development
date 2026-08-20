@@ -35,3 +35,6 @@ Thumbs.db
 
 # Plain-text twins of working docs
 *.plain.md
+
+# Eval: keep baseline + latest, not every timestamped run
+evals/results/run_*.json

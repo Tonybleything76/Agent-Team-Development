@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "ran_at": "2026-08-20T22:08:42+00:00",
+  "metrics": {
+    "router_exact_plan_rate": 1.0,
+    "router_first_role_rate": 1.0,
+    "router_cases": 24,
+    "governance_verdict_rate": 1.0,
+    "governance_issue_recall": 1.0,
+    "governance_cases": 12,
+    "dryrun_specialists_governance_clean": 1.0,
+    "dryrun_specialists": 20
+  }
+}

@@ -1,0 +1,619 @@
+{
+  "version": "0.2.0",
+  "ran_at": "2026-08-20T22:08:42+00:00",
+  "how_measured": {
+    "router_exact_plan_rate": "share of router cases whose full ordered plan equals the expected",
+    "router_first_role_rate": "share of router cases whose first dispatched role matches",
+    "governance_verdict_rate": "share of governance cases with the expected APPROVE/REVISE verdict",
+    "governance_issue_recall": "share of governance cases where every expected issue was reported",
+    "dryrun_specialists_governance_clean": "share of specialists whose dry-run output passes"
+  },
+  "metrics": {
+    "router_exact_plan_rate": 1.0,
+    "router_first_role_rate": 1.0,
+    "router_cases": 24,
+    "governance_verdict_rate": 1.0,
+    "governance_issue_recall": 1.0,
+    "governance_cases": 12,
+    "dryrun_specialists_governance_clean": 1.0,
+    "dryrun_specialists": 20
+  },
+  "failures": [],
+  "borderline_for_human_review": [
+    {
+      "id": "g12",
+      "expected_verdict": "APPROVE",
+      "got_verdict": "APPROVE",
+      "expected_issues": [],
+      "got_issues": [],
+      "verdict_ok": true,
+      "issues_ok": true,
+      "borderline": true,
+      "note": "heading-like text inside a section; rule-based parser may mis-split"
+    }
+  ],
+  "router_rows": [
+    {
+      "id": "r01",
+      "task": "Build an AI transformation roadmap and ROI model for a manufacturer",
+      "expected": [
+        "strategist",
+        "data_scientist"
+      ],
+      "got": [
+        "strategist",
+        "data_scientist"
+      ],
+      "rules": [
+        "strategy"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "r02",
+      "task": "Draft an RFP response and SOW for an AI readiness engagement",
+      "expected": [
+        "pre_sales",
+        "legal",
+        "finance"
+      ],
+      "got": [
+        "pre_sales",
+        "legal",
+        "finance"
+      ],
+      "rules": [
+        "proposal"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "r03",
+      "task": "Write follow-up sequences for the new leads in the pipeline",
+      "expected": [
+        "sales"
+      ],
+      "got": [
+        "sales"
+      ],
+      "rules": [
+        "sales"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "r04",
+      "task": "Plan the Q4 content calendar and campaign briefs",
+      "expected": [
+        "marketing",
+        "content_creator",
+        "social_manager"
+      ],
+      "got": [
+        "marketing",
+        "content_creator",
+        "social_manager"
+      ],
+      "rules": [
+        "campaign"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "r05",
+      "task": "Turn the white paper into a LinkedIn thread",
+      "expected": [
+        "social_manager",
+        "content_creator"
+      ],
+      "got": [
+        "social_manager",
+        "content_creator"
+      ],
+      "rules": [
+        "social"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "r06",
+      "task": "Write the PRD with user stories and acceptance criteria",
+      "expected": [
+        "product_manager",
+        "product_developer",
+        "qa_qc"
+      ],
+      "got": [
+        "product_manager",
+        "product_developer",
+        "qa_qc"
+      ],
+      "rules": [
+        "product"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "r07",
+      "task": "Build a POC connector for the CRM",
+      "expected": [
+        "product_developer",
+        "qa_qc"
+      ],
+      "got": [
+        "product_developer",
+        "qa_qc"
+      ],
+      "rules": [
+        "build"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "r08",
+      "task": "Define KPIs and a baseline dashboard",
+      "expected": [
+        "data_scientist"
+      ],
+      "got": [
+        "data_scientist"
+      ],
+      "rules": [
+        "analytics"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "r09",
+      "task": "Run a threat model and vendor review for the new platform",
+      "expected": [
+        "cybersecurity"
+      ],
+      "got": [
+        "cybersecurity"
+      ],
+      "rules": [
+        "security"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "r10",
+      "task": "Complete the DPIA and retention schedule",
+      "expected": [
+        "privacy",
+        "legal"
+      ],
+      "got": [
+        "privacy",
+        "legal"
+      ],
+      "rules": [
+        "privacy"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "r11",
+      "task": "Redline the MSA and prepare NDAs",
+      "expected": [
+        "legal"
+      ],
+      "got": [
+        "legal"
+      ],
+      "rules": [
+        "legal"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "r12",
+      "task": "Create onboarding SOPs and a skills matrix",
+      "expected": [
+        "hr",
+        "ld"
+      ],
+      "got": [
+        "hr",
+        "ld"
+      ],
+      "rules": [
+        "people"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "r13",
+      "task": "Design a training curriculum for the enablement program",
+      "expected": [
+        "ld"
+      ],
+      "got": [
+        "ld"
+      ],
+      "rules": [
+        "enablement"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "r14",
+      "task": "Prepare the pricing sheet and Q3 forecast",
+      "expected": [
+        "finance"
+      ],
+      "got": [
+        "finance"
+      ],
+      "rules": [
+        "finance"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "r15",
+      "task": "Capacity and burn report for the delivery team",
+      "expected": [
+        "operations"
+      ],
+      "got": [
+        "operations"
+      ],
+      "rules": [
+        "operations"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "r16",
+      "task": "Provision accounts and set up monitoring and backups",
+      "expected": [
+        "it"
+      ],
+      "got": [
+        "it"
+      ],
+      "rules": [
+        "it"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "r17",
+      "task": "Select an OEM partner and draft the co-marketing MDF plan",
+      "expected": [
+        "oem_partner"
+      ],
+      "got": [
+        "oem_partner"
+      ],
+      "rules": [
+        "partner"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "r18",
+      "task": "Schedule the weekly agenda and travel for the kickoff meeting",
+      "expected": [
+        "ea"
+      ],
+      "got": [
+        "ea"
+      ],
+      "rules": [
+        "admin"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "r19",
+      "task": "Something with no recognisable keywords",
+      "expected": [
+        "strategist"
+      ],
+      "got": [
+        "strategist"
+      ],
+      "rules": [],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "r20",
+      "task": "Produce a GDPR data map and the contract data clauses",
+      "expected": [
+        "privacy",
+        "legal"
+      ],
+      "got": [
+        "privacy",
+        "legal"
+      ],
+      "rules": [
+        "privacy",
+        "legal"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "r21",
+      "task": "Write a blog post and schedule a LinkedIn thread about the campaign",
+      "expected": [
+        "marketing",
+        "content_creator",
+        "social_manager"
+      ],
+      "got": [
+        "marketing",
+        "content_creator",
+        "social_manager"
+      ],
+      "rules": [
+        "campaign",
+        "social"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "r22",
+      "task": "Monthly invoice run and month-end close",
+      "expected": [
+        "finance"
+      ],
+      "got": [
+        "finance"
+      ],
+      "rules": [
+        "finance"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "r23",
+      "task": "Incident response runbook for the IT team",
+      "expected": [
+        "it"
+      ],
+      "got": [
+        "it"
+      ],
+      "rules": [
+        "it"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    },
+    {
+      "id": "r24",
+      "task": "Map current state to future state for the service desk",
+      "expected": [
+        "strategist",
+        "data_scientist"
+      ],
+      "got": [
+        "strategist",
+        "data_scientist"
+      ],
+      "rules": [
+        "strategy"
+      ],
+      "exact": true,
+      "first_role_ok": true,
+      "borderline": false
+    }
+  ],
+  "governance_rows": [
+    {
+      "id": "g01",
+      "expected_verdict": "APPROVE",
+      "got_verdict": "APPROVE",
+      "expected_issues": [],
+      "got_issues": [],
+      "verdict_ok": true,
+      "issues_ok": true,
+      "borderline": false,
+      "note": ""
+    },
+    {
+      "id": "g02",
+      "expected_verdict": "REVISE",
+      "got_verdict": "REVISE",
+      "expected_issues": [
+        "Placeholder content in section: risks"
+      ],
+      "got_issues": [
+        "Placeholder content in section: risks"
+      ],
+      "verdict_ok": true,
+      "issues_ok": true,
+      "borderline": false,
+      "note": ""
+    },
+    {
+      "id": "g03",
+      "expected_verdict": "REVISE",
+      "got_verdict": "REVISE",
+      "expected_issues": [
+        "Missing citation URL(s)"
+      ],
+      "got_issues": [
+        "Missing citation URL(s)"
+      ],
+      "verdict_ok": true,
+      "issues_ok": true,
+      "borderline": false,
+      "note": ""
+    },
+    {
+      "id": "g04",
+      "expected_verdict": "REVISE",
+      "got_verdict": "REVISE",
+      "expected_issues": [
+        "Missing section: objective"
+      ],
+      "got_issues": [
+        "Missing section: objective"
+      ],
+      "verdict_ok": true,
+      "issues_ok": true,
+      "borderline": false,
+      "note": ""
+    },
+    {
+      "id": "g05",
+      "expected_verdict": "REVISE",
+      "got_verdict": "REVISE",
+      "expected_issues": [
+        "Possible PII: email address present"
+      ],
+      "got_issues": [
+        "Possible PII: email address present"
+      ],
+      "verdict_ok": true,
+      "issues_ok": true,
+      "borderline": false,
+      "note": ""
+    },
+    {
+      "id": "g06",
+      "expected_verdict": "REVISE",
+      "got_verdict": "REVISE",
+      "expected_issues": [
+        "Possible PII: phone number present"
+      ],
+      "got_issues": [
+        "Possible PII: phone number present"
+      ],
+      "verdict_ok": true,
+      "issues_ok": true,
+      "borderline": false,
+      "note": ""
+    },
+    {
+      "id": "g07",
+      "expected_verdict": "APPROVE",
+      "got_verdict": "APPROVE",
+      "expected_issues": [],
+      "got_issues": [],
+      "verdict_ok": true,
+      "issues_ok": true,
+      "borderline": false,
+      "note": ""
+    },
+    {
+      "id": "g08",
+      "expected_verdict": "REVISE",
+      "got_verdict": "REVISE",
+      "expected_issues": [
+        "Placeholder content in section: risks",
+        "Placeholder content in section: next steps"
+      ],
+      "got_issues": [
+        "Placeholder content in section: risks",
+        "Placeholder content in section: next steps"
+      ],
+      "verdict_ok": true,
+      "issues_ok": true,
+      "borderline": false,
+      "note": ""
+    },
+    {
+      "id": "g09",
+      "expected_verdict": "APPROVE",
+      "got_verdict": "APPROVE",
+      "expected_issues": [],
+      "got_issues": [],
+      "verdict_ok": true,
+      "issues_ok": true,
+      "borderline": false,
+      "note": ""
+    },
+    {
+      "id": "g10",
+      "expected_verdict": "REVISE",
+      "got_verdict": "REVISE",
+      "expected_issues": [
+        "Placeholder content in section: risks"
+      ],
+      "got_issues": [
+        "Placeholder content in section: risks"
+      ],
+      "verdict_ok": true,
+      "issues_ok": true,
+      "borderline": false,
+      "note": ""
+    },
+    {
+      "id": "g11",
+      "expected_verdict": "REVISE",
+      "got_verdict": "REVISE",
+      "expected_issues": [
+        "Missing section: citations"
+      ],
+      "got_issues": [
+        "Missing section: citations"
+      ],
+      "verdict_ok": true,
+      "issues_ok": true,
+      "borderline": false,
+      "note": ""
+    },
+    {
+      "id": "g12",
+      "expected_verdict": "APPROVE",
+      "got_verdict": "APPROVE",
+      "expected_issues": [],
+      "got_issues": [],
+      "verdict_ok": true,
+      "issues_ok": true,
+      "borderline": true,
+      "note": "heading-like text inside a section; rule-based parser may mis-split"
+    }
+  ]
+}

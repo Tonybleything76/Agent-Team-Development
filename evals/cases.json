@@ -1,0 +1,42 @@
+{
+  "router": [
+    {"id": "r01", "task": "Build an AI transformation roadmap and ROI model for a manufacturer", "expect_first": "strategist", "expect_roles": ["strategist", "data_scientist"]},
+    {"id": "r02", "task": "Draft an RFP response and SOW for an AI readiness engagement", "expect_first": "pre_sales", "expect_roles": ["pre_sales", "legal", "finance"]},
+    {"id": "r03", "task": "Write follow-up sequences for the new leads in the pipeline", "expect_first": "sales", "expect_roles": ["sales"]},
+    {"id": "r04", "task": "Plan the Q4 content calendar and campaign briefs", "expect_first": "marketing", "expect_roles": ["marketing", "content_creator", "social_manager"]},
+    {"id": "r05", "task": "Turn the white paper into a LinkedIn thread", "expect_first": "social_manager", "expect_roles": ["social_manager", "content_creator"]},
+    {"id": "r06", "task": "Write the PRD with user stories and acceptance criteria", "expect_first": "product_manager", "expect_roles": ["product_manager", "product_developer", "qa_qc"]},
+    {"id": "r07", "task": "Build a POC connector for the CRM", "expect_first": "product_developer", "expect_roles": ["product_developer", "qa_qc"]},
+    {"id": "r08", "task": "Define KPIs and a baseline dashboard", "expect_first": "data_scientist", "expect_roles": ["data_scientist"]},
+    {"id": "r09", "task": "Run a threat model and vendor review for the new platform", "expect_first": "cybersecurity", "expect_roles": ["cybersecurity"]},
+    {"id": "r10", "task": "Complete the DPIA and retention schedule", "expect_first": "privacy", "expect_roles": ["privacy", "legal"]},
+    {"id": "r11", "task": "Redline the MSA and prepare NDAs", "expect_first": "legal", "expect_roles": ["legal"]},
+    {"id": "r12", "task": "Create onboarding SOPs and a skills matrix", "expect_first": "hr", "expect_roles": ["hr", "ld"]},
+    {"id": "r13", "task": "Design a training curriculum for the enablement program", "expect_first": "ld", "expect_roles": ["ld"]},
+    {"id": "r14", "task": "Prepare the pricing sheet and Q3 forecast", "expect_first": "finance", "expect_roles": ["finance"]},
+    {"id": "r15", "task": "Capacity and burn report for the delivery team", "expect_first": "operations", "expect_roles": ["operations"]},
+    {"id": "r16", "task": "Provision accounts and set up monitoring and backups", "expect_first": "it", "expect_roles": ["it"]},
+    {"id": "r17", "task": "Select an OEM partner and draft the co-marketing MDF plan", "expect_first": "oem_partner", "expect_roles": ["oem_partner"]},
+    {"id": "r18", "task": "Schedule the weekly agenda and travel for the kickoff meeting", "expect_first": "ea", "expect_roles": ["ea"]},
+    {"id": "r19", "task": "Something with no recognisable keywords", "expect_first": "strategist", "expect_roles": ["strategist"]},
+    {"id": "r20", "task": "Produce a GDPR data map and the contract data clauses", "expect_first": "privacy", "expect_roles": ["privacy", "legal"]},
+    {"id": "r21", "task": "Write a blog post and schedule a LinkedIn thread about the campaign", "expect_first": "marketing", "expect_roles": ["marketing", "content_creator", "social_manager"]},
+    {"id": "r22", "task": "Monthly invoice run and month-end close", "expect_first": "finance", "expect_roles": ["finance"]},
+    {"id": "r23", "task": "Incident response runbook for the IT team", "expect_first": "it", "expect_roles": ["it"]},
+    {"id": "r24", "task": "Map current state to future state for the service desk", "expect_first": "strategist", "expect_roles": ["strategist", "data_scientist"]}
+  ],
+  "governance": [
+    {"id": "g01", "text": "Objective: a\nBody: b\nCitations: https://x.io\nRisks: r\nNext Steps: n\n", "expect_verdict": "APPROVE", "expect_issues": []},
+    {"id": "g02", "text": "Objective: a\nBody: b\nCitations: https://x.io\nRisks: ...\nNext Steps: n\n", "expect_verdict": "REVISE", "expect_issues": ["Placeholder content in section: risks"]},
+    {"id": "g03", "text": "Objective: a\nBody: b\nCitations: see memo\nRisks: r\nNext Steps: n\n", "expect_verdict": "REVISE", "expect_issues": ["Missing citation URL(s)"]},
+    {"id": "g04", "text": "Body: b\nCitations: https://x.io\nRisks: r\nNext Steps: n\n", "expect_verdict": "REVISE", "expect_issues": ["Missing section: objective"]},
+    {"id": "g05", "text": "Objective: a\nBody: mail me at a@b.co\nCitations: https://x.io\nRisks: r\nNext Steps: n\n", "expect_verdict": "REVISE", "expect_issues": ["Possible PII: email address present"]},
+    {"id": "g06", "text": "Objective: a\nBody: call 555-123-4567\nCitations: https://x.io\nRisks: r\nNext Steps: n\n", "expect_verdict": "REVISE", "expect_issues": ["Possible PII: phone number present"]},
+    {"id": "g07", "text": "OBJECTIVE: a\nBODY: b\nCITATIONS: https://x.io\nRISKS: r\nNEXT STEPS: n\n", "expect_verdict": "APPROVE", "expect_issues": []},
+    {"id": "g08", "text": "Objective: a\nBody: b\nCitations: https://x.io\nRisks: TBD\nNext Steps: TODO\n", "expect_verdict": "REVISE", "expect_issues": ["Placeholder content in section: risks", "Placeholder content in section: next steps"]},
+    {"id": "g09", "text": "Objective: a\nBody: b\nCitations:\n- https://x.io\n- https://y.io\nRisks: r\nNext Steps: n\n", "expect_verdict": "APPROVE", "expect_issues": []},
+    {"id": "g10", "text": "Objective: a\nBody: b\nCitations: https://x.io\nRisks:\nNext Steps: n\n", "expect_verdict": "REVISE", "expect_issues": ["Placeholder content in section: risks"]},
+    {"id": "g11", "text": "Objective: a\nBody: b\nRisks: r\nNext Steps: n\nSee https://x.io\n", "expect_verdict": "REVISE", "expect_issues": ["Missing section: citations"]},
+    {"id": "g12", "text": "Objective: a\nBody: b\nCitations: https://x.io\nRisks: Section text mentions Next Steps: inline\nNext Steps: n\n", "expect_verdict": "APPROVE", "expect_issues": [], "borderline": true, "note": "heading-like text inside a section; rule-based parser may mis-split"}
+  ]
+}
