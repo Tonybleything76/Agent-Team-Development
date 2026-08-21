@@ -35,6 +35,9 @@ Found in review and fixed before release:
   line and exit 2 instead of a traceback. `--root` / `ADEPTLY_ROOT` added.
 - Eval: `--set-baseline` refuses when cases fail; case-count shrinkage counts as regression.
 - Version single-sourced from `adeptly/__init__.py`; `VERSION` checked by a test.
+- OpenRouter provider (`LLM_PROVIDER=openrouter`): one key, any vendor's models; model/version
+  and reasoning effort resolved per specialist role from env (`OPENROUTER_MODEL_<ROLE>`,
+  `OPENROUTER_EFFORT_<ROLE>`), with global fallbacks. `generate()` now receives the role key.
 - Second review pass: `--force` was briefly persisted into the manifest and could leak into a
   later plain approve — replaced with a parameter and a recorded `decision.forced`; interrupted
   (`running`) runs can be rejected but not approved; numbered markdown headings recognised;

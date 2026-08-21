@@ -39,3 +39,6 @@ Thumbs.db
 # Eval: keep baseline + latest, not every timestamped run
 evals/results/run_*.json
 evals/results/latest.json
+
+# Harness artifacts
+*.claudish-error

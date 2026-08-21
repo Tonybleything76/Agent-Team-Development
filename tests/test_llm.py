@@ -118,3 +118,21 @@ def test_version_is_single_sourced():
     assert (
         Path(__file__).resolve().parents[1].joinpath("VERSION").read_text().strip() == __version__
     )
+
+
+def test_openrouter_effort_per_role(workdir, monkeypatch):
+    from adeptly.llm import OpenRouterLLM
+
+    fake = FakeOpenAIClient()
+    llm = OpenRouterLLM(client=fake)
+    llm.generate("SYS", "USER", role="strategist")
+    assert "extra_body" not in fake.calls[0]  # no effort set: nothing sent
+    monkeypatch.setenv("OPENROUTER_EFFORT", "low")
+    monkeypatch.setenv("OPENROUTER_EFFORT_STRATEGIST", "HIGH")
+    llm.generate("SYS", "USER", role="strategist")
+    llm.generate("SYS", "USER", role="legal")
+    assert fake.calls[1]["extra_body"] == {"reasoning": {"effort": "high"}}
+    assert fake.calls[2]["extra_body"] == {"reasoning": {"effort": "low"}}
+    monkeypatch.setenv("OPENROUTER_EFFORT", "extreme")
+    with pytest.raises(ValueError, match="OPENROUTER_EFFORT"):
+        llm.generate("SYS", "USER", role="legal")

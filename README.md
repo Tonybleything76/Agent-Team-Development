@@ -53,8 +53,12 @@ task ──▶ Router ──▶ [specialist 1] ─▶ [specialist 2] ─▶ … 
    decision is appended to `logs/runs.jsonl` with who and when. `run_id`s are validated against
    the generated shape; nothing outside `out/` can be addressed.
 5. **LLM layer** (`adeptly/llm.py`): `LLM_PROVIDER=dryrun` (default) needs no key and produces
-   deterministic output so the whole loop — including the gate — runs in CI. `openai` and
-   `anthropic` providers are optional extras.
+   deterministic output so the whole loop — including the gate — runs in CI. `openrouter` is
+   the recommended real provider: one key, any vendor's models, and the model is resolved per
+   specialist role (`OPENROUTER_MODEL_<ROLE>` beats `OPENROUTER_MODEL` beats the package
+   default) and so is reasoning effort (`OPENROUTER_EFFORT_<ROLE>` / `OPENROUTER_EFFORT`,
+   low|medium|high), so each task runs on the right model, version and effort. Direct `openai`
+   and `anthropic` providers remain as optional extras.
 
 ## Run it
 
@@ -72,8 +76,10 @@ uv run adeptly approve <run_id> --by "Your Name"
 uv run adeptly reject  <run_id> --by "Your Name" --reason "placeholder content"
 ```
 
-To use a real model: `cp .env.example .env`, set `LLM_PROVIDER` and a key, then
-`uv sync --extra openai` (or `--extra anthropic`) and run as above (or pass `--provider`).
+To use a real model: `cp .env.example .env`, set `LLM_PROVIDER=openrouter` and
+`OPENROUTER_API_KEY`, then `uv sync --extra openai` (OpenRouter speaks the OpenAI
+protocol, so it uses the same extra; direct `openai`/`anthropic` work the same way)
+and run as above (or pass `--provider`).
 The CLI loads `.env` from the current directory (values already in the environment win);
 `.env` is git-ignored (`--env-file <path>` to use another). Output goes to `./out` and `./logs`
 — set `ADEPTLY_ROOT` or pass `--root <dir>` *before* the subcommand (`adeptly --root /tmp/x run

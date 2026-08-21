@@ -11,7 +11,7 @@
 | Orchestrator | `adeptly/orchestrator.py::run` | Runs the plan sequentially, passes prior output as context, isolates per-specialist failures, writes manifest + log. |
 | Human gate | `adeptly/gate.py` | pending → approved/rejected by a named person; refuses approval of governance-flagged or errored runs without `--force` + note; validates `run_id`; records the decision in the manifest before moving. |
 | Storage | `adeptly/storage.py` | `out/<state>/<run_id>/{manifest.json,<role>.md}` and `logs/runs.jsonl`. |
-| LLM layer | `adeptly/llm.py` | `dryrun` (default, offline, deterministic), `openai`, `anthropic`. |
+| LLM layer | `adeptly/llm.py` | `dryrun` (default, offline, deterministic); `openrouter` (recommended: one key, per-role model/version and reasoning effort via env); direct `openai`, `anthropic`. |
 | CLI | `adeptly/cli.py` | `run`, `roles`, `pending`, `show`, `approve`, `reject`. |
 
 ## Design decisions

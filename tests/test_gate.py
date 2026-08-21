@@ -79,7 +79,7 @@ def test_incomplete_and_corrupt_runs_are_surfaced(workdir, fake_llm):
 class FlaggedLLM:
     name = "flagged"
 
-    def generate(self, system, prompt):
+    def generate(self, system, prompt, role=None):
         return "Objective: x\nBody: y\nRisks: ...\nNext Steps: z\n"  # no URL, placeholder
 
 

@@ -46,7 +46,7 @@ def test_manifest_exists_from_the_start_and_tracks_progress(workdir):
         def __init__(self):
             self.seen = []
 
-        def generate(self, system, prompt):
+        def generate(self, system, prompt, role=None):
             # Capture the manifest status while a specialist is "running".
             d = next((artifact_root() / "pending").iterdir())
             self.seen.append(json.loads((d / "manifest.json").read_text())["status"])

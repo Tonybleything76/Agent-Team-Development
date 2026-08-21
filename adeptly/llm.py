@@ -56,7 +56,7 @@ class DryRunLLM:
             f"locally so routing, governance and the approval gate can be exercised end to end.\n"
             f"Citations: {DRYRUN_CITATION}\n"
             f"Risks: Dry-run content is illustrative only and must not be released to a client.\n"
-            f"Next Steps: Re-run with LLM_PROVIDER=openrouter (or openai/anthropic) and a real key.\n"
+            f"Next Steps: Re-run with LLM_PROVIDER=openrouter and a real key.\n"
         )
 
 
@@ -88,11 +88,15 @@ class OpenAILLM:
 class OpenRouterLLM:
     """OpenAI-compatible client pointed at OpenRouter: one key, any vendor's models.
 
-    Model selection is per role: OPENROUTER_MODEL_<ROLE_KEY_UPPERCASED> wins for that
-    specialist (e.g. OPENROUTER_MODEL_PRE_SALES), then OPENROUTER_MODEL, then the
-    package default. Resolution happens at call time so a long-lived client follows
-    env changes in tests and notebooks.
+    Model and reasoning effort are chosen per role: OPENROUTER_MODEL_<ROLE_KEY_UPPERCASED>
+    wins for that specialist (e.g. OPENROUTER_MODEL_PRE_SALES), then OPENROUTER_MODEL, then the
+    package default; OPENROUTER_EFFORT_<ROLE> / OPENROUTER_EFFORT (low|medium|high) is sent as
+    OpenRouter's `reasoning.effort` when set. The model string carries the vendor and version
+    (e.g. anthropic/claude-sonnet-5). Resolution happens at call time so a long-lived client
+    follows env changes in tests and notebooks.
     """
+
+    EFFORTS = ("low", "medium", "high")
 
     name = "openrouter"
 
@@ -120,13 +124,26 @@ class OpenRouterLLM:
                 return per_role
         return os.getenv("OPENROUTER_MODEL", DEFAULT_OPENROUTER_MODEL)
 
+    def resolve_effort(self, role: str | None) -> str | None:
+        effort = (role and os.getenv(f"OPENROUTER_EFFORT_{role.upper()}")) or os.getenv(
+            "OPENROUTER_EFFORT"
+        )
+        if effort and effort.lower() not in self.EFFORTS:
+            raise ValueError(f"OPENROUTER_EFFORT must be one of {self.EFFORTS}, got {effort!r}")
+        return effort.lower() if effort else None
+
     def generate(self, system: str, prompt: str, role: str | None = None) -> str:
         model = self.resolve_model(role)
-        log.info("openrouter: role=%s model=%s", role or "-", model)
+        effort = self.resolve_effort(role)
+        log.info("openrouter: role=%s model=%s effort=%s", role or "-", model, effort or "-")
+        kwargs = {}
+        if effort:
+            kwargs["extra_body"] = {"reasoning": {"effort": effort}}
         resp = self.client.chat.completions.create(
             model=model,
             messages=[{"role": "system", "content": system}, {"role": "user", "content": prompt}],
             temperature=0.2,
+            **kwargs,
         )
         choice = resp.choices[0]
         if getattr(choice, "finish_reason", None) == "length":

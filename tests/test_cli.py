@@ -39,7 +39,7 @@ def test_empty_task_is_a_clean_error(workdir, capsys):
 class JunkLLM:
     name = "junk"
 
-    def generate(self, system, prompt):
+    def generate(self, system, prompt, role=None):
         return "Objective: x\nBody: y\nCitations: none\nRisks: TBD\nNext Steps: z\n"
 
 
