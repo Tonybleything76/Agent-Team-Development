@@ -5,7 +5,7 @@ The gate records a human decision; it does not authenticate the human (single-op
 """
 
 import logging
-import shutil
+import os
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -14,6 +14,7 @@ from .storage import (
     append_log,
     artifact_root,
     find_run,
+    lock_holder_alive,
     read_manifest,
     run_dir,
     write_manifest,
@@ -49,9 +50,15 @@ def list_runs(state: str = "pending", root: Path | None = None) -> list[dict]:
             out.append(stub | {"status": "incomplete (no manifest)"})
             continue
         try:
-            out.append(read_manifest(d))
+            m = read_manifest(d)
         except StorageError as exc:
             out.append(stub | {"status": f"corrupt manifest: {exc}"})
+            continue
+        if m.get("decision") and m.get("status") != state:
+            m = m | {"status": f"{m.get('status')} (decision recorded, move incomplete)"}
+        elif lock_holder_alive(d):
+            m = m | {"status": "running (live)"}
+        out.append(m)
     return out
 
 
@@ -77,34 +84,45 @@ def _decide(
     state, src = found
     if state != "pending":
         raise GateError(f"run '{run_id}' is already {state}")
-    manifest = read_manifest(src)
+    try:
+        manifest = read_manifest(src)
+    except StorageError as exc:
+        raise GateError(str(exc)) from exc
     flagged = flagged_roles(manifest.get("artifacts", []))
-    if decision == "approved":
-        if manifest.get("status") == "running":
+    if lock_holder_alive(src):
+        raise GateError(f"run '{run_id}' is still running (live orchestrator); wait for it")
+    if manifest.get("status") == "running" and decision == "approved":
+        raise GateError(f"run '{run_id}' was interrupted before it finished; reject it instead")
+    prior = manifest.get("decision")
+    if prior:
+        # A decision was recorded but the move did not complete. Only the same decision may
+        # finish it; a different one is refused so nobody overwrites a recorded decision.
+        if prior.get("state") != decision:
             raise GateError(
-                f"run '{run_id}' is still running or was interrupted; wait, or reject it"
+                f"run '{run_id}' already has a recorded {prior.get('state')} by "
+                f"{prior.get('by')}; re-run that command to complete it"
             )
-        if flagged and not force:
-            raise GateError(
-                f"governance flagged {flagged}; re-run, or approve with --force and a note"
-            )
+    elif decision == "approved" and flagged and not force:
+        raise GateError(f"governance flagged {flagged}; re-run, or approve with --force and a note")
     dst = run_dir(root, decision, run_id)
     if dst.exists():
         raise GateError(f"destination {dst} already exists; refusing to merge directories")
-    manifest["decision"] = {
-        "state": decision,
-        "by": by.strip(),
-        "note": note.strip(),
-        "at": datetime.now(UTC).isoformat(timespec="seconds"),
-        "forced": bool(force and flagged),
-        "flagged_roles": flagged,
-    }
-    manifest["status"] = decision
-    # Record the decision in place first, then move: a crash between the two leaves a run in
-    # pending/ whose manifest already carries the decision, and re-running completes the move.
-    write_manifest(src, manifest)
+    if not prior:
+        manifest["decision"] = {
+            "state": decision,
+            "by": by.strip(),
+            "note": note.strip(),
+            "at": datetime.now(UTC).isoformat(timespec="seconds"),
+            "forced": bool(force and flagged),
+            "flagged_roles": flagged,
+        }
+        manifest["status"] = decision
+        # Record the decision in place first, then move: a crash between the two leaves a run in
+        # pending/ whose manifest already carries the decision; re-running completes the move.
+        write_manifest(src, manifest)
     dst.parent.mkdir(parents=True, exist_ok=True)
-    shutil.move(str(src), str(dst))
+    # os.rename is atomic and fails if another decision already moved or replaced the directory.
+    os.rename(src, dst)
     append_log(
         {
             "event": decision,

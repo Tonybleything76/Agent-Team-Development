@@ -6,13 +6,16 @@ from dataclasses import dataclass, field
 REQUIRED_SECTIONS: tuple[str, ...] = ("objective", "body", "citations", "risks", "next steps")
 MIN_SECTION_CHARS = 3
 
-_SECTION_ALT = "|".join(re.escape(s) for s in REQUIRED_SECTIONS)
-# A heading is a section name at line start. Markdown headings ('## Risks', '## 2. Risks') and
-# bold labels ('**Risks**') need no colon; a plain word, a list item ('- Risks:') or a numbered
-# line ('2. Risks:') counts only with a colon, so body bullets like '- Risks of delay' are prose.
+# Accept the common label variants: "Objective(s)", "Next Step(s)".
+_SECTION_ALT = "|".join(re.escape(sec.rstrip("s")) + "s?" for sec in REQUIRED_SECTIONS)
+# A heading is a section name at line start. Markdown headings ('## Risks', '## 2. Risks') need
+# no colon. A bold label ('**Risks**') counts when it is alone on its line or has a colon, so
+# prose like '**Risks** of delay are real' stays body text. A plain word, a list item ('- Risks:')
+# or a numbered line ('2. Risks:') counts only with a colon.
 _HEADING_RE = re.compile(
-    rf"^[ \t]*(?P<md>#+[ \t]*(?:\d+[.)][ \t]*)?|\*\*)?(?P<list>[-*][ \t]+|\d+[.)][ \t]+)?"
-    rf"(?:\*\*)?(?P<name>{_SECTION_ALT})(?:\*\*)?[ \t]*(?P<colon>:)?(?:\*\*)?[ \t]*(?P<rest>.*)$",
+    rf"^[ \t]*(?P<hash>#+[ \t]*(?:\d+[.)][ \t]*)?)?(?P<list>[-*][ \t]+|\d+[.)][ \t]+)?"
+    rf"(?P<bold>\*\*)?(?P<name>{_SECTION_ALT})(?:\*\*)?[ \t]*(?P<colon>:)?(?:\*\*)?"
+    rf"[ \t]*(?P<rest>.*)$",
     re.IGNORECASE | re.MULTILINE,
 )
 PLACEHOLDER_RE = re.compile(
@@ -50,12 +53,24 @@ def _luhn_ok(digits: str) -> bool:
     return total % 10 == 0
 
 
+def _canonical(label: str) -> str:
+    label = label.lower()
+    for sec in REQUIRED_SECTIONS:
+        if label in (sec, sec + "s") or label + "s" == sec:
+            return sec
+    return label
+
+
 def split_sections(text: str) -> dict[str, str]:
     """Map each recognised heading (lower-case) to the text under it, up to the next heading."""
     found: dict[str, str] = {}
-    matches = [m for m in _HEADING_RE.finditer(text) if m.group("md") or m.group("colon")]
+    matches = [
+        m
+        for m in _HEADING_RE.finditer(text)
+        if m.group("hash") or m.group("colon") or (m.group("bold") and not m.group("rest"))
+    ]
     for i, m in enumerate(matches):
-        name = m.group("name").lower()
+        name = _canonical(m.group("name"))
         if name in found:
             continue
         end = matches[i + 1].start() if i + 1 < len(matches) else len(text)

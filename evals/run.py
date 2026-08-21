@@ -25,13 +25,17 @@ RESULTS = HERE / "results"
 BASELINE = RESULTS / "baseline.json"
 # Metrics that may not drop below the baseline. Rates that include the deliberately hard router
 # cases are reported but not gated, so adding an honest failing hard case is never a regression.
+# Hard-case *passing count* (not rate) is gated, so adding an honest failing hard case is fine
+# but a router change that breaks a hard case that used to pass is a regression. Easy-case count
+# is gated so a failing easy case cannot be hidden by relabelling it hard.
 GATED_METRICS = (
     "router_easy_exact_rate",
+    "router_easy_cases",
+    "router_hard_passing",
     "governance_verdict_rate",
     "governance_issue_recall",
     "dryrun_specialists_governance_clean",
     "router_cases",
-    "router_hard_cases",
     "governance_cases",
     "dryrun_specialists",
 )
@@ -77,7 +81,9 @@ def eval_router(cases: list[dict]) -> tuple[dict, list[dict]]:
         "router_first_role_rate": first / n,
         "router_easy_exact_rate": sum(r["exact"] for r in easy) / max(len(easy), 1),
         "router_hard_exact_rate": sum(r["exact"] for r in hard) / max(len(hard), 1),
+        "router_hard_passing": sum(r["exact"] for r in hard),
         "router_cases": n,
+        "router_easy_cases": len(easy),
         "router_hard_cases": len(hard),
     }, rows
 

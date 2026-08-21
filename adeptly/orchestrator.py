@@ -9,7 +9,15 @@ from .governance import Review, review_text
 from .llm import LLMClient, build_prompt, get_llm
 from .roles import SPECIALISTS, get_role
 from .router import Plan, Router
-from .storage import append_log, artifact_root, new_run_id, run_dir, write_manifest
+from .storage import (
+    append_log,
+    artifact_root,
+    clear_lock,
+    new_run_id,
+    run_dir,
+    write_lock,
+    write_manifest,
+)
 
 log = logging.getLogger(__name__)
 # Each specialist sees at most this many characters of every predecessor's artifact.
@@ -81,6 +89,7 @@ def run(
     )
     out = run_dir(artifact_root(root), "pending", run_id)
     out.mkdir(parents=True, exist_ok=False)  # a collision is a bug, never a silent merge
+    write_lock(out)  # tells the gate a live process owns this directory
     write_manifest(out, asdict(record))
     append_log(
         {
@@ -131,6 +140,7 @@ def run(
 
     record.status = "pending"
     write_manifest(out, asdict(record))
+    clear_lock(out)
     append_log(
         {
             "event": "run_end",

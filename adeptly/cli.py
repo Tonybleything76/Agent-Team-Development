@@ -20,9 +20,11 @@ def load_dotenv(path: Path) -> None:
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, value = line.split("=", 1)
-        key, value = key.strip(), value.strip()
-        if value[:1] in ("'", '"') and value[-1:] == value[:1] and len(value) >= 2:
-            value = value[1:-1]
+        key, value = key.strip().removeprefix("export ").strip(), value.strip()
+        if value[:1] in ("'", '"'):
+            quote = value[0]
+            end = value.find(quote, 1)
+            value = value[1:end] if end > 0 else value[1:]
         else:
             value = value.split(" #", 1)[0].split("\t#", 1)[0].strip()
         if key and key not in os.environ:
@@ -143,8 +145,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     if args.root:
         os.environ[ROOT_ENV] = args.root
-    load_dotenv(Path(args.env_file))
     try:
+        load_dotenv(Path(args.env_file))
         return args.fn(args)
     except (gate.GateError, StorageError, ValueError, RuntimeError, OSError) as exc:
         print(f"error: {exc}", file=sys.stderr)

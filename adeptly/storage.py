@@ -60,8 +60,12 @@ def find_run(root: Path, run_id: str) -> tuple[str, Path] | None:
 
 
 def write_manifest(d: Path, manifest: dict) -> Path:
-    """Write via temp file + atomic rename so a crash never leaves a half-written manifest."""
-    d.mkdir(parents=True, exist_ok=True)
+    """Write via temp file + atomic rename so a crash never leaves a half-written manifest.
+
+    The run directory must already exist: never recreate one that a concurrent decision moved.
+    """
+    if not d.is_dir():
+        raise StorageError(f"run directory {d} does not exist")
     final = d / "manifest.json"
     tmp = d / ".manifest.json.tmp"
     tmp.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
@@ -72,9 +76,41 @@ def write_manifest(d: Path, manifest: dict) -> Path:
 def read_manifest(d: Path) -> dict:
     p = d / "manifest.json"
     try:
-        return json.loads(p.read_text(encoding="utf-8"))
+        m = json.loads(p.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise StorageError(f"unreadable manifest at {p}: {exc}") from exc
+    if (
+        not isinstance(m, dict)
+        or not isinstance(m.get("run_id"), str)
+        or not isinstance(m.get("artifacts"), list)
+        or any(not isinstance(a, dict) or "role" not in a for a in m["artifacts"])
+    ):
+        raise StorageError(f"malformed manifest at {p}")
+    return m
+
+
+LOCK_NAME = "run.lock"
+
+
+def write_lock(d: Path) -> None:
+    (d / LOCK_NAME).write_text(str(os.getpid()), encoding="utf-8")
+
+
+def clear_lock(d: Path) -> None:
+    (d / LOCK_NAME).unlink(missing_ok=True)
+
+
+def lock_holder_alive(d: Path) -> bool:
+    """True if a run.lock exists and its pid is still running (the orchestrator is live)."""
+    p = d / LOCK_NAME
+    if not p.exists():
+        return False
+    try:
+        pid = int(p.read_text(encoding="utf-8").strip())
+        os.kill(pid, 0)
+    except (ValueError, ProcessLookupError, PermissionError):
+        return False
+    return True
 
 
 def append_log(event: dict, path: Path | None = None) -> None:

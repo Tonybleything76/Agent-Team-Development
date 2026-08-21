@@ -127,3 +127,16 @@ def test_plain_figures_and_year_lists_are_not_pii():
     assert review_text(GOOD + "Card 4111 1111 1111 1111\n").issues == [
         "Possible PII: card-shaped number present"
     ]
+
+
+def test_pluralised_labels_are_accepted():
+    r = review_text(GOOD.replace("Objective:", "Objectives:").replace("Next Steps:", "Next Step:"))
+    assert r.ok, r.issues
+
+
+def test_bold_section_word_in_prose_is_not_a_heading():
+    text = (
+        "Objective: Improve onboarding\nBody: intro.\n**Risks** of delay are real, manageable.\n"
+        "Citations: https://x.io/a\nRisks: TBD\nNext Steps: pilot in Q3\n"
+    )
+    assert "Placeholder content in section: risks" in review_text(text).issues

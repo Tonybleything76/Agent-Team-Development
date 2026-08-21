@@ -96,3 +96,21 @@ def test_os_errors_are_one_line(workdir, tmp_path, capsys):
         assert capsys.readouterr().err.startswith("error: ")
     finally:
         blocked.chmod(0o755)
+
+
+def test_dotenv_handles_export_and_quoted_with_comment(tmp_path, monkeypatch):
+    import os
+
+    from adeptly.cli import load_dotenv
+
+    env = tmp_path / "y.env"
+    env.write_text('export EXP_KEY=abc\nQ_KEY="sk-abc" # prod key\n')
+    monkeypatch.delenv("EXP_KEY", raising=False)
+    monkeypatch.delenv("Q_KEY", raising=False)
+    load_dotenv(env)
+    assert os.environ["EXP_KEY"] == "abc" and os.environ["Q_KEY"] == "sk-abc"
+
+
+def test_env_file_pointing_at_directory_is_one_line(workdir, tmp_path, capsys):
+    assert main(["--env-file", str(tmp_path), "roles"]) == 2
+    assert capsys.readouterr().err.startswith("error: ")

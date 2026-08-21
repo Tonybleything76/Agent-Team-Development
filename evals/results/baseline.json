@@ -1,6 +1,6 @@
 {
   "version": "0.2.0",
-  "ran_at": "2026-08-21T12:15:06+00:00",
+  "ran_at": "2026-08-21T12:30:14+00:00",
   "how_measured": {
     "router_exact_plan_rate": "share of router cases whose full ordered plan equals the expected",
     "router_easy_exact_rate": "same, over cases that contain a rule keyword (regression guard)",
@@ -12,11 +12,12 @@
   },
   "gated_metrics": [
     "router_easy_exact_rate",
+    "router_easy_cases",
+    "router_hard_passing",
     "governance_verdict_rate",
     "governance_issue_recall",
     "dryrun_specialists_governance_clean",
     "router_cases",
-    "router_hard_cases",
     "governance_cases",
     "dryrun_specialists"
   ],
@@ -25,7 +26,9 @@
     "router_first_role_rate": 0.96875,
     "router_easy_exact_rate": 1.0,
     "router_hard_exact_rate": 0.875,
+    "router_hard_passing": 7,
     "router_cases": 32,
+    "router_easy_cases": 24,
     "router_hard_cases": 8,
     "governance_verdict_rate": 1.0,
     "governance_issue_recall": 1.0,

@@ -75,8 +75,10 @@ uv run adeptly reject  <run_id> --by "Your Name" --reason "placeholder content"
 To use a real model: `cp .env.example .env`, set `LLM_PROVIDER` and a key, then
 `uv sync --extra openai` (or `--extra anthropic`) and run as above (or pass `--provider`).
 The CLI loads `.env` from the current directory (values already in the environment win);
-`.env` is git-ignored. Output goes to `./out` and `./logs` — pass `--root <dir>` or set
-`ADEPTLY_ROOT` to put them elsewhere. All variables are listed in `.env.example`.
+`.env` is git-ignored (`--env-file <path>` to use another). Output goes to `./out` and `./logs`
+— set `ADEPTLY_ROOT` or pass `--root <dir>` *before* the subcommand (`adeptly --root /tmp/x run
+"…"`) to put them elsewhere. `adeptly pending --state approved|rejected` lists decided runs.
+All variables are listed in `.env.example`.
 
 ## Test it
 
@@ -91,7 +93,7 @@ uv run python -m evals.run   # scored eval; writes evals/results/latest.json (gi
 
 - Not a production deployment. There is no queue, no UI, no auth; the gate is an atomic file move and a log line, on purpose.
 - Not connected to tools yet. MCP server wiring from the first sketch was removed because it never worked; re-adding it is the next step once the gate is proven.
-- Not a claim about output quality. The dry-run provider exists to prove the control flow, not the content, and the eval is a regression harness over fixed cases — it measures that the rules do what they say, not that routing or governance is good in the wild. The eval's "hard" router cases are there to keep that honest; see `evals/results/latest.json`.
+- Not a claim about output quality. The dry-run provider exists to prove the control flow, not the content, and the eval is a regression harness over fixed cases — it measures that the rules do what they say, not that routing or governance is good in the wild. The eval's "hard" router cases are there to keep that honest; see the committed `evals/results/baseline.json` (and `latest.json` after you run the eval).
 - Not yet exercised against a real model in this repo. The OpenAI and Anthropic providers are unit-tested with fake clients only.
 
 ## History

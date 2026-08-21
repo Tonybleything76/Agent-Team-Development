@@ -63,17 +63,6 @@ def test_run_with_errored_specialist_is_flagged_not_crashing(workdir):
     assert m["status"] == "approved"
 
 
-def test_decision_is_recorded_in_manifest_before_move(workdir, fake_llm, monkeypatch):
-    import shutil
-
-    rec = _run(fake_llm)
-    monkeypatch.setattr(shutil, "move", lambda *a, **k: (_ for _ in ()).throw(OSError("disk")))
-    with pytest.raises(OSError):
-        gate.approve(rec.run_id, by="Tony")
-    state, d = gate.find_run(artifact_root(), rec.run_id)
-    assert state == "pending" and gate.read_manifest(d)["decision"]["by"] == "Tony"
-
-
 def test_incomplete_and_corrupt_runs_are_surfaced(workdir, fake_llm):
     rec = _run(fake_llm)
     (artifact_root() / "pending" / "20260101_000000_aaaaaa").mkdir(parents=True)
@@ -138,6 +127,47 @@ def test_interrupted_run_can_be_rejected_but_not_approved(workdir, fake_llm):
     m = gate.read_manifest(d)
     m["status"] = "running"
     gate.write_manifest(d, m)
-    with pytest.raises(gate.GateError, match="still running"):
+    with pytest.raises(gate.GateError, match="interrupted"):
         gate.approve(rec.run_id, by="Tony", force=True, note="x")
     assert gate.reject(rec.run_id, by="Tony", reason="interrupted")["status"] == "rejected"
+
+
+def test_recorded_decision_cannot_be_overwritten_and_can_be_completed(
+    workdir, fake_llm, monkeypatch
+):
+    import os
+
+    rec = _run(fake_llm)
+    real_rename = os.rename
+    monkeypatch.setattr(os, "rename", lambda *a, **k: (_ for _ in ()).throw(OSError("disk")))
+    with pytest.raises(OSError):
+        gate.approve(rec.run_id, by="Tony")
+    monkeypatch.setattr(os, "rename", real_rename)
+    listed = {m["run_id"]: m["status"] for m in gate.list_runs("pending")}
+    assert "decision recorded" in listed[rec.run_id]
+    with pytest.raises(gate.GateError, match="already has a recorded approved by Tony"):
+        gate.reject(rec.run_id, by="Mallory", reason="nah")
+    m = gate.approve(rec.run_id, by="Someone Else")  # completes Tony's recorded decision
+    assert m["decision"]["by"] == "Tony" and m["status"] == "approved"
+
+
+def test_live_run_cannot_be_decided(workdir, fake_llm):
+    from adeptly.storage import write_lock
+
+    rec = _run(fake_llm)
+    _, d = gate.find_run(artifact_root(), rec.run_id)
+    write_lock(d)  # our own pid: alive
+    with pytest.raises(gate.GateError, match="still running"):
+        gate.reject(rec.run_id, by="Tony", reason="x")
+    assert "running (live)" in gate.list_runs("pending")[0]["status"]
+
+
+def test_malformed_manifest_is_a_gate_error(workdir):
+    d = artifact_root() / "pending" / "20260101_000000_cccccc"
+    d.mkdir(parents=True)
+    (d / "manifest.json").write_text(
+        '{"run_id": "20260101_000000_cccccc", "artifacts": [{"file": "x"}]}'
+    )
+    with pytest.raises(gate.GateError, match="malformed"):
+        gate.reject("20260101_000000_cccccc", by="Tony", reason="x")
+    assert gate.list_runs("pending")[0]["status"].startswith("corrupt")
