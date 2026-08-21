@@ -42,12 +42,13 @@ task ──▶ Router ──▶ [specialist 1] ─▶ [specialist 2] ─▶ … 
 3. **Governance** (`adeptly/governance.py`): every artifact must carry Objective, Body, Citations
    (with an https URL inside that section), Risks and Next Steps — plain, markdown or bold
    headings — with no placeholder text (`TBD`, `...`, `-`), nothing shorter than three characters,
-   and no email, phone, SSN- or card-shaped numbers. Rule-based, so it catches shape and obvious
-   leaks, not judgment. Verdict is APPROVE or REVISE and is recorded in the run manifest.
+   and no email, phone (with separators), SSN-shaped or Luhn-valid card-shaped numbers. Rule-based,
+   so it catches shape and obvious leaks, not judgment. Verdict is APPROVE or REVISE and is recorded in the run manifest.
 4. **The human gate** (`adeptly/gate.py`): every run lands in `out/pending/`. A run moves to
    `out/approved/` only when someone runs `adeptly approve <run_id> --by "<name>"`. If Governance
    flagged anything — or a specialist errored — approval is refused unless you pass `--force`
-   *and* a `--note` saying why. Rejections require a reason. The decision is written into the
+   *and* a `--note` saying why, and the manifest records `forced: true` with the flagged roles.
+   Rejections require a reason. The decision is written into the
    manifest before the directory moves, so an interrupted decision is never lost, and every
    decision is appended to `logs/runs.jsonl` with who and when. `run_id`s are validated against
    the generated shape; nothing outside `out/` can be addressed.
@@ -82,7 +83,8 @@ The CLI loads `.env` from the current directory (values already in the environme
 ```bash
 uv run ruff check .          # lint
 uv run pytest                # unit tests: router, governance, gate, orchestrator, CLI
-uv run python -m evals.run   # scored eval of router + governance; writes evals/results/latest.json
+uv run python -m evals.run   # scored eval; writes evals/results/latest.json (git-ignored),
+                             # fails on regression against the committed evals/results/baseline.json
 ```
 
 ## What this is not

@@ -43,10 +43,12 @@ missing or corrupt manifest instead of hiding them.
 ## Data shapes
 
 `manifest.json` (one per run): `run_id, task, provider, plan{roles, matched_rules}, artifacts[{role,
-file, review{ok, issues, verdict}, error}], status, created_at, version, decision{state, by,
-note, at}` (decision appears after approve/reject).
+file, review{ok, issues, verdict}, error}], status (running → pending → approved|rejected),
+created_at, version, decision{state, by, note, at, forced, flagged_roles}` (decision appears
+after approve/reject; `forced` is true when a human overrode governance flags).
 
-`logs/runs.jsonl` events: `run_start, artifact, specialist_error, run_end, approved, rejected`.
+`logs/runs.jsonl` events: `run_start, artifact, specialist_error, run_end, approved, rejected`
+(decision events carry `by`, `note`, `forced`).
 
 ## Accepted limitations (reviewed 2026-08-20)
 

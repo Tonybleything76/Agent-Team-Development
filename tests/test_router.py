@@ -48,3 +48,15 @@ def test_supervisors_are_never_routed_to(router):
     for _, keywords, _ in ROUTING_RULES:
         plan = router.route(" ".join(keywords))
         assert "router" not in plan.roles and "governance" not in plan.roles
+
+
+def test_router_rejects_unknown_default_roles():
+    with pytest.raises(ValueError, match="default"):
+        Router(default=("nobody",))
+
+
+def test_conversational_course_does_not_route_to_ld(router):
+    assert router.route("Of course we should start with a roadmap").roles == [
+        "strategist",
+        "data_scientist",
+    ]

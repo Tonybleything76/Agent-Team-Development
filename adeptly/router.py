@@ -77,9 +77,13 @@ ROUTING_RULES: list[tuple[str, tuple[str, ...], tuple[str, ...]]] = [
     ),
     ("legal", ("nda", "msa", "contract", "redline", "clause"), ("legal",)),
     ("people", ("onboard", "onboarding", "sop", "skills matrix", "hiring"), ("hr", "ld")),
-    ("enablement", ("curriculum", "training", "course", "enablement"), ("ld",)),
+    (
+        "enablement",
+        ("curriculum", "training", "training course", "course design", "enablement"),
+        ("ld",),
+    ),
     ("finance", ("invoice", "forecast", "pricing", "budget", "month-end"), ("finance",)),
-    ("operations", ("capacity", "burn", "vendor management"), ("operations",)),
+    ("operations", ("capacity", "burn report", "burn rate", "vendor management"), ("operations",)),
     (
         "it",
         ("provision", "provisioning", "backup", "monitoring", "incident"),
@@ -128,7 +132,7 @@ class Router:
     """Keyword router. Deterministic on purpose: a plan must be explainable and testable."""
 
     def __init__(self, rules=ROUTING_RULES, default: tuple[str, ...] = DEFAULT_ROLES):
-        for name, _, roles in rules:
+        for name, _, roles in [*rules, ("default", (), default)]:
             unknown = [r for r in roles if r not in SPECIALISTS]
             if unknown:
                 raise ValueError(f"rule '{name}' names unknown specialists: {unknown}")

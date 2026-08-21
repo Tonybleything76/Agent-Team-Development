@@ -7,11 +7,12 @@ REQUIRED_SECTIONS: tuple[str, ...] = ("objective", "body", "citations", "risks",
 MIN_SECTION_CHARS = 3
 
 _SECTION_ALT = "|".join(re.escape(s) for s in REQUIRED_SECTIONS)
-# A heading is a section name at line start, either followed by ':' or wrapped in a markdown
-# marker ('## Risks', '**Risks**', '- Risks'). A bare word with neither is body text.
+# A heading is a section name at line start. Markdown headings ('## Risks', '## 2. Risks') and
+# bold labels ('**Risks**') need no colon; a plain word, a list item ('- Risks:') or a numbered
+# line ('2. Risks:') counts only with a colon, so body bullets like '- Risks of delay' are prose.
 _HEADING_RE = re.compile(
-    rf"^[ \t]*(?P<md>#+[ \t]*|[-*][ \t]+|\*\*)?(?P<name>{_SECTION_ALT})(?:\*\*)?[ \t]*"
-    rf"(?P<colon>:)?(?:\*\*)?[ \t]*(?P<rest>.*)$",
+    rf"^[ \t]*(?P<md>#+[ \t]*(?:\d+[.)][ \t]*)?|\*\*)?(?P<list>[-*][ \t]+|\d+[.)][ \t]+)?"
+    rf"(?:\*\*)?(?P<name>{_SECTION_ALT})(?:\*\*)?[ \t]*(?P<colon>:)?(?:\*\*)?[ \t]*(?P<rest>.*)$",
     re.IGNORECASE | re.MULTILINE,
 )
 PLACEHOLDER_RE = re.compile(
@@ -20,7 +21,11 @@ PLACEHOLDER_RE = re.compile(
 )
 HTTPS_RE = re.compile(r"https://\S+")
 EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
-PHONE_RE = re.compile(r"(?<!\d)(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}(?!\d)")
+# Phone needs separators or parentheses so a bare 10-digit figure (a population, a budget) is
+# not flagged; card-shaped numbers must also pass a Luhn check so four years in a row are not.
+PHONE_RE = re.compile(
+    r"(?<!\d)(?:\+?1[-.\s]?)?(?:\(\d{3}\)[-.\s]?|\d{3}[-.\s])\d{3}[-.\s]\d{4}(?!\d)"
+)
 SSN_RE = re.compile(r"\b\d{3}-\d{2}-\d{4}\b")
 CARD_RE = re.compile(r"\b\d{4}[ -]?\d{4}[ -]?\d{4}[ -]?\d{4}\b")
 
@@ -33,6 +38,16 @@ class Review:
     @property
     def verdict(self) -> str:
         return "APPROVE" if self.ok else "REVISE"
+
+
+def _luhn_ok(digits: str) -> bool:
+    ds = [int(c) for c in digits if c.isdigit()]
+    total = 0
+    for i, d in enumerate(reversed(ds)):
+        if i % 2 == 1:
+            d = d * 2 - 9 if d * 2 > 9 else d * 2
+        total += d
+    return total % 10 == 0
 
 
 def split_sections(text: str) -> dict[str, str]:
@@ -69,6 +84,6 @@ def review_text(text: str) -> Review:
         issues.append("Possible PII: phone number present")
     if SSN_RE.search(text):
         issues.append("Possible PII: SSN-shaped number present")
-    if CARD_RE.search(text):
+    if any(_luhn_ok(m.group(0)) for m in CARD_RE.finditer(text)):
         issues.append("Possible PII: card-shaped number present")
     return Review(ok=not issues, issues=issues)

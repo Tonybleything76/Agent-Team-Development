@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from . import __version__
+from .gate import flagged_roles
 from .governance import Review, review_text
 from .llm import LLMClient, build_prompt, get_llm
 from .roles import SPECIALISTS, get_role
@@ -36,7 +37,7 @@ class RunRecord:
 
     @property
     def all_approved_by_governance(self) -> bool:
-        return all(a.review and a.review["verdict"] == "APPROVE" for a in self.artifacts)
+        return not flagged_roles([asdict(a) for a in self.artifacts])
 
 
 def _excerpt(text: str) -> str:

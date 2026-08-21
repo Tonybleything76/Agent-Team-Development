@@ -1,6 +1,6 @@
 {
   "version": "0.2.0",
-  "ran_at": "2026-08-20T23:22:30+00:00",
+  "ran_at": "2026-08-21T12:15:07+00:00",
   "how_measured": {
     "router_exact_plan_rate": "share of router cases whose full ordered plan equals the expected",
     "router_easy_exact_rate": "same, over cases that contain a rule keyword (regression guard)",

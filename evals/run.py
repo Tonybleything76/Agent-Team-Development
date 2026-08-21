@@ -23,6 +23,18 @@ HERE = Path(__file__).parent
 CASES = HERE / "cases.json"
 RESULTS = HERE / "results"
 BASELINE = RESULTS / "baseline.json"
+# Metrics that may not drop below the baseline. Rates that include the deliberately hard router
+# cases are reported but not gated, so adding an honest failing hard case is never a regression.
+GATED_METRICS = (
+    "router_easy_exact_rate",
+    "governance_verdict_rate",
+    "governance_issue_recall",
+    "dryrun_specialists_governance_clean",
+    "router_cases",
+    "router_hard_cases",
+    "governance_cases",
+    "dryrun_specialists",
+)
 HOW_MEASURED = {
     "router_exact_plan_rate": "share of router cases whose full ordered plan equals the expected",
     "router_easy_exact_rate": "same, over cases that contain a rule keyword (regression guard)",
@@ -165,15 +177,28 @@ def main(argv=None) -> int:
             return 1
         BASELINE.write_text(
             json.dumps(
-                {"version": __version__, "ran_at": result["ran_at"], "metrics": metrics}, indent=2
+                {
+                    "version": __version__,
+                    "ran_at": result["ran_at"],
+                    "how_measured": HOW_MEASURED,
+                    "gated_metrics": list(GATED_METRICS),
+                    "metrics": metrics,
+                    "failures": [f["id"] for f in failures],
+                    "borderline_for_human_review": [b["id"] for b in borderline],
+                },
+                indent=2,
             )
         )
         print(f"  baseline written to {BASELINE}")
         return 0
     if BASELINE.exists():
         base = json.loads(BASELINE.read_text())["metrics"]
-        # Rates must not drop; case counts must not shrink (deleting hard cases is a regression).
-        regressions = {k: (base[k], metrics.get(k, 0)) for k in base if metrics.get(k, 0) < base[k]}
+        # Gated rates must not drop; case counts must not shrink (deleting cases is a regression).
+        regressions = {
+            k: (base[k], metrics.get(k, 0))
+            for k in GATED_METRICS
+            if k in base and metrics.get(k, 0) < base[k]
+        }
         if regressions:
             print(f"  REGRESSION vs baseline: {regressions}")
             return 1

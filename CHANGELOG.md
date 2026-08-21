@@ -35,6 +35,14 @@ Found in review and fixed before release:
   line and exit 2 instead of a traceback. `--root` / `ADEPTLY_ROOT` added.
 - Eval: `--set-baseline` refuses when cases fail; case-count shrinkage counts as regression.
 - Version single-sourced from `adeptly/__init__.py`; `VERSION` checked by a test.
+- Second review pass: `--force` was briefly persisted into the manifest and could leak into a
+  later plain approve — replaced with a parameter and a recorded `decision.forced`; interrupted
+  (`running`) runs can be rejected but not approved; numbered markdown headings recognised;
+  body bullets starting with a section word no longer read as headings; phone needs separators
+  and card shapes need a Luhn pass (no false PII on figures/years); inline `#` comments in
+  `.env` stripped; `OSError` handled as a one-line CLI error; tests hermetic (`ADEPTLY_ENV_FILE`,
+  `ADEPTLY_ROOT`); eval gates only regression-guard metrics so honest hard-case failures are
+  never "regressions"; `latest.json` git-ignored, `baseline.json` is the committed record.
 
 ## 0.1.0 — 2025-08-15
 

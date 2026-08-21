@@ -1,6 +1,25 @@
 {
   "version": "0.2.0",
-  "ran_at": "2026-08-20T23:22:30+00:00",
+  "ran_at": "2026-08-21T12:15:06+00:00",
+  "how_measured": {
+    "router_exact_plan_rate": "share of router cases whose full ordered plan equals the expected",
+    "router_easy_exact_rate": "same, over cases that contain a rule keyword (regression guard)",
+    "router_hard_exact_rate": "same, over realistic ambiguous cases; expected to be well below 1.0",
+    "router_first_role_rate": "share of router cases whose first dispatched role matches",
+    "governance_verdict_rate": "share of governance cases with the expected APPROVE/REVISE verdict",
+    "governance_issue_recall": "share of governance cases where every expected issue was reported",
+    "dryrun_specialists_governance_clean": "share of specialists whose dry-run output passes"
+  },
+  "gated_metrics": [
+    "router_easy_exact_rate",
+    "governance_verdict_rate",
+    "governance_issue_recall",
+    "dryrun_specialists_governance_clean",
+    "router_cases",
+    "router_hard_cases",
+    "governance_cases",
+    "dryrun_specialists"
+  ],
   "metrics": {
     "router_exact_plan_rate": 0.96875,
     "router_first_role_rate": 0.96875,
@@ -13,5 +32,12 @@
     "governance_cases": 18,
     "dryrun_specialists_governance_clean": 1.0,
     "dryrun_specialists": 20
-  }
+  },
+  "failures": [
+    "h05"
+  ],
+  "borderline_for_human_review": [
+    "g12",
+    "g18"
+  ]
 }

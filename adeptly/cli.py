@@ -20,7 +20,11 @@ def load_dotenv(path: Path) -> None:
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, value = line.split("=", 1)
-        key, value = key.strip(), value.strip().strip("'\"")
+        key, value = key.strip(), value.strip()
+        if value[:1] in ("'", '"') and value[-1:] == value[:1] and len(value) >= 2:
+            value = value[1:-1]
+        else:
+            value = value.split(" #", 1)[0].split("\t#", 1)[0].strip()
         if key and key not in os.environ:
             os.environ[key] = value
 
@@ -94,7 +98,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--root",
         help="directory holding out/ and logs/ (default: $ADEPTLY_ROOT or current directory)",
     )
-    p.add_argument("--env-file", default=".env", help="dotenv file to load (default: .env)")
+    p.add_argument(
+        "--env-file",
+        default=os.getenv("ADEPTLY_ENV_FILE", ".env"),
+        help="dotenv file to load (default: $ADEPTLY_ENV_FILE or .env)",
+    )
     sub = p.add_subparsers(dest="cmd", required=True)
 
     s = sub.add_parser("run", help="route a task to specialists and park output in pending/")
@@ -138,7 +146,7 @@ def main(argv: list[str] | None = None) -> int:
     load_dotenv(Path(args.env_file))
     try:
         return args.fn(args)
-    except (gate.GateError, StorageError, ValueError, RuntimeError) as exc:
+    except (gate.GateError, StorageError, ValueError, RuntimeError, OSError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 

@@ -4,8 +4,10 @@ import pytest
 @pytest.fixture
 def workdir(tmp_path, monkeypatch):
     """Point artifact and log output at a temp dir so tests never touch the repo."""
-    monkeypatch.setenv("ARTIFACT_DIR", str(tmp_path / "out"))
-    monkeypatch.setenv("LOG_DIR", str(tmp_path / "logs"))
+    monkeypatch.setenv("ADEPTLY_ROOT", str(tmp_path))
+    monkeypatch.setenv("ARTIFACT_DIR", "out")
+    monkeypatch.setenv("LOG_DIR", "logs")
+    monkeypatch.setenv("ADEPTLY_ENV_FILE", str(tmp_path / "no-such.env"))  # never read repo .env
     monkeypatch.delenv("LLM_PROVIDER", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)

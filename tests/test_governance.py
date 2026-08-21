@@ -95,3 +95,35 @@ def test_more_pii_shapes_are_flagged():
 def test_bare_section_word_in_prose_is_not_a_heading():
     r = review_text(GOOD.replace("Body: details here", "Body: Risks are discussed below in detail"))
     assert r.ok, r.issues
+
+
+def test_numbered_markdown_headings_are_recognised():
+    md = (
+        "## 1. Objective\nx\n## 2. Body\nyy\n## 3. Citations\nhttps://a.b\n## 4. Risks\nsome\n"
+        "## 5. Next Steps\ngo\n"
+    )
+    r = review_text(md)
+    assert r.ok, r.issues
+
+
+def test_body_bullet_starting_with_a_section_word_is_not_a_heading():
+    text = (
+        "Objective: Improve X\nBody: intro\n- Next steps schedule workshop\n- Risks of delay\n"
+        "Citations: https://a.b\nRisks: some\nNext Steps: TBD\n"
+    )
+    r = review_text(text)
+    assert "Placeholder content in section: next steps" in r.issues
+    text2 = GOOD.replace(
+        "Body: details here", "Body:\n- Objective 1 reduce cost\n- Objective 2 grow"
+    )
+    assert review_text(text2).ok, review_text(text2).issues
+
+
+def test_plain_figures_and_year_lists_are_not_pii():
+    r = review_text(
+        GOOD.replace("Body: details here", "Body: population 1400000000 across 2026 2027 2028 2029")
+    )
+    assert r.ok, r.issues
+    assert review_text(GOOD + "Card 4111 1111 1111 1111\n").issues == [
+        "Possible PII: card-shaped number present"
+    ]

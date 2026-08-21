@@ -110,3 +110,34 @@ def test_list_runs_by_state(workdir, fake_llm):
     gate.reject(b.run_id, by="Tony", reason="dup")
     assert [m["run_id"] for m in gate.list_runs("pending")] == [a.run_id]
     assert [m["run_id"] for m in gate.list_runs("rejected")] == [b.run_id]
+
+
+def test_failed_force_leaves_no_trace_and_forced_is_recorded(workdir):
+    from tests.conftest import RecordingLLM
+
+    rec = orchestrator.run("Draft an RFP response and SOW", llm=RecordingLLM(fail_roles=["Legal"]))
+    with pytest.raises(gate.GateError):
+        gate.approve(rec.run_id, by="   ", force=True, note="x")  # fails on approver name
+    with pytest.raises(gate.GateError, match="governance flagged"):
+        gate.approve(rec.run_id, by="Tony")  # plain approve still refused
+    m = gate.approve(rec.run_id, by="Tony", force=True, note="legal reviewed offline")
+    assert m["decision"]["forced"] is True and m["decision"]["flagged_roles"] == ["legal"]
+    events = [json.loads(line) for line in log_path().read_text().splitlines()]
+    assert events[-1]["event"] == "approved" and events[-1]["forced"] is True
+
+
+def test_clean_approval_records_forced_false(workdir, fake_llm):
+    rec = _run(fake_llm)
+    m = gate.approve(rec.run_id, by="Tony")
+    assert m["decision"]["forced"] is False and m["decision"]["flagged_roles"] == []
+
+
+def test_interrupted_run_can_be_rejected_but_not_approved(workdir, fake_llm):
+    rec = _run(fake_llm)
+    _, d = gate.find_run(artifact_root(), rec.run_id)
+    m = gate.read_manifest(d)
+    m["status"] = "running"
+    gate.write_manifest(d, m)
+    with pytest.raises(gate.GateError, match="still running"):
+        gate.approve(rec.run_id, by="Tony", force=True, note="x")
+    assert gate.reject(rec.run_id, by="Tony", reason="interrupted")["status"] == "rejected"

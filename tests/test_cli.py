@@ -61,13 +61,13 @@ def test_dotenv_is_loaded_without_overriding_environment(workdir, tmp_path, monk
     from adeptly.cli import load_dotenv
 
     env = tmp_path / "x.env"
-    env.write_text("# comment\nFOO_FROM_FILE=abc\nBAR='quoted'\nPRESET=file\n")
+    env.write_text("# comment\nFOO_FROM_FILE=abc   # inline\nBAR='quoted # kept'\nPRESET=file\n")
     monkeypatch.setenv("PRESET", "env")
     monkeypatch.delenv("FOO_FROM_FILE", raising=False)
     load_dotenv(env)
     import os
 
-    assert os.environ["FOO_FROM_FILE"] == "abc" and os.environ["BAR"] == "quoted"
+    assert os.environ["FOO_FROM_FILE"] == "abc" and os.environ["BAR"] == "quoted # kept"
     assert os.environ["PRESET"] == "env"
 
 
@@ -77,3 +77,22 @@ def test_root_flag_relocates_output(workdir, tmp_path, capsys, monkeypatch):
     other = tmp_path / "elsewhere"
     assert main(["--root", str(other), "run", "Define KPIs"]) == 0
     assert (other / "out" / "pending").exists() and (other / "logs" / "runs.jsonl").exists()
+
+
+def test_env_example_loads_and_runs_dry(workdir, tmp_path, capsys):
+    from pathlib import Path
+
+    example = Path(__file__).resolve().parents[1] / ".env.example"
+    assert main(["--env-file", str(example), "run", "Define KPIs"]) == 0
+    assert "provider: dryrun" in capsys.readouterr().out
+
+
+def test_os_errors_are_one_line(workdir, tmp_path, capsys):
+    blocked = tmp_path / "ro"
+    blocked.mkdir()
+    blocked.chmod(0o555)
+    try:
+        assert main(["--root", str(blocked), "run", "Define KPIs"]) == 2
+        assert capsys.readouterr().err.startswith("error: ")
+    finally:
+        blocked.chmod(0o755)
