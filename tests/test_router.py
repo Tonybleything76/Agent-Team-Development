@@ -12,7 +12,7 @@ def router():
 def test_whole_word_matching_prevents_substring_hits(router):
     # 'nda' must not fire inside 'agenda'; 'msa' must not fire inside 'msatellite'.
     plan = router.route("Schedule the weekly agenda and travel for the kickoff meeting")
-    assert plan.roles == ["ea"]
+    assert plan.roles == ["legal"]  # CI PROOF: deliberately wrong; reverted in the next commit
     assert "legal" not in plan.matched_rules
 
 
