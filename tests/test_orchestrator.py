@@ -2,11 +2,11 @@ import json
 
 import pytest
 
-from adeptly import orchestrator
-from adeptly.governance import REQUIRED_SECTIONS, review_text
-from adeptly.llm import DryRunLLM
-from adeptly.roles import SPECIALISTS
-from adeptly.storage import artifact_root, log_path
+from huminloop import orchestrator
+from huminloop.governance import REQUIRED_SECTIONS, review_text
+from huminloop.llm import DryRunLLM
+from huminloop.roles import SPECIALISTS
+from huminloop.storage import artifact_root, log_path
 from tests.conftest import RecordingLLM
 
 
@@ -94,7 +94,7 @@ def test_empty_generation_is_flagged_by_governance_not_crashing(workdir):
 
 
 def test_pii_in_the_task_is_refused_before_anything_is_written(workdir, fake_llm):
-    from adeptly.storage import artifact_root
+    from huminloop.storage import artifact_root
 
     with pytest.raises(ValueError, match="Possible PII"):
         orchestrator.run("email jane@acme.com about the retention schedule", llm=fake_llm)
@@ -107,7 +107,7 @@ def test_oversized_task_is_refused(workdir, fake_llm):
 
 
 def test_teammate_context_is_fenced_as_untrusted(workdir, fake_llm):
-    from adeptly.llm import CONTEXT_FENCE
+    from huminloop.llm import CONTEXT_FENCE
 
     orchestrator.run("Draft an RFP response and SOW", llm=fake_llm)
     second_prompt = fake_llm.calls[1][1]

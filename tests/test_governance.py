@@ -1,4 +1,4 @@
-from adeptly.governance import review_text
+from huminloop.governance import review_text
 
 GOOD = (
     "Objective: Improve onboarding\nBody: details here\n"

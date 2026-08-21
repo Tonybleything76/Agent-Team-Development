@@ -10,12 +10,12 @@ entry for the rebuild; this release is what pre-merge review found in it.
 Rebuilt from the 2025 sketch into a single runnable package.
 
 - Scrubbed history: removed committed `.env` (two OpenAI keys, both revoked), a committed virtualenv (14,526 files), logs, outputs and caches. `.git` went from 100 MB to 168 KB (measured with `du -sh .git` before and after `git filter-repo`, 2026-08-20; the pre-scrub objects are gone from this repo, so the figure is not re-derivable here).
-- Collapsed 22 copy-pasted agent packages into one role registry (`adeptly/roles.py`).
+- Collapsed 22 copy-pasted agent packages into one role registry (`huminloop/roles.py`).
 - Router now uses whole-word matching; found in dry-run that `nda` matched inside `agenda`.
 - Governance rejects placeholder sections and flags emails/phone numbers, not just missing headings.
 - Added the human approval gate (`pending → approved/rejected`, named approver, `--force` requires a note, every decision logged).
 - Added an offline dry-run LLM provider so the full loop runs without a key; OpenAI and Anthropic are optional extras.
-- Added CLI (`adeptly run|roles|pending|show|approve|reject`).
+- Added CLI (`huminloop run|roles|pending|show|approve|reject`).
 - Pinned dependencies with `uv.lock`; Python 3.11+.
 - Removed the unpinned `mcp-agent @ git+main` dependency and the MCP wiring that never worked.
 
@@ -37,9 +37,9 @@ Found in review and fixed before release:
   `script`, `thread`, `summary`, `meeting`, `retention`, `sequence`, `partner`) tightened to
   phrases. Eight realistic ambiguous cases added to the eval and allowed to fail.
 - CLI: `.env` was documented but never loaded; now loaded (environment wins). Errors print one
-  line and exit 2 instead of a traceback. `--root` / `ADEPTLY_ROOT` added.
+  line and exit 2 instead of a traceback. `--root` / `HUMINLOOP_ROOT` added.
 - Eval: `--set-baseline` refuses when cases fail; case-count shrinkage counts as regression.
-- Version single-sourced from `adeptly/__init__.py`; `VERSION` checked by a test.
+- Version single-sourced from `huminloop/__init__.py`; `VERSION` checked by a test.
 - OpenRouter provider (`LLM_PROVIDER=openrouter`): one key, any vendor's models; model/version
   and reasoning effort resolved per specialist role from env (`OPENROUTER_MODEL_<ROLE>`,
   `OPENROUTER_EFFORT_<ROLE>`), with global fallbacks. `generate()` now receives the role key.
@@ -48,12 +48,12 @@ Found in review and fixed before release:
   (`running`) runs can be rejected but not approved; numbered markdown headings recognised;
   body bullets starting with a section word no longer read as headings; phone needs separators
   and card shapes need a Luhn pass (no false PII on figures/years); inline `#` comments in
-  `.env` stripped; `OSError` handled as a one-line CLI error; tests hermetic (`ADEPTLY_ENV_FILE`,
-  `ADEPTLY_ROOT`); eval gates only regression-guard metrics so honest hard-case failures are
+  `.env` stripped; `OSError` handled as a one-line CLI error; tests hermetic (`HUMINLOOP_ENV_FILE`,
+  `HUMINLOOP_ROOT`); eval gates only regression-guard metrics so honest hard-case failures are
   never "regressions"; `latest.json` git-ignored, `baseline.json` is the committed record.
 - Pre-merge adversarial review (Codex plus a fresh-context subagent) found three defects that
   defeated the gate itself, all fixed with tests: artifact bytes were never verified, so editing
-  one field in `manifest.json` turned a flagged run into a clean approval; `adeptly show` printed
+  one field in `manifest.json` turned a flagged run into a clean approval; `huminloop show` printed
   model output raw, so ANSI escapes could repaint the reviewer's terminal just before approval;
   and `.env` could set any variable, including `OPENAI_BASE_URL`, redirecting model calls with
   the key attached.

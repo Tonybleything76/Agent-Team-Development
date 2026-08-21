@@ -6,7 +6,7 @@ import secrets
 from datetime import UTC, datetime
 from pathlib import Path
 
-ROOT_ENV = "ADEPTLY_ROOT"
+ROOT_ENV = "HUMINLOOP_ROOT"
 ARTIFACT_DIR_ENV = "ARTIFACT_DIR"
 LOG_DIR_ENV = "LOG_DIR"
 STATES = ("pending", "approved", "rejected")

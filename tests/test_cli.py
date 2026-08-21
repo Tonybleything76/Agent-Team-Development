@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from adeptly.cli import main
+from huminloop.cli import main
 
 
 def test_full_cli_flow(workdir, capsys):
@@ -46,7 +46,7 @@ class JunkLLM:
 
 
 def test_revise_path_through_cli_blocks_approval(workdir, capsys, monkeypatch):
-    import adeptly.cli as cli
+    import huminloop.cli as cli
 
     monkeypatch.setattr(cli, "get_llm", lambda provider=None: JunkLLM())
     assert main(["run", "Define KPIs"]) == 0
@@ -60,7 +60,7 @@ def test_revise_path_through_cli_blocks_approval(workdir, capsys, monkeypatch):
 
 
 def test_dotenv_is_loaded_without_overriding_environment(workdir, tmp_path, monkeypatch):
-    from adeptly.cli import load_dotenv
+    from huminloop.cli import load_dotenv
 
     env = tmp_path / "x.env"
     env.write_text(
@@ -110,7 +110,7 @@ def test_os_errors_are_one_line(workdir, tmp_path, capsys):
 def test_dotenv_handles_export_and_quoted_with_comment(tmp_path, monkeypatch):
     import os
 
-    from adeptly.cli import load_dotenv
+    from huminloop.cli import load_dotenv
 
     env = tmp_path / "y.env"
     env.write_text('export OPENAI_MODEL=abc\nOPENAI_API_KEY="sk-abc" # prod key\n')
@@ -126,7 +126,7 @@ def test_env_file_pointing_at_directory_is_one_line(workdir, tmp_path, capsys):
 
 
 def test_pending_tolerates_null_fields(workdir, capsys):
-    from adeptly.storage import artifact_root
+    from huminloop.storage import artifact_root
 
     d = artifact_root() / "pending" / "20260101_000000_eeeeee"
     d.mkdir(parents=True)
@@ -155,7 +155,7 @@ def test_show_unknown_and_traversal_run_ids(workdir, capsys):
 
 
 def test_pending_lists_non_default_states(workdir, capsys):
-    from adeptly import gate, orchestrator
+    from huminloop import gate, orchestrator
     from tests.conftest import RecordingLLM
 
     rec = orchestrator.run("Define KPIs", llm=RecordingLLM())
@@ -165,7 +165,7 @@ def test_pending_lists_non_default_states(workdir, capsys):
 
 
 def test_run_exits_nonzero_when_every_specialist_fails(workdir, capsys, monkeypatch):
-    import adeptly.cli as cli
+    import huminloop.cli as cli
 
     class DeadLLM:
         name = "dead"
@@ -179,7 +179,7 @@ def test_run_exits_nonzero_when_every_specialist_fails(workdir, capsys, monkeypa
 
 
 def test_dotenv_ignores_keys_the_app_does_not_own(workdir, tmp_path, caplog):
-    from adeptly.cli import load_dotenv
+    from huminloop.cli import load_dotenv
 
     env = tmp_path / "hostile.env"
     env.write_text("OPENAI_BASE_URL=http://evil.example\nHTTPS_PROXY=http://evil.example\n")
@@ -190,7 +190,7 @@ def test_dotenv_ignores_keys_the_app_does_not_own(workdir, tmp_path, caplog):
 
 
 def test_show_strips_terminal_escapes_from_artifacts(workdir, capsys, monkeypatch):
-    import adeptly.cli as cli
+    import huminloop.cli as cli
 
     class EscapeLLM:
         name = "escape"

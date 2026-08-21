@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from adeptly.llm import DryRunLLM
+from huminloop.llm import DryRunLLM
 
 
 @pytest.fixture(autouse=True)
@@ -14,10 +14,10 @@ def isolated_environ(monkeypatch):
 @pytest.fixture
 def workdir(tmp_path, monkeypatch):
     """Point artifact and log output at a temp dir so tests never touch the repo."""
-    monkeypatch.setenv("ADEPTLY_ROOT", str(tmp_path))
+    monkeypatch.setenv("HUMINLOOP_ROOT", str(tmp_path))
     monkeypatch.setenv("ARTIFACT_DIR", "out")
     monkeypatch.setenv("LOG_DIR", "logs")
-    monkeypatch.setenv("ADEPTLY_ENV_FILE", str(tmp_path / "no-such.env"))  # never read repo .env
+    monkeypatch.setenv("HUMINLOOP_ENV_FILE", str(tmp_path / "no-such.env"))  # never read repo .env
     monkeypatch.delenv("LLM_PROVIDER", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)

@@ -13,18 +13,18 @@ import os
 import sys
 from pathlib import Path
 
-from adeptly import __version__
-from adeptly.governance import review_text
-from adeptly.llm import DryRunLLM
-from adeptly.orchestrator import produce
-from adeptly.roles import SPECIALISTS
-from adeptly.router import Router
-from adeptly.storage import now_iso
+from huminloop import __version__
+from huminloop.governance import review_text
+from huminloop.llm import DryRunLLM
+from huminloop.orchestrator import produce
+from huminloop.roles import SPECIALISTS
+from huminloop.router import Router
+from huminloop.storage import now_iso
 
 HERE = Path(__file__).parent
 CASES = HERE / "cases.json"
 # Tests point this at a temp dir so the suite never writes into the working tree.
-RESULTS = Path(os.getenv("ADEPTLY_EVAL_RESULTS", HERE / "results"))
+RESULTS = Path(os.getenv("HUMINLOOP_EVAL_RESULTS", HERE / "results"))
 BASELINE = HERE / "results" / "baseline.json"  # always the committed one
 # Counts that may never shrink between baseline and now (deleting or relabelling cases is a
 # regression). Pass/fail is compared per case id, so adding an honest failing hard case is fine,
@@ -150,7 +150,7 @@ def main(argv=None) -> int:
     RESULTS.mkdir(exist_ok=True)
     (RESULTS / "latest.json").write_text(json.dumps(result, indent=2))
 
-    print(f"adeptly eval v{__version__}")
+    print(f"huminloop eval v{__version__}")
     for k, v in metrics.items():
         print(f"  {k:<40} {v:.3f}" if isinstance(v, float) else f"  {k:<40} {v}")
     print(f"  failures: {len(failures)}   borderline (human review): {len(borderline)}")

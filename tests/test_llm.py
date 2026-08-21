@@ -1,6 +1,6 @@
 import pytest
 
-from adeptly.llm import DryRunLLM, get_llm
+from huminloop.llm import DryRunLLM, get_llm
 
 
 def test_default_provider_is_dryrun(workdir):
@@ -41,7 +41,7 @@ class FakeOpenAIClient:
 
 
 def test_openai_client_is_called_with_system_and_user_messages():
-    from adeptly.llm import OpenAILLM
+    from huminloop.llm import OpenAILLM
 
     fake = FakeOpenAIClient()
     llm = OpenAILLM(model="test-model", client=fake)
@@ -60,7 +60,7 @@ def test_openrouter_without_key_fails_clearly(workdir):
 
 
 def test_openrouter_resolves_model_per_role(workdir, monkeypatch):
-    from adeptly.llm import DEFAULT_OPENROUTER_MODEL, OpenRouterLLM
+    from huminloop.llm import DEFAULT_OPENROUTER_MODEL, OpenRouterLLM
 
     fake = FakeOpenAIClient()
     llm = OpenRouterLLM(client=fake)
@@ -78,7 +78,7 @@ def test_openrouter_resolves_model_per_role(workdir, monkeypatch):
 
 
 def test_openrouter_explicit_model_beats_env(workdir, monkeypatch):
-    from adeptly.llm import OpenRouterLLM
+    from huminloop.llm import OpenRouterLLM
 
     monkeypatch.setenv("OPENROUTER_MODEL_PRE_SALES", "anthropic/claude-opus-5")
     fake = FakeOpenAIClient()
@@ -101,7 +101,7 @@ class FakeAnthropicClient:
 
 
 def test_anthropic_client_is_called_with_system_kwarg():
-    from adeptly.llm import AnthropicLLM
+    from huminloop.llm import AnthropicLLM
 
     fake = FakeAnthropicClient()
     llm = AnthropicLLM(model="test-model", client=fake)
@@ -113,7 +113,7 @@ def test_anthropic_client_is_called_with_system_kwarg():
 def test_version_is_single_sourced():
     from pathlib import Path
 
-    from adeptly import __version__
+    from huminloop import __version__
 
     assert (
         Path(__file__).resolve().parents[1].joinpath("VERSION").read_text().strip() == __version__
@@ -121,7 +121,7 @@ def test_version_is_single_sourced():
 
 
 def test_openrouter_effort_per_role(workdir, monkeypatch):
-    from adeptly.llm import OpenRouterLLM
+    from huminloop.llm import OpenRouterLLM
 
     fake = FakeOpenAIClient()
     llm = OpenRouterLLM(client=fake)
@@ -139,14 +139,14 @@ def test_openrouter_effort_per_role(workdir, monkeypatch):
 
 
 def test_openrouter_direct_construction_without_key_is_a_clear_error(workdir):
-    from adeptly.llm import OpenRouterLLM
+    from huminloop.llm import OpenRouterLLM
 
     with pytest.raises(RuntimeError, match="OPENROUTER_API_KEY"):
         OpenRouterLLM()
 
 
 def test_calls_are_bounded_by_timeout_and_max_tokens():
-    from adeptly.llm import DEFAULT_MAX_TOKENS, DEFAULT_TIMEOUT_S, OpenAILLM
+    from huminloop.llm import DEFAULT_MAX_TOKENS, DEFAULT_TIMEOUT_S, OpenAILLM
 
     fake = FakeOpenAIClient()
     OpenAILLM(model="m", client=fake).generate("SYS", "USER")
@@ -155,7 +155,7 @@ def test_calls_are_bounded_by_timeout_and_max_tokens():
 
 
 def test_bounds_are_configurable_and_validated(workdir, monkeypatch):
-    from adeptly.llm import OpenAILLM
+    from huminloop.llm import OpenAILLM
 
     monkeypatch.setenv("LLM_MAX_TOKENS", "42")
     monkeypatch.setenv("LLM_TIMEOUT_S", "7")
@@ -168,7 +168,7 @@ def test_bounds_are_configurable_and_validated(workdir, monkeypatch):
 
 
 def test_truncated_response_warns_and_empty_content_is_an_error(caplog):
-    from adeptly.llm import OpenAILLM
+    from huminloop.llm import OpenAILLM
 
     fake = FakeOpenAIClient()
     truncated = _Choice(None)
@@ -180,7 +180,7 @@ def test_truncated_response_warns_and_empty_content_is_an_error(caplog):
 
 
 def test_provider_error_with_no_choices_names_the_upstream_error():
-    from adeptly.llm import OpenAILLM
+    from huminloop.llm import OpenAILLM
 
     fake = FakeOpenAIClient()
     fake.chat.completions.create = lambda **kw: type(
@@ -191,7 +191,7 @@ def test_provider_error_with_no_choices_names_the_upstream_error():
 
 
 def test_blank_model_env_falls_back_to_the_default(workdir, monkeypatch):
-    from adeptly.llm import DEFAULT_OPENROUTER_MODEL, OpenRouterLLM
+    from huminloop.llm import DEFAULT_OPENROUTER_MODEL, OpenRouterLLM
 
     monkeypatch.setenv("OPENROUTER_MODEL", "")
     llm = OpenRouterLLM(client=FakeOpenAIClient())
@@ -199,7 +199,7 @@ def test_blank_model_env_falls_back_to_the_default(workdir, monkeypatch):
 
 
 def test_bad_effort_fails_at_construction_not_mid_run(workdir, monkeypatch):
-    from adeptly.llm import OpenRouterLLM
+    from huminloop.llm import OpenRouterLLM
 
     monkeypatch.setenv("OPENROUTER_EFFORT", "extreme")
     with pytest.raises(ValueError, match="OPENROUTER_EFFORT"):
@@ -207,7 +207,7 @@ def test_bad_effort_fails_at_construction_not_mid_run(workdir, monkeypatch):
 
 
 def test_openrouter_accepts_the_documented_effort_values(workdir, monkeypatch):
-    from adeptly.llm import OpenRouterLLM
+    from huminloop.llm import OpenRouterLLM
 
     llm = OpenRouterLLM(client=FakeOpenAIClient())
     for value in ("none", "minimal", "low", "medium", "high", "max", "xhigh"):

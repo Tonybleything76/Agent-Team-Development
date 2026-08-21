@@ -9,11 +9,11 @@ REPO = Path(__file__).resolve().parents[1]
 
 def test_eval_module_runs_as_ci_will_and_writes_results(tmp_path):
     """Runs the module exactly as CI does, but with results redirected out of the repo."""
-    env = {**os.environ, "ADEPTLY_EVAL_RESULTS": str(tmp_path)}
+    env = {**os.environ, "HUMINLOOP_EVAL_RESULTS": str(tmp_path)}
     proc = subprocess.run(
         [sys.executable, "-m", "evals.run"], cwd=REPO, env=env, capture_output=True, text=True
     )
-    assert "adeptly eval v" in proc.stdout, proc.stderr
+    assert "huminloop eval v" in proc.stdout, proc.stderr
     assert proc.returncode == 0, proc.stdout + proc.stderr
     latest = json.loads((tmp_path / "latest.json").read_text())
     assert set(latest["metrics"]) >= {"router_exact_plan_rate", "governance_verdict_rate"}

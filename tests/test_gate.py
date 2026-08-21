@@ -2,8 +2,8 @@ import json
 
 import pytest
 
-from adeptly import gate, orchestrator
-from adeptly.storage import artifact_root, log_path
+from huminloop import gate, orchestrator
+from huminloop.storage import artifact_root, log_path
 
 
 def _run(llm, task="Define KPIs"):
@@ -152,7 +152,7 @@ def test_recorded_decision_cannot_be_overwritten_and_can_be_completed(
 
 
 def test_live_run_cannot_be_decided(workdir, fake_llm):
-    from adeptly.storage import write_lock
+    from huminloop.storage import write_lock
 
     rec = _run(fake_llm)
     _, d = gate.find_run(artifact_root(), rec.run_id)
@@ -197,7 +197,7 @@ def test_completing_someone_elses_decision_logs_original_decider(workdir, fake_l
 
 
 def test_stale_lock_from_a_crashed_run_does_not_block_the_gate(workdir, fake_llm):
-    from adeptly.storage import LOCK_NAME, lock_holder_alive
+    from huminloop.storage import LOCK_NAME, lock_holder_alive
 
     rec = _run(fake_llm)
     _, d = gate.find_run(artifact_root(), rec.run_id)
@@ -207,7 +207,7 @@ def test_stale_lock_from_a_crashed_run_does_not_block_the_gate(workdir, fake_llm
 
 
 def test_unreadable_lock_contents_are_treated_as_dead(workdir, fake_llm):
-    from adeptly.storage import LOCK_NAME, lock_holder_alive
+    from huminloop.storage import LOCK_NAME, lock_holder_alive
 
     rec = _run(fake_llm)
     _, d = gate.find_run(artifact_root(), rec.run_id)
@@ -290,7 +290,7 @@ def test_manifest_run_id_must_match_its_directory(workdir, fake_llm):
 
 @pytest.mark.parametrize("pid", ["0", "-1", "99999999999999999999"])
 def test_invalid_pids_in_the_lock_never_report_alive(workdir, fake_llm, pid):
-    from adeptly.storage import LOCK_NAME, lock_holder_alive
+    from huminloop.storage import LOCK_NAME, lock_holder_alive
 
     rec = _run(fake_llm)
     _, d = gate.find_run(artifact_root(), rec.run_id)
@@ -300,7 +300,7 @@ def test_invalid_pids_in_the_lock_never_report_alive(workdir, fake_llm, pid):
 
 
 def test_a_second_process_cannot_decide_a_run_already_being_decided(workdir, fake_llm):
-    from adeptly.gate import DECISION_CLAIM
+    from huminloop.gate import DECISION_CLAIM
 
     rec = _run(fake_llm)
     _, d = gate.find_run(artifact_root(), rec.run_id)

@@ -26,7 +26,7 @@ log = logging.getLogger(__name__)
 
 
 # A .env may only set variables this application owns. Without an allowlist, a .env sitting in
-# any directory you run `adeptly` from could set OPENAI_BASE_URL or HTTPS_PROXY and silently
+# any directory you run `huminloop` from could set OPENAI_BASE_URL or HTTPS_PROXY and silently
 # redirect model calls (with the Authorization header) to another host.
 DOTENV_ALLOWED = frozenset(
     {
@@ -91,7 +91,7 @@ def _cmd_run(args) -> int:
         else:
             issues = "; ".join(a.review["issues"]) if a.review["issues"] else ""
             print(f"  {a.role:<18} {a.review['verdict']:<8} {a.file}  {issues}")
-    print(f"status: pending -> review with `adeptly show {rec.run_id}`, then approve or reject.")
+    print(f"status: pending -> review with `huminloop show {rec.run_id}`, then approve or reject.")
     if rec.artifacts and all(a.error for a in rec.artifacts):
         # A run where nothing succeeded is a failure for anything scripting this command,
         # even though the run is still on disk for a human to reject.
@@ -148,19 +148,19 @@ def _cmd_reject(args) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="adeptly", description="Hierarchical agent team with a human approval gate"
+        prog="huminloop", description="Hierarchical agent team with a human approval gate"
     )
-    p.add_argument("--version", action="version", version=f"adeptly {__version__}")
+    p.add_argument("--version", action="version", version=f"huminloop {__version__}")
     p.add_argument("-v", "--verbose", action="store_true")
     p.add_argument(
         "--root",
         help="directory holding out/ and logs/; overrides ARTIFACT_DIR/LOG_DIR "
-        "(default: $ADEPTLY_ROOT or current directory)",
+        "(default: $HUMINLOOP_ROOT or current directory)",
     )
     p.add_argument(
         "--env-file",
-        default=os.getenv("ADEPTLY_ENV_FILE", ".env"),
-        help="dotenv file to load (default: $ADEPTLY_ENV_FILE or .env)",
+        default=os.getenv("HUMINLOOP_ENV_FILE", ".env"),
+        help="dotenv file to load (default: $HUMINLOOP_ENV_FILE or .env)",
     )
     sub = p.add_subparsers(dest="cmd", required=True)
 

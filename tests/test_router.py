@@ -1,7 +1,7 @@
 import pytest
 
-from adeptly.roles import SPECIALISTS
-from adeptly.router import ROUTING_RULES, Router
+from huminloop.roles import SPECIALISTS
+from huminloop.router import ROUTING_RULES, Router
 
 
 @pytest.fixture

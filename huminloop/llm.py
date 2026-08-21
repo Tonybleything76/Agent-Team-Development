@@ -161,7 +161,7 @@ class OpenRouterLLM:
                 base_url=OPENROUTER_BASE_URL,
                 api_key=key,
                 # Optional OpenRouter attribution headers; harmless if ignored.
-                default_headers={"X-Title": "adeptly"},
+                default_headers={"X-Title": "huminloop"},
             )
         self.model = model  # explicit model beats all env resolution
         self.client = client

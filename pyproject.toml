@@ -1,5 +1,5 @@
 [project]
-name = "adeptly-agents"
+name = "huminloop-agents"
 dynamic = ["version"]
 description = "Hierarchical multi-agent consulting team with a governance check and a human approval gate"
 readme = "README.md"
@@ -13,7 +13,7 @@ openai = ["openai>=1.40,<2"]
 anthropic = ["anthropic>=0.40,<1"]
 
 [project.scripts]
-adeptly = "adeptly.cli:main"
+huminloop = "huminloop.cli:main"
 
 [dependency-groups]
 dev = ["pytest>=8,<9", "ruff>=0.6,<1"]
@@ -23,10 +23,10 @@ requires = ["hatchling>=1.25"]
 build-backend = "hatchling.build"
 
 [tool.hatch.version]
-path = "adeptly/__init__.py"
+path = "huminloop/__init__.py"
 
 [tool.hatch.build.targets.wheel]
-packages = ["adeptly"]
+packages = ["huminloop"]
 
 [tool.ruff]
 line-length = 100

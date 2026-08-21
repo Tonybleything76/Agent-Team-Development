@@ -4,15 +4,15 @@
 
 | Component | Module | Responsibility |
 |---|---|---|
-| Router / Supervisor | `adeptly/router.py` | Task → ordered specialist plan via whole-word keyword rules. Records which rules fired. |
-| Role registry | `adeptly/roles.py` | 22 roles in three tiers. Supervisor roles are never dispatched as specialists. |
-| Specialist producer | `adeptly/orchestrator.py::produce` | Builds the system/user prompt for a role, calls the LLM, runs Governance. |
-| Governance evaluator | `adeptly/governance.py` | Rule-based checks: required sections, no placeholders, ≥1 https citation, no email/phone. |
-| Orchestrator | `adeptly/orchestrator.py::run` | Runs the plan sequentially, passes prior output as context, isolates per-specialist failures, writes manifest + log. |
-| Human gate | `adeptly/gate.py` | pending → approved/rejected by a named person; re-reads every artifact and re-derives governance from the bytes before recording a decision (digest + verdict must match the manifest); refuses governance-flagged or errored runs without `--force` + note; validates `run_id`; claims the decision with an exclusive marker so concurrent decisions cannot both "succeed". |
-| Storage | `adeptly/storage.py` | `out/<state>/<run_id>/{manifest.json,<role>.md}` and `logs/runs.jsonl`. |
-| LLM layer | `adeptly/llm.py` | `dryrun` (default, offline, deterministic); `openrouter` (recommended: one key, per-role model/version and reasoning effort via env); direct `openai`, `anthropic`. |
-| CLI | `adeptly/cli.py` | `run`, `roles`, `pending`, `show`, `approve`, `reject`. |
+| Router / Supervisor | `huminloop/router.py` | Task → ordered specialist plan via whole-word keyword rules. Records which rules fired. |
+| Role registry | `huminloop/roles.py` | 22 roles in three tiers. Supervisor roles are never dispatched as specialists. |
+| Specialist producer | `huminloop/orchestrator.py::produce` | Builds the system/user prompt for a role, calls the LLM, runs Governance. |
+| Governance evaluator | `huminloop/governance.py` | Rule-based checks: required sections, no placeholders, ≥1 https citation, no email/phone. |
+| Orchestrator | `huminloop/orchestrator.py::run` | Runs the plan sequentially, passes prior output as context, isolates per-specialist failures, writes manifest + log. |
+| Human gate | `huminloop/gate.py` | pending → approved/rejected by a named person; re-reads every artifact and re-derives governance from the bytes before recording a decision (digest + verdict must match the manifest); refuses governance-flagged or errored runs without `--force` + note; validates `run_id`; claims the decision with an exclusive marker so concurrent decisions cannot both "succeed". |
+| Storage | `huminloop/storage.py` | `out/<state>/<run_id>/{manifest.json,<role>.md}` and `logs/runs.jsonl`. |
+| LLM layer | `huminloop/llm.py` | `dryrun` (default, offline, deterministic); `openrouter` (recommended: one key, per-role model/version and reasoning effort via env); direct `openai`, `anthropic`. |
+| CLI | `huminloop/cli.py` | `run`, `roles`, `pending`, `show`, `approve`, `reject`. |
 
 ## Design decisions
 
@@ -34,7 +34,7 @@ this repo proves. Everything runs in CI without a key. Real providers are opt-in
 **Failures are isolated and logged.** A specialist that raises is recorded in the manifest with
 `error`, logged to `runs.jsonl`, and the run continues. The manifest is written before the first
 specialist runs and after every artifact (status `running` until the end), so an interrupted run
-is visible in `adeptly pending` and can be rejected. A run with errors can be reviewed and
+is visible in `huminloop pending` and can be rejected. A run with errors can be reviewed and
 rejected, or approved with `--force` and a note.
 
 **Manifests are written atomically** (temp file + rename). `pending` surfaces directories with a
@@ -58,7 +58,7 @@ mislead that decision are treated as defects, not polish:
 - **Artifacts are digested when produced and re-verified at decision time.** Editing
   `manifest.json`, swapping an `.md` file between `show` and `approve`, or deleting one is
   refused. Approval attests to the bytes a reviewer could actually have read.
-- **Model output is never printed raw.** Governance flags control characters and `adeptly show`
+- **Model output is never printed raw.** Governance flags control characters and `huminloop show`
   strips them, so an artifact cannot repaint the reviewer's terminal just before they approve.
 - **A `.env` may only set variables this application owns.** Otherwise a file in whatever
   directory you happened to run from could set `OPENAI_BASE_URL` or `HTTPS_PROXY` and redirect
@@ -101,7 +101,7 @@ These were raised in adversarial review and accepted deliberately rather than fi
 - **The gate's decision logic is an if-ladder, not a state machine.** `_decide` reads four
   sources (directory, manifest status, recorded decision, lock) in sequence; a `classify_run()`
   with a transition table would be cleaner. Every path is tested; refactor is a next step.
-- **CLI catches a list of exception types, not one `AdeptlyError` base.** Provider SDK errors
+- **CLI catches a list of exception types, not one `HuminLoopError` base.** Provider SDK errors
   would still surface as tracebacks; `-v` re-raises on purpose for debugging.
 - **Small duplications left in place.** The CLI derives artifact status in its own words; the
   eval and one test both check that dry-run output passes governance (the test names the role,

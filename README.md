@@ -1,4 +1,4 @@
-# Adeptly Agents
+# HuminLoop Agents
 
 A hierarchical AI consulting team in code: a Router/Supervisor dispatches a task to the right
 specialists, a Governance evaluator checks every artifact, and **a named human must approve every
@@ -27,32 +27,32 @@ task ──▶ Router ──▶ [specialist 1] ─▶ [specialist 2] ─▶ … 
                                                                      ▼
                                                         out/pending/<run_id>/  ◀── waits here
                                                                      │
-                                          adeptly approve --by "<name>"   or   adeptly reject
+                                          huminloop approve --by "<name>"   or   huminloop reject
                                                                      ▼
                                                  out/approved/<run_id>/   |   out/rejected/<run_id>/
 ```
 
-1. **Router** (`adeptly/router.py`): deterministic keyword rules map a task to an ordered list of
+1. **Router** (`huminloop/router.py`): deterministic keyword rules map a task to an ordered list of
    specialists. Deterministic on purpose — a plan must be explainable and testable. Unmatched tasks
    fall back to the Strategist.
-2. **Specialists** (`adeptly/roles.py`): a registry of 22 roles in three tiers — supervisor,
+2. **Specialists** (`huminloop/roles.py`): a registry of 22 roles in three tiers — supervisor,
    client-facing, support. Each is a title and a remit; the orchestrator turns that into a system
    prompt. Adding a specialist is one `Role(...)` entry plus a routing rule. Each specialist sees
    the first 600 characters of every predecessor's artifact as context.
-3. **Governance** (`adeptly/governance.py`): every artifact must carry Objective, Body, Citations
+3. **Governance** (`huminloop/governance.py`): every artifact must carry Objective, Body, Citations
    (with an https URL inside that section), Risks and Next Steps — plain, markdown or bold
    headings — with no placeholder text (`TBD`, `...`, `-`), nothing shorter than three characters,
    and no email, phone (with separators), SSN-shaped or Luhn-valid card-shaped numbers. Rule-based,
    so it catches shape and obvious leaks, not judgment. Verdict is APPROVE or REVISE and is recorded in the run manifest.
-4. **The human gate** (`adeptly/gate.py`): every run lands in `out/pending/`. A run moves to
-   `out/approved/` only when someone runs `adeptly approve <run_id> --by "<name>"`. If Governance
+4. **The human gate** (`huminloop/gate.py`): every run lands in `out/pending/`. A run moves to
+   `out/approved/` only when someone runs `huminloop approve <run_id> --by "<name>"`. If Governance
    flagged anything — or a specialist errored — approval is refused unless you pass `--force`
    *and* a `--note` saying why, and the manifest records `forced: true` with the flagged roles.
    Rejections require a reason. The decision is written into the
    manifest before the directory moves, so an interrupted decision is never lost, and every
    decision is appended to `logs/runs.jsonl` with who and when. `run_id`s are validated against
    the generated shape; nothing outside `out/` can be addressed.
-5. **LLM layer** (`adeptly/llm.py`): `LLM_PROVIDER=dryrun` (default) needs no key and produces
+5. **LLM layer** (`huminloop/llm.py`): `LLM_PROVIDER=dryrun` (default) needs no key and produces
    deterministic output so the whole loop — including the gate — runs in CI. `openrouter` is
    the recommended real provider: one key, any vendor's models, and the model is resolved per
    specialist role (`OPENROUTER_MODEL_<ROLE>` beats `OPENROUTER_MODEL` beats the package
@@ -68,12 +68,12 @@ Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 git clone https://github.com/Tonybleything76/Agent-Team-Development.git
 cd Agent-Team-Development
 uv sync                      # creates .venv from the pinned uv.lock
-uv run adeptly roles         # the team
-uv run adeptly run "Build an AI transformation roadmap and ROI model for a manufacturer"
-uv run adeptly pending       # what is waiting for a human
-uv run adeptly show <run_id> # read the manifest and every artifact
-uv run adeptly approve <run_id> --by "Your Name"
-uv run adeptly reject  <run_id> --by "Your Name" --reason "placeholder content"
+uv run huminloop roles         # the team
+uv run huminloop run "Build an AI transformation roadmap and ROI model for a manufacturer"
+uv run huminloop pending       # what is waiting for a human
+uv run huminloop show <run_id> # read the manifest and every artifact
+uv run huminloop approve <run_id> --by "Your Name"
+uv run huminloop reject  <run_id> --by "Your Name" --reason "placeholder content"
 ```
 
 To use a real model: `cp .env.example .env`, set `LLM_PROVIDER=openrouter` and
@@ -82,8 +82,8 @@ protocol, so it uses the same extra; direct `openai`/`anthropic` work the same w
 and run as above (or pass `--provider`).
 The CLI loads `.env` from the current directory (values already in the environment win);
 `.env` is git-ignored (`--env-file <path>` to use another). Output goes to `./out` and `./logs`
-— set `ADEPTLY_ROOT` or pass `--root <dir>` *before* the subcommand (`adeptly --root /tmp/x run
-"…"`) to put them elsewhere. `adeptly pending --state approved|rejected` lists decided runs.
+— set `HUMINLOOP_ROOT` or pass `--root <dir>` *before* the subcommand (`huminloop --root /tmp/x run
+"…"`) to put them elsewhere. `huminloop pending --state approved|rejected` lists decided runs.
 All variables are listed in `.env.example`.
 
 ## Test it
@@ -114,7 +114,7 @@ package with the gate implemented for real. See `CHANGELOG.md`.
 ## Layout
 
 ```
-adeptly/        package: roles, router, governance, llm, orchestrator, gate, storage, cli
+huminloop/        package: roles, router, governance, llm, orchestrator, gate, storage, cli
 tests/          pytest suite
 evals/          scored eval cases + runner; results land in evals/results/
 docs/           ARCHITECTURE.md — design notes and what is next
