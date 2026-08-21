@@ -1,19 +1,37 @@
 name: ci
 
 on:
+  # Branch pushes and PRs from forks. A PR from a branch in this repo would otherwise run
+  # twice, so pushes are limited to the default branch and PR events cover the rest.
   push:
+    branches: [main]
   pull_request:
+
+# The job only reads the checkout; it never writes to the repo or packages.
+permissions:
+  contents: read
+
+# A newer push to the same branch makes an in-flight run obsolete.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The job never pushes; don't leave a usable token in .git/config
+          # while PR-authored test code runs.
+          persist-credentials: false
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
-      - name: Install (locked)
-        run: uv sync --locked
+      - name: Install (locked, with provider extras)
+        # --all-extras so the openai/anthropic import paths are exercised, not just skipped.
+        run: uv sync --locked --all-extras
       - name: Lint
         run: uv run ruff check .
       - name: Format check

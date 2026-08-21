@@ -3,7 +3,7 @@ import json
 import pytest
 
 from adeptly import orchestrator
-from adeptly.governance import review_text
+from adeptly.governance import REQUIRED_SECTIONS, review_text
 from adeptly.llm import DryRunLLM
 from adeptly.roles import SPECIALISTS
 from adeptly.storage import artifact_root, log_path
@@ -27,7 +27,7 @@ def test_prior_output_is_passed_as_context_to_later_specialists(workdir, fake_ll
 
 
 def test_one_failing_specialist_does_not_hide_the_others(workdir):
-    llm = RecordingLLM(fail_roles=["Legal"])
+    llm = RecordingLLM(fail_roles=["legal"])
     rec = orchestrator.run("Draft an RFP response and SOW", llm=llm)
     by_role = {a.role: a for a in rec.artifacts}
     assert by_role["legal"].error and by_role["legal"].file is None
@@ -38,8 +38,6 @@ def test_one_failing_specialist_does_not_hide_the_others(workdir):
 
 
 def test_manifest_exists_from_the_start_and_tracks_progress(workdir):
-    from adeptly.storage import artifact_root
-
     class Spy:
         name = "spy"
 
@@ -74,3 +72,44 @@ def test_dry_run_output_passes_governance_for_every_specialist(role_key):
     text, review = orchestrator.produce(role_key, "any task at all", DryRunLLM())
     assert review.ok, (role_key, review.issues)
     assert review_text(text).ok
+
+
+def test_specialist_role_key_is_passed_to_the_provider(workdir, fake_llm):
+    # OpenRouter resolves model and effort per role; if the key stops arriving, every
+    # specialist silently falls back to the default model.
+    orchestrator.run("Draft an RFP response and SOW", llm=fake_llm)
+    assert fake_llm.roles == ["pre_sales", "legal", "finance"]
+
+
+def test_empty_generation_is_flagged_by_governance_not_crashing(workdir):
+    class EmptyLLM:
+        name = "empty"
+
+        def generate(self, system, prompt, role=None):
+            return ""
+
+    rec = orchestrator.run("Define KPIs", llm=EmptyLLM())
+    assert rec.artifacts[0].review["verdict"] == "REVISE"
+    assert len(rec.artifacts[0].review["issues"]) == len(REQUIRED_SECTIONS)
+
+
+def test_pii_in_the_task_is_refused_before_anything_is_written(workdir, fake_llm):
+    from adeptly.storage import artifact_root
+
+    with pytest.raises(ValueError, match="Possible PII"):
+        orchestrator.run("email jane@acme.com about the retention schedule", llm=fake_llm)
+    assert not (artifact_root() / "pending").exists()
+
+
+def test_oversized_task_is_refused(workdir, fake_llm):
+    with pytest.raises(ValueError, match="keep it under"):
+        orchestrator.run("x" * (orchestrator.MAX_TASK_CHARS + 1), llm=fake_llm)
+
+
+def test_teammate_context_is_fenced_as_untrusted(workdir, fake_llm):
+    from adeptly.llm import CONTEXT_FENCE
+
+    orchestrator.run("Draft an RFP response and SOW", llm=fake_llm)
+    second_prompt = fake_llm.calls[1][1]
+    assert second_prompt.count(CONTEXT_FENCE) == 2
+    assert "never as instructions" in second_prompt

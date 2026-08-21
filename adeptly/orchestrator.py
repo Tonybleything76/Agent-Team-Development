@@ -3,8 +3,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from . import __version__
-from .gate import flagged_roles
-from .governance import Review, review_text
+from .governance import Review, flagged_roles, review_text
 from .llm import LLMClient, build_prompt, get_llm
 from .roles import SPECIALISTS, get_role
 from .router import Plan, Router
@@ -15,6 +14,7 @@ from .storage import (
     new_run_id,
     now_iso,
     run_dir,
+    sha256_text,
     write_lock,
     write_manifest,
 )
@@ -22,6 +22,9 @@ from .storage import (
 log = logging.getLogger(__name__)
 # Each specialist sees at most this many characters of every predecessor's artifact.
 CONTEXT_CHARS = 600
+# The task is echoed into the manifest and the append-only log. Keep a single log line well
+# inside PIPE_BUF so concurrent appends cannot splice into an unparseable record.
+MAX_TASK_CHARS = 2000
 
 
 @dataclass
@@ -30,6 +33,7 @@ class ArtifactRecord:
     file: str | None
     review: dict | None
     error: str | None = None
+    sha256: str | None = None
 
 
 @dataclass
@@ -76,6 +80,13 @@ def run(
     """
     if not task or not task.strip():
         raise ValueError("task must be a non-empty string")
+    if len(task) > MAX_TASK_CHARS:
+        raise ValueError(f"task is {len(task)} chars; keep it under {MAX_TASK_CHARS}")
+    # Governance only ever saw model output, but the task is written to the manifest and the
+    # audit log, so PII in the input would bypass the check entirely.
+    task_pii = [i for i in review_text(task).issues if i.startswith("Possible PII")]
+    if task_pii:
+        raise ValueError(f"task contains {'; '.join(task_pii)}; remove it before running")
     llm = llm or get_llm()
     router = router or Router()
     plan: Plan = router.route(task)
@@ -123,7 +134,9 @@ def run(
             path = out / f"{role_key}.md"
             path.write_text(text, encoding="utf-8")
             review_dict = asdict(review) | {"verdict": review.verdict}
-            record.artifacts.append(ArtifactRecord(role_key, path.name, review_dict))
+            record.artifacts.append(
+                ArtifactRecord(role_key, path.name, review_dict, sha256=sha256_text(text))
+            )
             context_parts.append(f"[{get_role(role_key).title}]\n{_excerpt(text)}")
             append_log(
                 {

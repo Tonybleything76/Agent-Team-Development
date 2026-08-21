@@ -8,6 +8,7 @@ import logging
 import os
 from pathlib import Path
 
+from .governance import flagged_roles, review_text
 from .storage import (
     MANIFEST_NAME,
     StorageError,
@@ -18,25 +19,46 @@ from .storage import (
     now_iso,
     read_manifest,
     run_dir,
+    sha256_text,
     validate_run_id,
     write_manifest,
 )
 
 log = logging.getLogger(__name__)
+DECISION_CLAIM = ".deciding"
 
 
 class GateError(Exception):
     pass
 
 
-def flagged_roles(artifacts: list[dict]) -> list[str]:
-    """Roles whose artifact is not governance-APPROVE, including specialists that errored."""
-    out = []
-    for a in artifacts:
-        review = a.get("review") or {}
-        if a.get("error") or not review.get("ok"):
-            out.append(a["role"])
-    return out
+def verify_artifacts(d: Path, manifest: dict) -> None:
+    """Check the manifest against the bytes on disk before any decision is recorded.
+
+    Without this, approval attests to a JSON file that anyone can edit: flipping
+    `review.ok` to true, or swapping an artifact between `show` and `approve`, would
+    otherwise produce a clean approval with no trace.
+    """
+    for a in manifest.get("artifacts", []):
+        if a.get("error"):
+            continue
+        if not a.get("file"):
+            # Every artifact is either a file on disk or a recorded error. Neither means the
+            # manifest was edited: clearing `error` alone would otherwise skip verification.
+            raise GateError(f"artifact for {a['role']!r} has neither a file nor an error")
+        path = d / a["file"]
+        if not path.is_file():
+            raise GateError(f"artifact {a['file']} is missing; refusing to decide")
+        text = path.read_text(encoding="utf-8")
+        if a.get("sha256") and sha256_text(text) != a["sha256"]:
+            raise GateError(f"artifact {a['file']} changed since the run; re-run before deciding")
+        recomputed = review_text(text)
+        recorded = (a.get("review") or {}).get("ok")
+        if recomputed.ok != bool(recorded):
+            raise GateError(
+                f"manifest disagrees with {a['file']} (recorded ok={recorded}, "
+                f"recomputed ok={recomputed.ok}); refusing to decide"
+            )
 
 
 def list_runs(state: str = "pending", root: Path | None = None) -> list[dict]:
@@ -98,6 +120,7 @@ def _decide(
         manifest = read_manifest(src)
     except StorageError as exc:
         raise GateError(str(exc)) from exc
+    verify_artifacts(src, manifest)
     flagged = flagged_roles(manifest.get("artifacts", []))
     if manifest.get("status") in ("running", "incomplete") and decision == "approved":
         raise GateError(f"run '{run_id}' was interrupted before it finished; reject it instead")
@@ -116,6 +139,12 @@ def _decide(
     if dst.exists():
         raise GateError(f"destination {dst} already exists; refusing to merge directories")
     if not prior:
+        try:
+            # Whoever creates this wins; the loser gets a clear error instead of both
+            # "succeeding" and leaving the directory and the manifest disagreeing.
+            os.close(os.open(src / DECISION_CLAIM, os.O_CREAT | os.O_EXCL | os.O_WRONLY))
+        except FileExistsError as exc:
+            raise GateError(f"run '{run_id}' is being decided by another process") from exc
         manifest["decision"] = {
             "state": decision,
             "by": by.strip(),
@@ -129,7 +158,8 @@ def _decide(
         # pending/ whose manifest already carries the decision; re-running completes the move.
         write_manifest(src, manifest)
     dst.parent.mkdir(parents=True, exist_ok=True)
-    # os.rename is atomic and fails if another decision already moved or replaced the directory.
+    # The dst.exists() check above is the real guard: os.rename onto an existing empty
+    # directory succeeds silently on POSIX.
     os.rename(src, dst)
     decided = manifest["decision"]
     append_log(

@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import re
@@ -10,6 +11,9 @@ ARTIFACT_DIR_ENV = "ARTIFACT_DIR"
 LOG_DIR_ENV = "LOG_DIR"
 STATES = ("pending", "approved", "rejected")
 MANIFEST_NAME = "manifest.json"
+LOCK_NAME = "run.lock"
+DEFAULT_ARTIFACT_DIR = "out"
+DEFAULT_LOG_DIR = "logs"
 RUN_ID_RE = re.compile(r"^\d{8}_\d{6}_[0-9a-f]{6}$")
 
 
@@ -24,13 +28,13 @@ def base_root() -> Path:
 def artifact_root(override: str | os.PathLike | None = None) -> Path:
     if override:
         return Path(override)
-    return base_root() / os.getenv(ARTIFACT_DIR_ENV, "out")
+    return base_root() / os.getenv(ARTIFACT_DIR_ENV, DEFAULT_ARTIFACT_DIR)
 
 
 def log_path(override: str | os.PathLike | None = None) -> Path:
     if override:
         return Path(override)
-    return base_root() / os.getenv(LOG_DIR_ENV, "logs") / "runs.jsonl"
+    return base_root() / os.getenv(LOG_DIR_ENV, DEFAULT_LOG_DIR) / "runs.jsonl"
 
 
 def now_iso() -> str:
@@ -71,8 +75,12 @@ def write_manifest(d: Path, manifest: dict) -> Path:
     if not d.is_dir():
         raise StorageError(f"run directory {d} does not exist")
     final = d / MANIFEST_NAME
-    tmp = d / f".{MANIFEST_NAME}.tmp"
-    tmp.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
+    # Unique temp name: two writers to one run directory must not clobber each other's temp file.
+    tmp = d / f".{MANIFEST_NAME}.{os.getpid()}.tmp"
+    with tmp.open("w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2, sort_keys=True)
+        f.flush()
+        os.fsync(f.fileno())  # a power loss must not leave a zero-length manifest
     os.replace(tmp, final)
     return final
 
@@ -90,10 +98,14 @@ def read_manifest(d: Path) -> dict:
         or any(not isinstance(a, dict) or "role" not in a for a in m["artifacts"])
     ):
         raise StorageError(f"malformed manifest at {p}")
+    if m["run_id"] != d.name:
+        # Otherwise `pending` prints an id that `show` and `approve` cannot resolve.
+        raise StorageError(f"manifest run_id {m['run_id']!r} does not match directory {d.name!r}")
     return m
 
 
-LOCK_NAME = "run.lock"
+def sha256_text(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def write_lock(d: Path) -> None:
@@ -117,11 +129,18 @@ def lock_holder_alive(d: Path) -> bool:
         return True
     try:
         pid = int(p.read_text(encoding="utf-8").strip())
+    except (ValueError, OSError):
+        return False
+    if pid <= 0:
+        # os.kill(0, 0) signals our own process group and os.kill(-1, 0) signals everything;
+        # neither says anything about the orchestrator, so treat both as dead.
+        return False
+    try:
         os.kill(pid, 0)
-    except (ValueError, ProcessLookupError):
+    except (ProcessLookupError, OverflowError):
         return False
     except PermissionError:
-        return True
+        return True  # the pid exists, it just belongs to another user
     return True
 
 

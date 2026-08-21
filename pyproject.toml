@@ -3,7 +3,8 @@ name = "adeptly-agents"
 dynamic = ["version"]
 description = "Hierarchical multi-agent consulting team with a governance check and a human approval gate"
 readme = "README.md"
-requires-python = ">=3.11"
+# CI runs 3.12 only, so 3.12 is the floor this project actually exercises.
+requires-python = ">=3.12"
 license = { text = "MIT" }
 dependencies = []
 

@@ -9,6 +9,7 @@ silently: they are listed for a human to check regardless of outcome.
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -22,12 +23,12 @@ from adeptly.storage import now_iso
 
 HERE = Path(__file__).parent
 CASES = HERE / "cases.json"
-RESULTS = HERE / "results"
-BASELINE = RESULTS / "baseline.json"
-# Metrics that may not drop below the baseline. Rates that include the deliberately hard router
-# cases are reported but not gated, so adding an honest failing hard case is never a regression.
+# Tests point this at a temp dir so the suite never writes into the working tree.
+RESULTS = Path(os.getenv("ADEPTLY_EVAL_RESULTS", HERE / "results"))
+BASELINE = HERE / "results" / "baseline.json"  # always the committed one
 # Counts that may never shrink between baseline and now (deleting or relabelling cases is a
-# regression). Pass/fail is compared per case id, so adding an honest failing hard case is fine.
+# regression). Pass/fail is compared per case id, so adding an honest failing hard case is fine,
+# but a case that passed at baseline and fails now is not.
 GATED_COUNTS = ("router_cases", "router_easy_cases", "governance_cases", "dryrun_specialists")
 HOW_MEASURED = {
     "router_exact_plan_rate": "share of router cases whose full ordered plan equals the expected",
@@ -101,8 +102,8 @@ def eval_governance(cases: list[dict]) -> tuple[dict, list[dict]]:
         )
     n = len(cases)
     return {
-        "governance_verdict_rate": verdict_ok / n,
-        "governance_issue_recall": issues_ok / n,
+        "governance_verdict_rate": verdict_ok / max(n, 1),
+        "governance_issue_recall": issues_ok / max(n, 1),
         "governance_cases": n,
     }, rows
 

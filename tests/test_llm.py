@@ -136,3 +136,80 @@ def test_openrouter_effort_per_role(workdir, monkeypatch):
     monkeypatch.setenv("OPENROUTER_EFFORT", "extreme")
     with pytest.raises(ValueError, match="OPENROUTER_EFFORT"):
         llm.generate("SYS", "USER", role="legal")
+
+
+def test_openrouter_direct_construction_without_key_is_a_clear_error(workdir):
+    from adeptly.llm import OpenRouterLLM
+
+    with pytest.raises(RuntimeError, match="OPENROUTER_API_KEY"):
+        OpenRouterLLM()
+
+
+def test_calls_are_bounded_by_timeout_and_max_tokens():
+    from adeptly.llm import DEFAULT_MAX_TOKENS, DEFAULT_TIMEOUT_S, OpenAILLM
+
+    fake = FakeOpenAIClient()
+    OpenAILLM(model="m", client=fake).generate("SYS", "USER")
+    assert fake.calls[0]["max_tokens"] == DEFAULT_MAX_TOKENS
+    assert fake.calls[0]["timeout"] == DEFAULT_TIMEOUT_S
+
+
+def test_bounds_are_configurable_and_validated(workdir, monkeypatch):
+    from adeptly.llm import OpenAILLM
+
+    monkeypatch.setenv("LLM_MAX_TOKENS", "42")
+    monkeypatch.setenv("LLM_TIMEOUT_S", "7")
+    fake = FakeOpenAIClient()
+    OpenAILLM(model="m", client=fake).generate("SYS", "USER")
+    assert fake.calls[0]["max_tokens"] == 42 and fake.calls[0]["timeout"] == 7.0
+    monkeypatch.setenv("LLM_TIMEOUT_S", "soon")
+    with pytest.raises(ValueError, match="LLM_TIMEOUT_S"):
+        OpenAILLM(model="m", client=FakeOpenAIClient()).generate("SYS", "USER")
+
+
+def test_truncated_response_warns_and_empty_content_is_an_error(caplog):
+    from adeptly.llm import OpenAILLM
+
+    fake = FakeOpenAIClient()
+    truncated = _Choice(None)
+    truncated.finish_reason = "length"
+    fake.chat.completions.create = lambda **kw: type("R", (), {"choices": [truncated]})()
+    with caplog.at_level("WARNING"), pytest.raises(RuntimeError, match="empty completion"):
+        OpenAILLM(model="m", client=fake).generate("SYS", "USER")
+    assert "truncated" in caplog.text
+
+
+def test_provider_error_with_no_choices_names_the_upstream_error():
+    from adeptly.llm import OpenAILLM
+
+    fake = FakeOpenAIClient()
+    fake.chat.completions.create = lambda **kw: type(
+        "R", (), {"choices": [], "error": {"message": "upstream 502"}}
+    )()
+    with pytest.raises(RuntimeError, match="upstream 502"):
+        OpenAILLM(model="m", client=fake).generate("SYS", "USER")
+
+
+def test_blank_model_env_falls_back_to_the_default(workdir, monkeypatch):
+    from adeptly.llm import DEFAULT_OPENROUTER_MODEL, OpenRouterLLM
+
+    monkeypatch.setenv("OPENROUTER_MODEL", "")
+    llm = OpenRouterLLM(client=FakeOpenAIClient())
+    assert llm.resolve_model("strategist") == DEFAULT_OPENROUTER_MODEL
+
+
+def test_bad_effort_fails_at_construction_not_mid_run(workdir, monkeypatch):
+    from adeptly.llm import OpenRouterLLM
+
+    monkeypatch.setenv("OPENROUTER_EFFORT", "extreme")
+    with pytest.raises(ValueError, match="OPENROUTER_EFFORT"):
+        OpenRouterLLM(client=FakeOpenAIClient())
+
+
+def test_openrouter_accepts_the_documented_effort_values(workdir, monkeypatch):
+    from adeptly.llm import OpenRouterLLM
+
+    llm = OpenRouterLLM(client=FakeOpenAIClient())
+    for value in ("none", "minimal", "low", "medium", "high", "max", "xhigh"):
+        monkeypatch.setenv("OPENROUTER_EFFORT", value)
+        assert llm.resolve_effort(None) == value

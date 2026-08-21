@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0 — 2026-08-21
+
+Security and integrity pass on the gate itself, driven by adversarial review. See the 0.2.0
+entry for the rebuild; this release is what pre-merge review found in it.
+
 ## 0.2.0 — 2026-08-20
 
 Rebuilt from the 2025 sketch into a single runnable package.
@@ -46,6 +51,19 @@ Found in review and fixed before release:
   `.env` stripped; `OSError` handled as a one-line CLI error; tests hermetic (`ADEPTLY_ENV_FILE`,
   `ADEPTLY_ROOT`); eval gates only regression-guard metrics so honest hard-case failures are
   never "regressions"; `latest.json` git-ignored, `baseline.json` is the committed record.
+- Pre-merge adversarial review (Codex plus a fresh-context subagent) found three defects that
+  defeated the gate itself, all fixed with tests: artifact bytes were never verified, so editing
+  one field in `manifest.json` turned a flagged run into a clean approval; `adeptly show` printed
+  model output raw, so ANSI escapes could repaint the reviewer's terminal just before approval;
+  and `.env` could set any variable, including `OPENAI_BASE_URL`, redirecting model calls with
+  the key attached.
+- Also fixed: provider calls are bounded by timeout and max-tokens; a provider error or empty
+  completion raises instead of writing an empty artifact; blank env vars fall back to defaults;
+  invalid pids in `run.lock` no longer report a dead run as live; a manifest whose `run_id`
+  disagrees with its directory is surfaced as corrupt; concurrent decisions are serialised by an
+  exclusive claim; the task is length-bounded and PII-checked before the run starts; teammate
+  output is fenced as untrusted in downstream prompts; CI runs once per PR with
+  `persist-credentials: false`, a job timeout and provider extras installed.
 - Third and fourth passes: a `run.lock` (pid) marks a live orchestrator so a run cannot be
   decided out from under it; a decision recorded in the manifest but not yet moved can only be
   completed (same decision) — never overwritten — and the log names the original decider; the

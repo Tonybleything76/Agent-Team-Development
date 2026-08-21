@@ -103,7 +103,7 @@ uv run python -m evals.run   # scored eval; writes evals/results/latest.json (gi
 - Not a production deployment. There is no queue, no UI, no auth; the gate is an atomic file move and a log line, on purpose.
 - Not connected to tools yet. MCP server wiring from the first sketch was removed because it never worked; re-adding it is the next step once the gate is proven.
 - Not a claim about output quality. The dry-run provider exists to prove the control flow, not the content, and the eval is a regression harness over fixed cases — it measures that the rules do what they say, not that routing or governance is good in the wild. The eval's "hard" router cases are there to keep that honest; see the committed `evals/results/baseline.json` (and `latest.json` after you run the eval).
-- Not yet exercised against a real model in this repo. The OpenAI and Anthropic providers are unit-tested with fake clients only.
+- Not yet exercised against a real model in this repo. The OpenRouter, OpenAI and Anthropic providers are unit-tested with fake clients only.
 
 ## History
 

@@ -6,13 +6,55 @@ import sys
 from pathlib import Path
 
 from . import __version__, gate, orchestrator
+from .governance import strip_controls
 from .llm import PROVIDERS, get_llm
 from .roles import ROLES
-from .storage import ROOT_ENV, STATES, StorageError, artifact_root, find_run, read_manifest
+from .storage import (
+    ARTIFACT_DIR_ENV,
+    DEFAULT_ARTIFACT_DIR,
+    DEFAULT_LOG_DIR,
+    LOG_DIR_ENV,
+    ROOT_ENV,
+    STATES,
+    StorageError,
+    artifact_root,
+    find_run,
+    read_manifest,
+)
+
+log = logging.getLogger(__name__)
+
+
+# A .env may only set variables this application owns. Without an allowlist, a .env sitting in
+# any directory you run `adeptly` from could set OPENAI_BASE_URL or HTTPS_PROXY and silently
+# redirect model calls (with the Authorization header) to another host.
+DOTENV_ALLOWED = frozenset(
+    {
+        "LLM_PROVIDER",
+        "LLM_MAX_TOKENS",
+        "LLM_TIMEOUT_S",
+        "OPENROUTER_API_KEY",
+        "OPENROUTER_MODEL",
+        "OPENAI_API_KEY",
+        "OPENAI_MODEL",
+        "ANTHROPIC_API_KEY",
+        "ANTHROPIC_MODEL",
+        ROOT_ENV,
+        ARTIFACT_DIR_ENV,
+        LOG_DIR_ENV,
+    }
+)
+
+
+def _dotenv_allows(key: str) -> bool:
+    return key in DOTENV_ALLOWED or key.startswith(("OPENROUTER_MODEL_", "OPENROUTER_EFFORT"))
 
 
 def load_dotenv(path: Path) -> None:
-    """Minimal .env loader: KEY=value lines, '#' comments; never overrides the real environment."""
+    """Minimal .env loader: KEY=value lines, '#' comments; never overrides the real environment.
+
+    Only keys this application owns are set; anything else in the file is ignored with a warning.
+    """
     if not path.exists():
         return
     for raw in path.read_text(encoding="utf-8").splitlines():
@@ -20,15 +62,22 @@ def load_dotenv(path: Path) -> None:
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, value = line.split("=", 1)
-        key, value = key.strip().removeprefix("export ").strip(), value.strip()
+        key = key.strip()
+        if key.startswith("export "):
+            key = key[len("export ") :].strip()
+        value = value.strip()
         if value[:1] in ("'", '"'):
             quote = value[0]
             end = value.find(quote, 1)
             value = value[1:end] if end > 0 else value[1:]
         else:
             value = value.split(" #", 1)[0].split("\t#", 1)[0].strip()
-        if key and key not in os.environ:
-            os.environ[key] = value
+        if not key or key in os.environ:
+            continue
+        if not _dotenv_allows(key):
+            log.warning("ignoring unsupported key %r in %s", key, path)
+            continue
+        os.environ[key] = value
 
 
 def _cmd_run(args) -> int:
@@ -43,6 +92,11 @@ def _cmd_run(args) -> int:
             issues = "; ".join(a.review["issues"]) if a.review["issues"] else ""
             print(f"  {a.role:<18} {a.review['verdict']:<8} {a.file}  {issues}")
     print(f"status: pending -> review with `adeptly show {rec.run_id}`, then approve or reject.")
+    if rec.artifacts and all(a.error for a in rec.artifacts):
+        # A run where nothing succeeded is a failure for anything scripting this command,
+        # even though the run is still on disk for a human to reject.
+        print("error: every specialist failed; see logs/runs.jsonl", file=sys.stderr)
+        return 1
     return 0
 
 
@@ -75,7 +129,8 @@ def _cmd_show(args) -> int:
     state, d = found
     print(json.dumps(read_manifest(d), indent=2))
     for f in sorted(d.glob("*.md")):
-        print(f"\n===== {state}/{f.name} =====\n{f.read_text(encoding='utf-8')}")
+        body = strip_controls(f.read_text(encoding="utf-8"))
+        print(f"\n===== {state}/{f.name} =====\n{body}")
     return 0
 
 
@@ -150,8 +205,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.root:
             # --root wins over anything .env says, including absolute ARTIFACT_DIR/LOG_DIR.
             os.environ[ROOT_ENV] = args.root
-            os.environ["ARTIFACT_DIR"] = "out"
-            os.environ["LOG_DIR"] = "logs"
+            os.environ[ARTIFACT_DIR_ENV] = DEFAULT_ARTIFACT_DIR
+            os.environ[LOG_DIR_ENV] = DEFAULT_LOG_DIR
         return args.fn(args)
     except (gate.GateError, StorageError, ValueError, RuntimeError, OSError) as exc:
         if args.verbose:

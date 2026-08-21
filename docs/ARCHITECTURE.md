@@ -9,7 +9,7 @@
 | Specialist producer | `adeptly/orchestrator.py::produce` | Builds the system/user prompt for a role, calls the LLM, runs Governance. |
 | Governance evaluator | `adeptly/governance.py` | Rule-based checks: required sections, no placeholders, ≥1 https citation, no email/phone. |
 | Orchestrator | `adeptly/orchestrator.py::run` | Runs the plan sequentially, passes prior output as context, isolates per-specialist failures, writes manifest + log. |
-| Human gate | `adeptly/gate.py` | pending → approved/rejected by a named person; refuses approval of governance-flagged or errored runs without `--force` + note; validates `run_id`; records the decision in the manifest before moving. |
+| Human gate | `adeptly/gate.py` | pending → approved/rejected by a named person; re-reads every artifact and re-derives governance from the bytes before recording a decision (digest + verdict must match the manifest); refuses governance-flagged or errored runs without `--force` + note; validates `run_id`; claims the decision with an exclusive marker so concurrent decisions cannot both "succeed". |
 | Storage | `adeptly/storage.py` | `out/<state>/<run_id>/{manifest.json,<role>.md}` and `logs/runs.jsonl`. |
 | LLM layer | `adeptly/llm.py` | `dryrun` (default, offline, deterministic); `openrouter` (recommended: one key, per-role model/version and reasoning effort via env); direct `openai`, `anthropic`. |
 | CLI | `adeptly/cli.py` | `run`, `roles`, `pending`, `show`, `approve`, `reject`. |
@@ -50,7 +50,27 @@ after approve/reject; `forced` is true when a human overrode governance flags).
 `logs/runs.jsonl` events: `run_start, artifact, specialist_error, run_end, approved, rejected`
 (decision events carry `by`, `note`, `forced`).
 
-## Accepted limitations (reviewed 2026-08-20)
+## Trust boundaries
+
+The gate exists so a human decision is a recorded fact, so the things that could forge or
+mislead that decision are treated as defects, not polish:
+
+- **Artifacts are digested when produced and re-verified at decision time.** Editing
+  `manifest.json`, swapping an `.md` file between `show` and `approve`, or deleting one is
+  refused. Approval attests to the bytes a reviewer could actually have read.
+- **Model output is never printed raw.** Governance flags control characters and `adeptly show`
+  strips them, so an artifact cannot repaint the reviewer's terminal just before they approve.
+- **A `.env` may only set variables this application owns.** Otherwise a file in whatever
+  directory you happened to run from could set `OPENAI_BASE_URL` or `HTTPS_PROXY` and redirect
+  model calls, Authorization header included.
+- **The task is checked and bounded before the run starts.** Governance only ever inspected
+  model output, so PII in the input would have bypassed it into the manifest and the audit log.
+- **Teammate output is fenced as untrusted reference material** in downstream prompts, so one
+  manipulated artifact does not steer the rest of the plan.
+- **Every provider call is bounded** by `LLM_TIMEOUT_S` and `LLM_MAX_TOKENS`; a hung call would
+  otherwise hold the run lock and block the gate, and an unbounded one costs real money.
+
+## Accepted limitations (reviewed 2026-08-21)
 
 These were raised in adversarial review and accepted deliberately rather than fixed:
 
@@ -74,6 +94,10 @@ These were raised in adversarial review and accepted deliberately rather than fi
   environment for anything fancier.
 - **Heading detection is a regex, not a markdown parser.** Underscore bold (`__Risks__`) and
   setext headings are not recognised; the five supported shapes cover what the providers emit.
+- **The citation check verifies shape, not sources.** `https://x` satisfies it. The verdict says
+  "a citation-shaped string is present", not "the source exists"; resolving URLs is a next step.
+- **Third-party actions are pinned to major tags, not commit SHAs.** `permissions: contents: read`
+  and `persist-credentials: false` bound the blast radius; SHA pinning is the stronger control.
 - **The gate's decision logic is an if-ladder, not a state machine.** `_decide` reads four
   sources (directory, manifest status, recorded decision, lock) in sequence; a `classify_run()`
   with a transition table would be cleaner. Every path is tested; refactor is a next step.

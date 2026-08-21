@@ -1,6 +1,14 @@
+import os
+
 import pytest
 
 from adeptly.llm import DryRunLLM
+
+
+@pytest.fixture(autouse=True)
+def isolated_environ(monkeypatch):
+    """Give every test its own os.environ copy so dotenv tests cannot leak into siblings."""
+    monkeypatch.setattr(os, "environ", dict(os.environ))
 
 
 @pytest.fixture
@@ -26,16 +34,33 @@ class RecordingLLM:
 
     def __init__(self, fail_roles=()):
         self.calls: list[tuple[str, str]] = []
+        self.roles: list[str | None] = []
         self.fail_roles = set(fail_roles)
 
     def generate(self, system: str, prompt: str, role: str | None = None) -> str:
         self.calls.append((system, prompt))
-        for role in self.fail_roles:
-            if role in system:
-                raise RuntimeError(f"simulated failure for {role}")
+        self.roles.append(role)
+        if role in self.fail_roles:
+            raise RuntimeError(f"simulated failure for {role}")
         return DryRunLLM().generate(system, prompt)
 
 
 @pytest.fixture
 def fake_llm():
     return RecordingLLM()
+
+
+@pytest.fixture
+def failing_rename(monkeypatch):
+    """Make os.rename raise once, then restore it — used to test decision recovery."""
+    import os as _os
+
+    real = _os.rename
+
+    def _break():
+        monkeypatch.setattr(_os, "rename", lambda *a, **k: (_ for _ in ()).throw(OSError("disk")))
+
+    def _restore():
+        monkeypatch.setattr(_os, "rename", real)
+
+    return _break, _restore

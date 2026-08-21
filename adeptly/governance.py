@@ -23,6 +23,9 @@ PLACEHOLDER_RE = re.compile(
     re.IGNORECASE,
 )
 HTTPS_RE = re.compile(r"https://\S+")
+# Model output is printed to a terminal at review time. ANSI/OSC sequences could repaint the
+# screen just before a human types "approve", so they are a governance failure, not cosmetics.
+CONTROL_RE = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]")
 EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 # Phone needs separators or parentheses so a bare 10-digit figure (a population, a budget) is
 # not flagged; card-shaped numbers must also pass a Luhn check so four years in a row are not.
@@ -31,6 +34,16 @@ PHONE_RE = re.compile(
 )
 SSN_RE = re.compile(r"\b\d{3}-\d{2}-\d{4}\b")
 CARD_RE = re.compile(r"\b\d{4}[ -]?\d{4}[ -]?\d{4}[ -]?\d{4}\b")
+
+
+def strip_controls(text: str) -> str:
+    """Make model output safe to print: keep newlines and tabs, drop every other control byte."""
+    return CONTROL_RE.sub("", text)
+
+
+def flagged_roles(artifacts: list[dict]) -> list[str]:
+    """Roles whose artifact is not governance-clean, including specialists that errored."""
+    return [a["role"] for a in artifacts if a.get("error") or not (a.get("review") or {}).get("ok")]
 
 
 @dataclass
@@ -92,6 +105,8 @@ def review_text(text: str) -> Review:
     citations = sections.get("citations", "")
     if citations and not HTTPS_RE.search(citations):
         issues.append("Missing https citation URL in Citations section")
+    if CONTROL_RE.search(text):
+        issues.append("Control characters present (terminal escape risk)")
     if EMAIL_RE.search(text):
         issues.append("Possible PII: email address present")
     if PHONE_RE.search(text):

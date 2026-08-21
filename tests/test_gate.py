@@ -56,7 +56,7 @@ def test_path_traversal_run_ids_are_refused(workdir, fake_llm):
 def test_run_with_errored_specialist_is_flagged_not_crashing(workdir):
     from tests.conftest import RecordingLLM
 
-    rec = orchestrator.run("Draft an RFP response and SOW", llm=RecordingLLM(fail_roles=["Legal"]))
+    rec = orchestrator.run("Draft an RFP response and SOW", llm=RecordingLLM(fail_roles=["legal"]))
     with pytest.raises(gate.GateError, match="governance flagged \\['legal'\\]"):
         gate.approve(rec.run_id, by="Tony")
     m = gate.approve(rec.run_id, by="Tony", force=True, note="legal reviewed offline")
@@ -104,7 +104,7 @@ def test_list_runs_by_state(workdir, fake_llm):
 def test_failed_force_leaves_no_trace_and_forced_is_recorded(workdir):
     from tests.conftest import RecordingLLM
 
-    rec = orchestrator.run("Draft an RFP response and SOW", llm=RecordingLLM(fail_roles=["Legal"]))
+    rec = orchestrator.run("Draft an RFP response and SOW", llm=RecordingLLM(fail_roles=["legal"]))
     with pytest.raises(gate.GateError):
         gate.approve(rec.run_id, by="   ", force=True, note="x")  # fails on approver name
     with pytest.raises(gate.GateError, match="governance flagged"):
@@ -194,3 +194,116 @@ def test_completing_someone_elses_decision_logs_original_decider(workdir, fake_l
     gate.approve(rec.run_id, by="Bea")
     last = json.loads(log_path().read_text().splitlines()[-1])
     assert last["by"] == "Tony" and last["completed_by"] == "Bea"
+
+
+def test_stale_lock_from_a_crashed_run_does_not_block_the_gate(workdir, fake_llm):
+    from adeptly.storage import LOCK_NAME, lock_holder_alive
+
+    rec = _run(fake_llm)
+    _, d = gate.find_run(artifact_root(), rec.run_id)
+    (d / LOCK_NAME).write_text("999999")  # a pid that is not running
+    assert lock_holder_alive(d) is False
+    assert gate.reject(rec.run_id, by="Tony", reason="crashed")["status"] == "rejected"
+
+
+def test_unreadable_lock_contents_are_treated_as_dead(workdir, fake_llm):
+    from adeptly.storage import LOCK_NAME, lock_holder_alive
+
+    rec = _run(fake_llm)
+    _, d = gate.find_run(artifact_root(), rec.run_id)
+    (d / LOCK_NAME).write_text("not-a-pid")
+    assert lock_holder_alive(d) is False
+    assert gate.approve(rec.run_id, by="Tony")["status"] == "approved"
+
+
+def test_decision_refuses_to_merge_into_an_existing_destination(workdir, fake_llm):
+    rec = _run(fake_llm)
+    (artifact_root() / "approved" / rec.run_id).mkdir(parents=True)
+    with pytest.raises(gate.GateError, match="refusing to merge"):
+        gate.approve(rec.run_id, by="Tony")
+    assert (artifact_root() / "pending" / rec.run_id / "manifest.json").exists()
+
+
+def test_editing_the_manifest_cannot_launder_a_flagged_run(workdir):
+    """The attack this gate exists to stop: flip review.ok in JSON, get a clean approval."""
+    from tests.conftest import RecordingLLM
+
+    rec = orchestrator.run("Draft an RFP response and SOW", llm=RecordingLLM(fail_roles=["legal"]))
+    _, d = gate.find_run(artifact_root(), rec.run_id)
+    m = gate.read_manifest(d)
+    for a in m["artifacts"]:
+        a["error"] = None
+        a["review"] = {"ok": True, "issues": [], "verdict": "APPROVE"}
+    gate.write_manifest(d, m)
+    with pytest.raises(gate.GateError, match="neither a file nor an error"):
+        gate.approve(rec.run_id, by="attacker")
+
+
+def test_editing_a_verdict_in_the_manifest_is_caught(workdir):
+    """Flipping review.ok on a real artifact must not survive re-derivation from the bytes."""
+
+    class JunkLLM:
+        name = "junk"
+
+        def generate(self, system, prompt, role=None):
+            return "Objective: x\nBody: y\nCitations: none\nRisks: TBD\nNext Steps: z\n"
+
+    rec = orchestrator.run("Define KPIs", llm=JunkLLM())
+    _, d = gate.find_run(artifact_root(), rec.run_id)
+    m = gate.read_manifest(d)
+    m["artifacts"][0]["review"] = {"ok": True, "issues": [], "verdict": "APPROVE"}
+    gate.write_manifest(d, m)
+    with pytest.raises(gate.GateError, match="disagrees"):
+        gate.approve(rec.run_id, by="attacker")
+
+
+def test_swapping_an_artifact_after_review_is_refused(workdir, fake_llm):
+    rec = _run(fake_llm)
+    _, d = gate.find_run(artifact_root(), rec.run_id)
+    artifact = next(d.glob("*.md"))
+    artifact.write_text(
+        "Objective: swapped\nBody: different text entirely\nCitations: https://x.io/a\n"
+        "Risks: r\nNext Steps: n\n"
+    )
+    with pytest.raises(gate.GateError, match="changed since the run"):
+        gate.approve(rec.run_id, by="Tony")
+
+
+def test_missing_artifact_file_is_refused(workdir, fake_llm):
+    rec = _run(fake_llm)
+    _, d = gate.find_run(artifact_root(), rec.run_id)
+    next(d.glob("*.md")).unlink()
+    with pytest.raises(gate.GateError, match="missing"):
+        gate.approve(rec.run_id, by="Tony")
+
+
+def test_manifest_run_id_must_match_its_directory(workdir, fake_llm):
+    rec = _run(fake_llm)
+    _, d = gate.find_run(artifact_root(), rec.run_id)
+    m = gate.read_manifest(d)
+    m["run_id"] = "20990101_000000_aaaaaa"
+    gate.write_manifest(d, m)
+    assert gate.list_runs("pending")[0]["status"].startswith("corrupt")
+    with pytest.raises(gate.GateError, match="does not match directory"):
+        gate.approve(rec.run_id, by="Tony")
+
+
+@pytest.mark.parametrize("pid", ["0", "-1", "99999999999999999999"])
+def test_invalid_pids_in_the_lock_never_report_alive(workdir, fake_llm, pid):
+    from adeptly.storage import LOCK_NAME, lock_holder_alive
+
+    rec = _run(fake_llm)
+    _, d = gate.find_run(artifact_root(), rec.run_id)
+    (d / LOCK_NAME).write_text(pid)
+    assert lock_holder_alive(d) is False
+    assert gate.approve(rec.run_id, by="Tony")["status"] == "approved"
+
+
+def test_a_second_process_cannot_decide_a_run_already_being_decided(workdir, fake_llm):
+    from adeptly.gate import DECISION_CLAIM
+
+    rec = _run(fake_llm)
+    _, d = gate.find_run(artifact_root(), rec.run_id)
+    (d / DECISION_CLAIM).touch()  # stand in for another process mid-decision
+    with pytest.raises(gate.GateError, match="being decided by another process"):
+        gate.reject(rec.run_id, by="Mallory", reason="race")
