@@ -1,6 +1,5 @@
 import logging
 from dataclasses import asdict, dataclass, field
-from datetime import UTC, datetime
 from pathlib import Path
 
 from . import __version__
@@ -14,6 +13,7 @@ from .storage import (
     artifact_root,
     clear_lock,
     new_run_id,
+    now_iso,
     run_dir,
     write_lock,
     write_manifest,
@@ -85,7 +85,7 @@ def run(
         task=task,
         provider=llm.name,
         plan={"roles": plan.roles, "matched_rules": plan.matched_rules},
-        created_at=datetime.now(UTC).isoformat(timespec="seconds"),
+        created_at=now_iso(),
     )
     out = run_dir(artifact_root(root), "pending", run_id)
     out.mkdir(parents=True, exist_ok=False)  # a collision is a bug, never a silent merge
@@ -119,23 +119,22 @@ def run(
                 },
                 log_file,
             )
-            write_manifest(out, asdict(record))
-            continue
-        path = out / f"{role_key}.md"
-        path.write_text(text, encoding="utf-8")
-        review_dict = asdict(review) | {"verdict": review.verdict}
-        record.artifacts.append(ArtifactRecord(role_key, path.name, review_dict))
-        context_parts.append(f"[{get_role(role_key).title}]\n{_excerpt(text)}")
-        append_log(
-            {
-                "event": "artifact",
-                "run_id": run_id,
-                "role": role_key,
-                "verdict": review.verdict,
-                "issues": review.issues,
-            },
-            log_file,
-        )
+        else:
+            path = out / f"{role_key}.md"
+            path.write_text(text, encoding="utf-8")
+            review_dict = asdict(review) | {"verdict": review.verdict}
+            record.artifacts.append(ArtifactRecord(role_key, path.name, review_dict))
+            context_parts.append(f"[{get_role(role_key).title}]\n{_excerpt(text)}")
+            append_log(
+                {
+                    "event": "artifact",
+                    "run_id": run_id,
+                    "role": role_key,
+                    "verdict": review.verdict,
+                    "issues": review.issues,
+                },
+                log_file,
+            )
         write_manifest(out, asdict(record))
 
     record.status = "pending"

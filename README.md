@@ -1,8 +1,8 @@
 # Adeptly Agents
 
 A hierarchical AI consulting team in code: a Router/Supervisor dispatches a task to the right
-specialists, a Governance evaluator checks every artifact, and **nothing is released until a named
-human approves it**. Built to show how an autonomous agent team stays accountable.
+specialists, a Governance evaluator checks every artifact, and **a named human must approve every
+run before it leaves `pending/`**. Built to show how an autonomous agent team stays accountable.
 
 > Status: working prototype, v0.2.0. Runs fully offline by default. See "What this is not" below.
 

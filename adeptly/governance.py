@@ -13,7 +13,7 @@ _SECTION_ALT = "|".join(re.escape(sec.rstrip("s")) + "s?" for sec in REQUIRED_SE
 # prose like '**Risks** of delay are real' stays body text. A plain word, a list item ('- Risks:')
 # or a numbered line ('2. Risks:') counts only with a colon.
 _HEADING_RE = re.compile(
-    rf"^[ \t]*(?P<hash>#+[ \t]*(?:\d+[.)][ \t]*)?)?(?P<list>[-*][ \t]+|\d+[.)][ \t]+)?"
+    rf"^[ \t]*(?P<hash>#+[ \t]*(?:\d+[.)][ \t]*)?)?(?:[-*][ \t]+|\d+[.)][ \t]+)?"
     rf"(?P<bold>\*\*)?(?P<name>{_SECTION_ALT})(?:\*\*)?[ \t]*(?P<colon>:)?(?:\*\*)?"
     rf"[ \t]*(?P<rest>.*)$",
     re.IGNORECASE | re.MULTILINE,
@@ -53,12 +53,11 @@ def _luhn_ok(digits: str) -> bool:
     return total % 10 == 0
 
 
+_CANONICAL = {sec.rstrip("s"): sec for sec in REQUIRED_SECTIONS}
+
+
 def _canonical(label: str) -> str:
-    label = label.lower()
-    for sec in REQUIRED_SECTIONS:
-        if label in (sec, sec + "s") or label + "s" == sec:
-            return sec
-    return label
+    return _CANONICAL[label.lower().rstrip("s")]
 
 
 def split_sections(text: str) -> dict[str, str]:

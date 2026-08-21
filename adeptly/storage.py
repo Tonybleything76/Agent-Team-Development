@@ -9,6 +9,7 @@ ROOT_ENV = "ADEPTLY_ROOT"
 ARTIFACT_DIR_ENV = "ARTIFACT_DIR"
 LOG_DIR_ENV = "LOG_DIR"
 STATES = ("pending", "approved", "rejected")
+MANIFEST_NAME = "manifest.json"
 RUN_ID_RE = re.compile(r"^\d{8}_\d{6}_[0-9a-f]{6}$")
 
 
@@ -32,6 +33,10 @@ def log_path(override: str | os.PathLike | None = None) -> Path:
     return base_root() / os.getenv(LOG_DIR_ENV, "logs") / "runs.jsonl"
 
 
+def now_iso() -> str:
+    return datetime.now(UTC).isoformat(timespec="seconds")
+
+
 def new_run_id(now: datetime | None = None) -> str:
     now = now or datetime.now(UTC)
     return now.strftime("%Y%m%d_%H%M%S") + "_" + secrets.token_hex(3)
@@ -51,10 +56,9 @@ def run_dir(root: Path, state: str, run_id: str) -> Path:
 
 
 def find_run(root: Path, run_id: str) -> tuple[str, Path] | None:
-    validate_run_id(run_id)
     for state in STATES:
         d = run_dir(root, state, run_id)
-        if (d / "manifest.json").exists():
+        if (d / MANIFEST_NAME).exists():
             return state, d
     return None
 
@@ -66,15 +70,15 @@ def write_manifest(d: Path, manifest: dict) -> Path:
     """
     if not d.is_dir():
         raise StorageError(f"run directory {d} does not exist")
-    final = d / "manifest.json"
-    tmp = d / ".manifest.json.tmp"
+    final = d / MANIFEST_NAME
+    tmp = d / f".{MANIFEST_NAME}.tmp"
     tmp.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
     os.replace(tmp, final)
     return final
 
 
 def read_manifest(d: Path) -> dict:
-    p = d / "manifest.json"
+    p = d / MANIFEST_NAME
     try:
         m = json.loads(p.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
@@ -101,21 +105,29 @@ def clear_lock(d: Path) -> None:
 
 
 def lock_holder_alive(d: Path) -> bool:
-    """True if a run.lock exists and its pid is still running (the orchestrator is live)."""
+    """True if a run.lock exists and its pid is still running (the orchestrator is live).
+
+    POSIX only: signal 0 probes existence. PermissionError means the pid exists under another
+    user, so it counts as alive. On other platforms the lock file alone is treated as live.
+    """
     p = d / LOCK_NAME
     if not p.exists():
         return False
+    if os.name != "posix":
+        return True
     try:
         pid = int(p.read_text(encoding="utf-8").strip())
         os.kill(pid, 0)
-    except (ValueError, ProcessLookupError, PermissionError):
+    except (ValueError, ProcessLookupError):
         return False
+    except PermissionError:
+        return True
     return True
 
 
 def append_log(event: dict, path: Path | None = None) -> None:
     p = path or log_path()
     p.parent.mkdir(parents=True, exist_ok=True)
-    event = {"ts": datetime.now(UTC).isoformat(timespec="seconds"), **event}
+    event = {"ts": now_iso(), **event}
     with p.open("a", encoding="utf-8") as f:
         f.write(json.dumps(event, sort_keys=True) + "\n")

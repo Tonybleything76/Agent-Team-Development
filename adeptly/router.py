@@ -123,9 +123,10 @@ class Plan:
         return not self.matched_rules
 
 
-def _matches(keyword: str, text: str) -> bool:
+def _compile(keywords: tuple[str, ...]) -> re.Pattern:
     """Whole-word match with an optional plural, so 'nda' never fires on 'agenda'."""
-    return re.search(rf"\b{re.escape(keyword)}(s|es)?\b", text) is not None
+    alt = "|".join(re.escape(k) for k in keywords)
+    return re.compile(rf"\b(?:{alt})(?:s|es)?\b")
 
 
 class Router:
@@ -137,14 +138,15 @@ class Router:
             if unknown:
                 raise ValueError(f"rule '{name}' names unknown specialists: {unknown}")
         self.rules = rules
+        self._compiled = [(name, _compile(kws), roles) for name, kws, roles in rules]
         self.default = default
 
     def route(self, task: str) -> Plan:
         text = task.lower()
         roles: list[str] = []
         matched: list[str] = []
-        for name, keywords, rule_roles in self.rules:
-            if any(_matches(k, text) for k in keywords):
+        for name, pattern, rule_roles in self._compiled:
+            if pattern.search(text):
                 matched.append(name)
                 for r in rule_roles:
                     if r not in roles:

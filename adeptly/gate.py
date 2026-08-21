@@ -6,17 +6,19 @@ The gate records a human decision; it does not authenticate the human (single-op
 
 import logging
 import os
-from datetime import UTC, datetime
 from pathlib import Path
 
 from .storage import (
+    MANIFEST_NAME,
     StorageError,
     append_log,
     artifact_root,
     find_run,
     lock_holder_alive,
+    now_iso,
     read_manifest,
     run_dir,
+    validate_run_id,
     write_manifest,
 )
 
@@ -32,7 +34,7 @@ def flagged_roles(artifacts: list[dict]) -> list[str]:
     out = []
     for a in artifacts:
         review = a.get("review") or {}
-        if a.get("error") or review.get("verdict") != "APPROVE":
+        if a.get("error") or not review.get("ok"):
             out.append(a["role"])
     return out
 
@@ -45,18 +47,17 @@ def list_runs(state: str = "pending", root: Path | None = None) -> list[dict]:
         return []
     out: list[dict] = []
     for d in sorted(p for p in base.iterdir() if p.is_dir()):
-        stub = {"run_id": d.name, "task": "", "created_at": "", "artifacts": []}
-        if not (d / "manifest.json").exists():
-            out.append(stub | {"status": "incomplete (no manifest)"})
+        if not (d / MANIFEST_NAME).exists():
+            out.append({"run_id": d.name, "status": "incomplete (no manifest)"})
             continue
         try:
             m = read_manifest(d)
         except StorageError as exc:
-            out.append(stub | {"status": f"corrupt manifest: {exc}"})
+            out.append({"run_id": d.name, "status": f"corrupt manifest: {exc}"})
             continue
         if m.get("decision") and m.get("status") != state:
             m = m | {"status": f"{m.get('status')} (decision recorded, move incomplete)"}
-        elif lock_holder_alive(d):
+        elif state == "pending" and lock_holder_alive(d):
             m = m | {"status": "running (live)"}
         out.append(m)
     return out
@@ -76,22 +77,29 @@ def _decide(
         raise GateError("a named approver is required (--by)")
     root = artifact_root(root)
     try:
+        validate_run_id(run_id)
         found = find_run(root, run_id)
     except StorageError as exc:
         raise GateError(str(exc)) from exc
     if not found:
-        raise GateError(f"run '{run_id}' not found under {root}")
+        orphan = run_dir(root, "pending", run_id)
+        if orphan.is_dir() and decision == "rejected" and not lock_holder_alive(orphan):
+            # A run that died before its first manifest write: let a human clear it.
+            write_manifest(orphan, {"run_id": run_id, "status": "incomplete", "artifacts": []})
+            found = ("pending", orphan)
+        else:
+            raise GateError(f"run '{run_id}' not found under {root}")
     state, src = found
     if state != "pending":
         raise GateError(f"run '{run_id}' is already {state}")
+    if lock_holder_alive(src):
+        raise GateError(f"run '{run_id}' is still running (live orchestrator); wait for it")
     try:
         manifest = read_manifest(src)
     except StorageError as exc:
         raise GateError(str(exc)) from exc
     flagged = flagged_roles(manifest.get("artifacts", []))
-    if lock_holder_alive(src):
-        raise GateError(f"run '{run_id}' is still running (live orchestrator); wait for it")
-    if manifest.get("status") == "running" and decision == "approved":
+    if manifest.get("status") in ("running", "incomplete") and decision == "approved":
         raise GateError(f"run '{run_id}' was interrupted before it finished; reject it instead")
     prior = manifest.get("decision")
     if prior:
@@ -112,7 +120,7 @@ def _decide(
             "state": decision,
             "by": by.strip(),
             "note": note.strip(),
-            "at": datetime.now(UTC).isoformat(timespec="seconds"),
+            "at": now_iso(),
             "forced": bool(force and flagged),
             "flagged_roles": flagged,
         }
@@ -123,17 +131,19 @@ def _decide(
     dst.parent.mkdir(parents=True, exist_ok=True)
     # os.rename is atomic and fails if another decision already moved or replaced the directory.
     os.rename(src, dst)
+    decided = manifest["decision"]
     append_log(
         {
             "event": decision,
             "run_id": run_id,
-            "by": by.strip(),
-            "note": note.strip(),
-            "forced": manifest["decision"]["forced"],
+            "by": decided["by"],
+            "note": decided["note"],
+            "forced": decided["forced"],
+            "completed_by": by.strip() if prior else None,
         },
         log_file,
     )
-    log.info("run %s %s by %s", run_id, decision, by)
+    log.info("run %s %s by %s", run_id, decision, decided["by"])
     return manifest
 
 

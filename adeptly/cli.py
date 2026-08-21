@@ -59,10 +59,11 @@ def _cmd_pending(args) -> int:
         return 0
     for m in runs:
         verdicts = [(a.get("review") or {}).get("verdict", "ERROR") for a in m.get("artifacts", [])]
-        status = m.get("status", "")
-        flag = "" if status in STATES else f"  [{status}]"
-        task = m.get("task", "")[:50]
-        print(f"{m['run_id']}  {m.get('created_at', ''):<25} {task!r} {verdicts}{flag}")
+        status = str(m.get("status") or "")
+        flag = "" if status == args.state else f"  [{status}]"
+        task = str(m.get("task") or "")[:50]
+        created = str(m.get("created_at") or "")
+        print(f"{m.get('run_id', '?')}  {created:<25} {task!r} {verdicts}{flag}")
     return 0
 
 
@@ -98,7 +99,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("-v", "--verbose", action="store_true")
     p.add_argument(
         "--root",
-        help="directory holding out/ and logs/ (default: $ADEPTLY_ROOT or current directory)",
+        help="directory holding out/ and logs/; overrides ARTIFACT_DIR/LOG_DIR "
+        "(default: $ADEPTLY_ROOT or current directory)",
     )
     p.add_argument(
         "--env-file",
@@ -143,12 +145,17 @@ def main(argv: list[str] | None = None) -> int:
         level=logging.DEBUG if args.verbose else logging.WARNING,
         format="%(levelname)s %(name)s: %(message)s",
     )
-    if args.root:
-        os.environ[ROOT_ENV] = args.root
     try:
         load_dotenv(Path(args.env_file))
+        if args.root:
+            # --root wins over anything .env says, including absolute ARTIFACT_DIR/LOG_DIR.
+            os.environ[ROOT_ENV] = args.root
+            os.environ["ARTIFACT_DIR"] = "out"
+            os.environ["LOG_DIR"] = "logs"
         return args.fn(args)
     except (gate.GateError, StorageError, ValueError, RuntimeError, OSError) as exc:
+        if args.verbose:
+            raise
         print(f"error: {exc}", file=sys.stderr)
         return 2
 

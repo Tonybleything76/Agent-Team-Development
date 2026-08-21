@@ -4,7 +4,7 @@
 
 Rebuilt from the 2025 sketch into a single runnable package.
 
-- Scrubbed history: removed committed `.env` (two OpenAI keys, both revoked), a 306 MB virtualenv, logs, outputs and caches. `.git` went from 100 MB to under 1 MB.
+- Scrubbed history: removed committed `.env` (two OpenAI keys, both revoked), a committed virtualenv (14,526 files), logs, outputs and caches. `.git` went from 100 MB to 168 KB (measured with `du -sh .git` before and after `git filter-repo`, 2026-08-20; the pre-scrub objects are gone from this repo, so the figure is not re-derivable here).
 - Collapsed 22 copy-pasted agent packages into one role registry (`adeptly/roles.py`).
 - Router now uses whole-word matching; found in dry-run that `nda` matched inside `agenda`.
 - Governance rejects placeholder sections and flags emails/phone numbers, not just missing headings.
@@ -43,6 +43,15 @@ Found in review and fixed before release:
   `.env` stripped; `OSError` handled as a one-line CLI error; tests hermetic (`ADEPTLY_ENV_FILE`,
   `ADEPTLY_ROOT`); eval gates only regression-guard metrics so honest hard-case failures are
   never "regressions"; `latest.json` git-ignored, `baseline.json` is the committed record.
+- Third and fourth passes: a `run.lock` (pid) marks a live orchestrator so a run cannot be
+  decided out from under it; a decision recorded in the manifest but not yet moved can only be
+  completed (same decision) — never overwritten — and the log names the original decider; the
+  rename is atomic and never merges directories; orphan pending directories (crash before the
+  first manifest write) can be rejected; pluralised labels ("Objectives:", "Next Step:") and
+  numbered markdown headings accepted while bold words in prose are not headings; `.env`
+  `export` prefix and quoted-values-with-comments parsed; `--root` overrides `ARTIFACT_DIR`/
+  `LOG_DIR`; `-v` re-raises for a traceback; eval regression is now judged per case id against
+  the baseline (a case that passed and now fails), plus non-shrinking case counts.
 
 ## 0.1.0 — 2025-08-15
 

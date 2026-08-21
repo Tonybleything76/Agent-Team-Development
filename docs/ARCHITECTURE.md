@@ -65,6 +65,15 @@ These were raised in adversarial review and accepted deliberately rather than fi
   same run at once will see one succeed and one get a clear error.
 - **`repr(exc)` in manifests.** Provider exceptions are recorded verbatim in runtime output
   (git-ignored); readability beats the theoretical leak.
+- **Liveness is a pid file, not an OS lock.** `run.lock` holds the orchestrator's pid; the gate
+  probes it with signal 0 (POSIX). A reused pid after a reboot would make a dead run look live
+  until `run.lock` is deleted by hand; an advisory `flock` would be the stronger mechanism and is
+  a documented next step, not worth the platform-specific code for a single-operator CLI.
+- **`.env` loader supports a subset.** `KEY=value`, `export KEY=value`, single/double quoted
+  values, `#` comments. No escapes, multi-line values or `${VAR}` interpolation; use the real
+  environment for anything fancier.
+- **Heading detection is a regex, not a markdown parser.** Underscore bold (`__Risks__`) and
+  setext headings are not recognised; the five supported shapes cover what the providers emit.
 
 ## Next
 

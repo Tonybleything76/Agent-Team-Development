@@ -1,5 +1,7 @@
 import pytest
 
+from adeptly.llm import DryRunLLM
+
 
 @pytest.fixture
 def workdir(tmp_path, monkeypatch):
@@ -28,10 +30,7 @@ class RecordingLLM:
         for role in self.fail_roles:
             if role in system:
                 raise RuntimeError(f"simulated failure for {role}")
-        return (
-            "Objective: test\nBody: body\nCitations: https://example.com\n"
-            "Risks: some\nNext Steps: more\n"
-        )
+        return DryRunLLM().generate(system, prompt)
 
 
 @pytest.fixture

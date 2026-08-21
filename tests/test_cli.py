@@ -114,3 +114,24 @@ def test_dotenv_handles_export_and_quoted_with_comment(tmp_path, monkeypatch):
 def test_env_file_pointing_at_directory_is_one_line(workdir, tmp_path, capsys):
     assert main(["--env-file", str(tmp_path), "roles"]) == 2
     assert capsys.readouterr().err.startswith("error: ")
+
+
+def test_pending_tolerates_null_fields(workdir, capsys):
+    from adeptly.storage import artifact_root
+
+    d = artifact_root() / "pending" / "20260101_000000_eeeeee"
+    d.mkdir(parents=True)
+    (d / "manifest.json").write_text(
+        '{"run_id": "20260101_000000_eeeeee", "task": null, "created_at": null, '
+        '"status": "pending", "artifacts": []}'
+    )
+    assert main(["pending"]) == 0
+    assert "20260101_000000_eeeeee" in capsys.readouterr().out
+
+
+def test_root_overrides_absolute_artifact_dir_from_env(workdir, tmp_path, monkeypatch):
+    elsewhere = tmp_path / "abs"
+    monkeypatch.setenv("ARTIFACT_DIR", str(elsewhere))
+    other = tmp_path / "rooted"
+    assert main(["--root", str(other), "run", "Define KPIs"]) == 0
+    assert (other / "out" / "pending").exists() and not elsewhere.exists()

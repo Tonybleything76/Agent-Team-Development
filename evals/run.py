@@ -1,15 +1,15 @@
 """Scored eval for the router and governance checker.
 
 Usage:  python -m evals.run [--set-baseline]
-Writes evals/results/latest.json (and a timestamped copy). Exits 1 if any metric falls below the
-committed baseline, so CI catches regressions. Cases marked "borderline" never pass silently: they
-are listed for a human to check regardless of outcome.
+Writes evals/results/latest.json (git-ignored). Regression is judged per case against the
+committed baseline.json: any case that passed at baseline and fails now fails the run, and case
+counts may not shrink. Rates are reported, not gated. Cases marked "borderline" never pass
+silently: they are listed for a human to check regardless of outcome.
 """
 
 import argparse
 import json
 import sys
-from datetime import UTC, datetime
 from pathlib import Path
 
 from adeptly import __version__
@@ -18,6 +18,7 @@ from adeptly.llm import DryRunLLM
 from adeptly.orchestrator import produce
 from adeptly.roles import SPECIALISTS
 from adeptly.router import Router
+from adeptly.storage import now_iso
 
 HERE = Path(__file__).parent
 CASES = HERE / "cases.json"
@@ -25,20 +26,9 @@ RESULTS = HERE / "results"
 BASELINE = RESULTS / "baseline.json"
 # Metrics that may not drop below the baseline. Rates that include the deliberately hard router
 # cases are reported but not gated, so adding an honest failing hard case is never a regression.
-# Hard-case *passing count* (not rate) is gated, so adding an honest failing hard case is fine
-# but a router change that breaks a hard case that used to pass is a regression. Easy-case count
-# is gated so a failing easy case cannot be hidden by relabelling it hard.
-GATED_METRICS = (
-    "router_easy_exact_rate",
-    "router_easy_cases",
-    "router_hard_passing",
-    "governance_verdict_rate",
-    "governance_issue_recall",
-    "dryrun_specialists_governance_clean",
-    "router_cases",
-    "governance_cases",
-    "dryrun_specialists",
-)
+# Counts that may never shrink between baseline and now (deleting or relabelling cases is a
+# regression). Pass/fail is compared per case id, so adding an honest failing hard case is fine.
+GATED_COUNTS = ("router_cases", "router_easy_cases", "governance_cases", "dryrun_specialists")
 HOW_MEASURED = {
     "router_exact_plan_rate": "share of router cases whose full ordered plan equals the expected",
     "router_easy_exact_rate": "same, over cases that contain a rule keyword (regression guard)",
@@ -148,7 +138,7 @@ def main(argv=None) -> int:
 
     result = {
         "version": __version__,
-        "ran_at": datetime.now(UTC).isoformat(timespec="seconds"),
+        "ran_at": now_iso(),
         "how_measured": HOW_MEASURED,
         "metrics": metrics,
         "failures": failures,
@@ -158,8 +148,6 @@ def main(argv=None) -> int:
     }
     RESULTS.mkdir(exist_ok=True)
     (RESULTS / "latest.json").write_text(json.dumps(result, indent=2))
-    stamp = result["ran_at"].replace(":", "").replace("-", "")
-    (RESULTS / f"run_{stamp}.json").write_text(json.dumps(result, indent=2))
 
     print(f"adeptly eval v{__version__}")
     for k, v in metrics.items():
@@ -173,12 +161,11 @@ def main(argv=None) -> int:
             f"got {f.get('got') or f.get('got_verdict')}"
         )
 
-    # Hard cases are allowed to fail (that is the point of them); easy cases are not.
+    failed_ids = {f["id"] for f in failures}
     hard_ids = {r["id"] for r in r_rows if r["hard"]}
-    blocking = [f for f in failures if f["id"] not in hard_ids]
 
     if args.set_baseline:
-        if blocking and not args.allow_failures:
+        if (failed_ids - hard_ids) and not args.allow_failures:
             print("  refusing to set a baseline with failures (use --allow-failures to override)")
             return 1
         BASELINE.write_text(
@@ -187,9 +174,9 @@ def main(argv=None) -> int:
                     "version": __version__,
                     "ran_at": result["ran_at"],
                     "how_measured": HOW_MEASURED,
-                    "gated_metrics": list(GATED_METRICS),
+                    "gated": "per-case pass->fail transitions plus " + ", ".join(GATED_COUNTS),
                     "metrics": metrics,
-                    "failures": [f["id"] for f in failures],
+                    "failures": sorted(failed_ids),
                     "borderline_for_human_review": [b["id"] for b in borderline],
                 },
                 indent=2,
@@ -197,21 +184,21 @@ def main(argv=None) -> int:
         )
         print(f"  baseline written to {BASELINE}")
         return 0
-    if BASELINE.exists():
-        base = json.loads(BASELINE.read_text())["metrics"]
-        # Gated rates must not drop; case counts must not shrink (deleting cases is a regression).
-        regressions = {
-            k: (base[k], metrics.get(k, 0))
-            for k in GATED_METRICS
-            if k in base and metrics.get(k, 0) < base[k]
-        }
-        if regressions:
-            print(f"  REGRESSION vs baseline: {regressions}")
-            return 1
-        print("  no regression vs baseline")
-    else:
+    if not BASELINE.exists():
         print("  no baseline yet (run with --set-baseline)")
-    return 1 if blocking else 0
+        return 1 if (failed_ids - hard_ids) else 0
+    base = json.loads(BASELINE.read_text())
+    newly_failing = sorted(failed_ids - set(base.get("failures", [])))
+    shrunk = {
+        k: (base["metrics"][k], metrics.get(k, 0))
+        for k in GATED_COUNTS
+        if k in base["metrics"] and metrics.get(k, 0) < base["metrics"][k]
+    }
+    if newly_failing or shrunk:
+        print(f"  REGRESSION vs baseline: newly failing {newly_failing}, shrunk counts {shrunk}")
+        return 1
+    print("  no regression vs baseline")
+    return 0
 
 
 if __name__ == "__main__":

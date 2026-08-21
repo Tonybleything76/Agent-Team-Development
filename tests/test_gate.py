@@ -171,3 +171,26 @@ def test_malformed_manifest_is_a_gate_error(workdir):
     with pytest.raises(gate.GateError, match="malformed"):
         gate.reject("20260101_000000_cccccc", by="Tony", reason="x")
     assert gate.list_runs("pending")[0]["status"].startswith("corrupt")
+
+
+def test_orphan_pending_dir_can_be_rejected_but_not_approved(workdir):
+    d = artifact_root() / "pending" / "20260101_000000_dddddd"
+    d.mkdir(parents=True)
+    with pytest.raises(gate.GateError, match="not found"):
+        gate.approve("20260101_000000_dddddd", by="Tony", force=True, note="x")
+    m = gate.reject("20260101_000000_dddddd", by="Tony", reason="died before first write")
+    assert m["status"] == "rejected" and not d.exists()
+
+
+def test_completing_someone_elses_decision_logs_original_decider(workdir, fake_llm, monkeypatch):
+    import os
+
+    rec = _run(fake_llm)
+    real = os.rename
+    monkeypatch.setattr(os, "rename", lambda *a, **k: (_ for _ in ()).throw(OSError("disk")))
+    with pytest.raises(OSError):
+        gate.approve(rec.run_id, by="Tony")
+    monkeypatch.setattr(os, "rename", real)
+    gate.approve(rec.run_id, by="Bea")
+    last = json.loads(log_path().read_text().splitlines()[-1])
+    assert last["by"] == "Tony" and last["completed_by"] == "Bea"
