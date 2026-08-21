@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.1 — 2026-08-21
+
+First run against a real provider (OpenRouter, anthropic/claude-sonnet-5), which found a defect
+no dry run could: both specialists hit the 2000-token cost cap mid-sentence, so Citations, Risks
+and Next Steps were never written and governance reported them as "Missing section" — an
+operational failure wearing a content failure's clothes.
+
+- Providers now return a `Completion` carrying whether the model stopped on the token budget,
+  and a truncated artifact is reported as "Output truncated at the token budget", listed first.
+- Default `LLM_MAX_TOKENS` raised 2000 → 4000, and the system prompt now tells the model to
+  budget its length so every section fits.
+- Renamed the package and CLI from `adeptly` to `huminloop`.
+
 ## 0.3.0 — 2026-08-21
 
 Security and integrity pass on the gate itself, driven by adversarial review. See the 0.2.0

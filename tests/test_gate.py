@@ -3,6 +3,7 @@ import json
 import pytest
 
 from huminloop import gate, orchestrator
+from huminloop.llm import Completion
 from huminloop.storage import artifact_root, log_path
 
 
@@ -246,7 +247,7 @@ def test_editing_a_verdict_in_the_manifest_is_caught(workdir):
         name = "junk"
 
         def generate(self, system, prompt, role=None):
-            return "Objective: x\nBody: y\nCitations: none\nRisks: TBD\nNext Steps: z\n"
+            return Completion("Objective: x\nBody: y\nCitations: none\nRisks: TBD\nNext Steps: z\n")
 
     rec = orchestrator.run("Define KPIs", llm=JunkLLM())
     _, d = gate.find_run(artifact_root(), rec.run_id)

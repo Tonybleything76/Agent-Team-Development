@@ -61,8 +61,13 @@ def produce(role_key: str, task: str, llm: LLMClient, context: str = "") -> tupl
     if role_key not in SPECIALISTS:
         raise ValueError(f"'{role_key}' is a supervisor role and cannot be dispatched")
     system, prompt = build_prompt(role, task, context)
-    text = llm.generate(system, prompt, role=role_key)
-    return text, review_text(text)
+    completion = llm.generate(system, prompt, role=role_key)
+    review = review_text(completion.text)
+    if completion.truncated:
+        # Say what actually went wrong; the missing tail sections are a symptom of the cap.
+        review.issues.insert(0, "Output truncated at the token budget (raise LLM_MAX_TOKENS)")
+        review.ok = False
+    return completion.text, review
 
 
 def run(

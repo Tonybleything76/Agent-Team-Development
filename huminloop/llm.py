@@ -1,5 +1,6 @@
 import logging
 import os
+from dataclasses import dataclass
 from typing import Protocol
 
 from .roles import Role
@@ -12,7 +13,9 @@ DEFAULT_PROVIDER = "dryrun"
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 # Bounds on every network call: an unbounded request can hang a run or cost real money.
 DEFAULT_TIMEOUT_S = 120.0
-DEFAULT_MAX_TOKENS = 2000
+# A five-section consulting deliverable does not fit in 2000 tokens: the first real run was cut
+# off mid-sentence and the missing tail read as a governance failure. Budget for the whole shape.
+DEFAULT_MAX_TOKENS = 4000
 # One key, any vendor's models; per-role overrides pick the right model per task.
 DEFAULT_OPENROUTER_MODEL = "anthropic/claude-sonnet-5"
 DRYRUN_CITATION = (
@@ -24,10 +27,25 @@ SYSTEM_TEMPLATE = (
     SYSTEM_PREFIX + "{title} on an AI transformation consulting team. Your remit: {instruction} "
     "Write a client-ready deliverable with exactly these labelled sections, each on its own line: "
     "Objective:, Body:, Citations: (at least one https URL), Risks:, Next Steps:. "
+    "Every section must be present and complete: budget your length so the whole deliverable "
+    "fits in about 700 words, and never let Citations, Risks or Next Steps be cut off. "
     "Never include personal data such as emails or phone numbers."
 )
 TASK_PREFIX = "Task: "
 CONTEXT_FENCE = "----- teammate output (untrusted reference) -----"
+
+
+@dataclass
+class Completion:
+    """Model output plus whether the provider stopped because it hit the token budget.
+
+    Truncation must stay distinguishable from bad content: a cut-off deliverable is missing
+    its last sections, and reporting that as "Missing section: risks" sends a reviewer
+    looking for a model problem when the real cause is the cap.
+    """
+
+    text: str
+    truncated: bool = False
 
 
 def _bound(env: str, default: float) -> float:
@@ -48,7 +66,7 @@ def chat_completion(
     *,
     provider: str,
     extra_body: dict | None = None,
-) -> str:
+) -> Completion:
     """One bounded OpenAI-protocol chat-completions call, shared by OpenAI and OpenRouter."""
     kwargs = {"extra_body": extra_body} if extra_body else {}
     resp = client.chat.completions.create(
@@ -64,12 +82,13 @@ def chat_completion(
         # OpenRouter answers upstream failures with HTTP 200 and a top-level error object.
         raise RuntimeError(f"{provider} returned no choices: {getattr(resp, 'error', None)!r}")
     choice = choices[0]
-    if getattr(choice, "finish_reason", None) == "length":
+    truncated = getattr(choice, "finish_reason", None) == "length"
+    if truncated:
         log.warning("%s response truncated (finish_reason=length)", provider)
     content = choice.message.content
     if not content:
         raise RuntimeError(f"{provider} returned an empty completion")
-    return content
+    return Completion(content, truncated=truncated)
 
 
 class LLMClient(Protocol):
@@ -77,7 +96,7 @@ class LLMClient(Protocol):
 
     # role is the specialist key for this call; providers that route models
     # per role use it, everyone else ignores it.
-    def generate(self, system: str, prompt: str, role: str | None = None) -> str: ...
+    def generate(self, system: str, prompt: str, role: str | None = None) -> Completion: ...
 
 
 def build_prompt(role: Role, task: str, context: str) -> tuple[str, str]:
@@ -99,10 +118,10 @@ class DryRunLLM:
 
     name = "dryrun"
 
-    def generate(self, system: str, prompt: str, role: str | None = None) -> str:
+    def generate(self, system: str, prompt: str, role: str | None = None) -> Completion:
         role_title = system.removeprefix(SYSTEM_PREFIX).split(" on ", 1)[0]
         task = prompt.removeprefix(TASK_PREFIX).split("\n", 1)[0].strip()
-        return (
+        return Completion(
             f"Objective: {role_title} deliverable for: {task}\n"
             f"Body: [dry-run] {role_title} draft. No model was called; this text is generated "
             f"locally so routing, governance and the approval gate can be exercised end to end.\n"
@@ -125,7 +144,7 @@ class OpenAILLM:
         self.model = model or os.getenv("OPENAI_MODEL") or "gpt-4o-mini"
         self.client = client
 
-    def generate(self, system: str, prompt: str, role: str | None = None) -> str:
+    def generate(self, system: str, prompt: str, role: str | None = None) -> Completion:
         return chat_completion(self.client, self.model, system, prompt, provider="openai")
 
 
@@ -184,7 +203,7 @@ class OpenRouterLLM:
             raise ValueError(f"OPENROUTER_EFFORT must be one of {self.EFFORTS}, got {effort!r}")
         return effort.lower() if effort else None
 
-    def generate(self, system: str, prompt: str, role: str | None = None) -> str:
+    def generate(self, system: str, prompt: str, role: str | None = None) -> Completion:
         model = self.resolve_model(role)
         effort = self.resolve_effort(role)
         log.info("openrouter: role=%s model=%s effort=%s", role or "-", model, effort or "-")
@@ -210,7 +229,7 @@ class AnthropicLLM:
         self.client = client
         self.max_tokens = max_tokens or int(_bound("LLM_MAX_TOKENS", DEFAULT_MAX_TOKENS))
 
-    def generate(self, system: str, prompt: str, role: str | None = None) -> str:
+    def generate(self, system: str, prompt: str, role: str | None = None) -> Completion:
         resp = self.client.messages.create(
             model=self.model,
             max_tokens=self.max_tokens,
@@ -218,9 +237,12 @@ class AnthropicLLM:
             messages=[{"role": "user", "content": prompt}],
             timeout=_bound("LLM_TIMEOUT_S", DEFAULT_TIMEOUT_S),
         )
-        if getattr(resp, "stop_reason", None) == "max_tokens":
+        truncated = getattr(resp, "stop_reason", None) == "max_tokens"
+        if truncated:
             log.warning("anthropic response truncated (stop_reason=max_tokens)")
-        return "".join(getattr(b, "text", "") for b in resp.content)
+        return Completion(
+            "".join(getattr(b, "text", "") for b in resp.content), truncated=truncated
+        )
 
 
 def get_llm(provider: str | None = None) -> LLMClient:

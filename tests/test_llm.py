@@ -45,7 +45,7 @@ def test_openai_client_is_called_with_system_and_user_messages():
 
     fake = FakeOpenAIClient()
     llm = OpenAILLM(model="test-model", client=fake)
-    assert llm.generate("SYS", "USER") == "Objective: via openai"
+    assert llm.generate("SYS", "USER").text == "Objective: via openai"
     kw = fake.calls[0]
     assert kw["model"] == "test-model"
     assert kw["messages"] == [
@@ -105,7 +105,7 @@ def test_anthropic_client_is_called_with_system_kwarg():
 
     fake = FakeAnthropicClient()
     llm = AnthropicLLM(model="test-model", client=fake)
-    assert llm.generate("SYS", "USER") == "Objective: via anthropic"
+    assert llm.generate("SYS", "USER").text == "Objective: via anthropic"
     kw = fake.calls[0]
     assert kw["system"] == "SYS" and kw["messages"][0]["content"] == "USER"
 

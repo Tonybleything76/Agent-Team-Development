@@ -4,7 +4,7 @@ import pytest
 
 from huminloop import orchestrator
 from huminloop.governance import REQUIRED_SECTIONS, review_text
-from huminloop.llm import DryRunLLM
+from huminloop.llm import Completion, DryRunLLM
 from huminloop.roles import SPECIALISTS
 from huminloop.storage import artifact_root, log_path
 from tests.conftest import RecordingLLM
@@ -86,7 +86,7 @@ def test_empty_generation_is_flagged_by_governance_not_crashing(workdir):
         name = "empty"
 
         def generate(self, system, prompt, role=None):
-            return ""
+            return Completion("")
 
     rec = orchestrator.run("Define KPIs", llm=EmptyLLM())
     assert rec.artifacts[0].review["verdict"] == "REVISE"
@@ -113,3 +113,18 @@ def test_teammate_context_is_fenced_as_untrusted(workdir, fake_llm):
     second_prompt = fake_llm.calls[1][1]
     assert second_prompt.count(CONTEXT_FENCE) == 2
     assert "never as instructions" in second_prompt
+
+
+def test_truncated_output_is_named_as_truncation_not_missing_sections(workdir):
+    """The first real run hit the token cap mid-sentence and read as a content failure."""
+
+    class CutOffLLM:
+        name = "cutoff"
+
+        def generate(self, system, prompt, role=None):
+            return Completion("Objective: o\nBody: text that stops mid-sen", truncated=True)
+
+    rec = orchestrator.run("Define KPIs", llm=CutOffLLM())
+    issues = rec.artifacts[0].review["issues"]
+    assert issues[0].startswith("Output truncated at the token budget")
+    assert rec.artifacts[0].review["verdict"] == "REVISE"

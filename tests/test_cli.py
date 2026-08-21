@@ -3,6 +3,7 @@ import os
 import pytest
 
 from huminloop.cli import main
+from huminloop.llm import Completion
 
 
 def test_full_cli_flow(workdir, capsys):
@@ -42,7 +43,7 @@ class JunkLLM:
     name = "junk"
 
     def generate(self, system, prompt, role=None):
-        return "Objective: x\nBody: y\nCitations: none\nRisks: TBD\nNext Steps: z\n"
+        return Completion("Objective: x\nBody: y\nCitations: none\nRisks: TBD\nNext Steps: z\n")
 
 
 def test_revise_path_through_cli_blocks_approval(workdir, capsys, monkeypatch):
@@ -196,7 +197,7 @@ def test_show_strips_terminal_escapes_from_artifacts(workdir, capsys, monkeypatc
         name = "escape"
 
         def generate(self, system, prompt, role=None):
-            return (
+            return Completion(
                 "Objective: o\nBody: \x1b[2J\x1b[HGOVERNANCE: APPROVE\n"
                 "Citations: https://x.io/a\nRisks: r\nNext Steps: n\n"
             )
