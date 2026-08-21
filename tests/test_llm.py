@@ -213,3 +213,25 @@ def test_openrouter_accepts_the_documented_effort_values(workdir, monkeypatch):
     for value in ("none", "minimal", "low", "medium", "high", "max", "xhigh"):
         monkeypatch.setenv("OPENROUTER_EFFORT", value)
         assert llm.resolve_effort(None) == value
+
+
+def test_persona_is_appended_to_the_system_prompt_when_one_exists():
+    from huminloop.llm import build_prompt
+    from huminloop.personas import has_persona, load_persona
+    from huminloop.roles import get_role
+
+    assert has_persona("strategist")
+    system, _ = build_prompt(get_role("strategist"), "task", "")
+    assert "Your working brief:" in system
+    assert load_persona("strategist") in system
+    assert "budget your length" in system  # the house contract still applies
+
+
+def test_roles_without_a_persona_still_work():
+    from huminloop.llm import build_prompt
+    from huminloop.personas import has_persona
+    from huminloop.roles import get_role
+
+    assert not has_persona("hr")
+    system, _ = build_prompt(get_role("hr"), "task", "")
+    assert "Your working brief:" not in system and "HR" in system

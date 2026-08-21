@@ -3,6 +3,7 @@ import os
 from dataclasses import dataclass
 from typing import Protocol
 
+from .personas import load_persona
 from .roles import Role
 
 log = logging.getLogger(__name__)
@@ -101,6 +102,11 @@ class LLMClient(Protocol):
 
 def build_prompt(role: Role, task: str, context: str) -> tuple[str, str]:
     system = SYSTEM_TEMPLATE.format(title=role.title, instruction=role.instruction)
+    persona = load_persona(role.key)
+    if persona:
+        # The persona is how this specialist works; the template above is the house contract
+        # every specialist owes regardless of role, so it stays in force.
+        system = f"{system}\n\nYour working brief:\n\n{persona}"
     prompt = f"{TASK_PREFIX}{task}\n"
     if context:
         # Fenced and labelled: a downstream specialist must treat upstream output as reference
