@@ -57,7 +57,7 @@ def produce(role_key: str, task: str, llm: LLMClient, context: str = "") -> tupl
     if role_key not in SPECIALISTS:
         raise ValueError(f"'{role_key}' is a supervisor role and cannot be dispatched")
     system, prompt = build_prompt(role, task, context)
-    text = llm.generate(system, prompt)
+    text = llm.generate(system, prompt, role=role_key)
     return text, review_text(text)
 
 

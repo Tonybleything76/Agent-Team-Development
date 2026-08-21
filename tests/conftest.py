@@ -13,6 +13,8 @@ def workdir(tmp_path, monkeypatch):
     monkeypatch.delenv("LLM_PROVIDER", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_MODEL", raising=False)
     return tmp_path
 
 
@@ -25,7 +27,7 @@ class RecordingLLM:
         self.calls: list[tuple[str, str]] = []
         self.fail_roles = set(fail_roles)
 
-    def generate(self, system: str, prompt: str) -> str:
+    def generate(self, system: str, prompt: str, role: str | None = None) -> str:
         self.calls.append((system, prompt))
         for role in self.fail_roles:
             if role in system:

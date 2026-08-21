@@ -82,6 +82,9 @@ All variables are listed in `.env.example`.
 
 ## Test it
 
+CI (`.github/workflows/ci.yml`) runs exactly these on every push and pull request; the eval step
+fails the build on any case that passed at baseline and fails now.
+
 ```bash
 uv run ruff check .          # lint
 uv run pytest                # unit tests: router, governance, gate, orchestrator, CLI

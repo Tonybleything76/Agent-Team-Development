@@ -74,6 +74,14 @@ These were raised in adversarial review and accepted deliberately rather than fi
   environment for anything fancier.
 - **Heading detection is a regex, not a markdown parser.** Underscore bold (`__Risks__`) and
   setext headings are not recognised; the five supported shapes cover what the providers emit.
+- **The gate's decision logic is an if-ladder, not a state machine.** `_decide` reads four
+  sources (directory, manifest status, recorded decision, lock) in sequence; a `classify_run()`
+  with a transition table would be cleaner. Every path is tested; refactor is a next step.
+- **CLI catches a list of exception types, not one `AdeptlyError` base.** Provider SDK errors
+  would still surface as tracebacks; `-v` re-raises on purpose for debugging.
+- **Small duplications left in place.** The CLI derives artifact status in its own words; the
+  eval and one test both check that dry-run output passes governance (the test names the role,
+  the eval reports the rate); `DryRunLLM` reverse-parses role and task from the rendered prompt.
 
 ## Next
 

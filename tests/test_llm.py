@@ -54,6 +54,39 @@ def test_openai_client_is_called_with_system_and_user_messages():
     ]
 
 
+def test_openrouter_without_key_fails_clearly(workdir):
+    with pytest.raises(RuntimeError, match="OPENROUTER_API_KEY"):
+        get_llm("openrouter")
+
+
+def test_openrouter_resolves_model_per_role(workdir, monkeypatch):
+    from adeptly.llm import DEFAULT_OPENROUTER_MODEL, OpenRouterLLM
+
+    fake = FakeOpenAIClient()
+    llm = OpenRouterLLM(client=fake)
+    # No env set: the package default carries every role.
+    llm.generate("SYS", "USER", role="strategist")
+    assert fake.calls[0]["model"] == DEFAULT_OPENROUTER_MODEL
+    # A global override applies to roles without their own model...
+    monkeypatch.setenv("OPENROUTER_MODEL", "openai/gpt-5-mini")
+    # ...and a per-role override beats the global one for that role only.
+    monkeypatch.setenv("OPENROUTER_MODEL_PRE_SALES", "anthropic/claude-opus-5")
+    llm.generate("SYS", "USER", role="strategist")
+    llm.generate("SYS", "USER", role="pre_sales")
+    assert fake.calls[1]["model"] == "openai/gpt-5-mini"
+    assert fake.calls[2]["model"] == "anthropic/claude-opus-5"
+
+
+def test_openrouter_explicit_model_beats_env(workdir, monkeypatch):
+    from adeptly.llm import OpenRouterLLM
+
+    monkeypatch.setenv("OPENROUTER_MODEL_PRE_SALES", "anthropic/claude-opus-5")
+    fake = FakeOpenAIClient()
+    llm = OpenRouterLLM(model="pinned/model", client=fake)
+    llm.generate("SYS", "USER", role="pre_sales")
+    assert fake.calls[0]["model"] == "pinned/model"
+
+
 class FakeAnthropicClient:
     def __init__(self):
         self.calls = []
