@@ -99,8 +99,8 @@ def test_bare_section_word_in_prose_is_not_a_heading():
 
 def test_numbered_markdown_headings_are_recognised():
     md = (
-        "## 1. Objective\nx\n## 2. Body\nyy\n## 3. Citations\nhttps://a.b\n## 4. Risks\nsome\n"
-        "## 5. Next Steps\ngo\n"
+        "## 1. Objective\nImprove X\n## 2. Body\nDetails here\n## 3. Citations\nhttps://a.b\n"
+        "## 4. Risks\nsome risk\n## 5. Next Steps\ngo live\n"
     )
     r = review_text(md)
     assert r.ok, r.issues
