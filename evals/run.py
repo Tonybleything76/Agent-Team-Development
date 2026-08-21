@@ -15,9 +15,10 @@ from pathlib import Path
 
 from huminloop import __version__
 from huminloop.governance import review_text
-from huminloop.llm import DryRunLLM
+from huminloop.llm import DryRunLLM, build_prompt
 from huminloop.orchestrator import produce
-from huminloop.roles import SPECIALISTS
+from huminloop.personas import load_persona, persona_keys
+from huminloop.roles import SPECIALISTS, get_role
 from huminloop.router import Router
 from huminloop.storage import now_iso
 
@@ -29,7 +30,14 @@ BASELINE = HERE / "results" / "baseline.json"  # always the committed one
 # Counts that may never shrink between baseline and now (deleting or relabelling cases is a
 # regression). Pass/fail is compared per case id, so adding an honest failing hard case is fine,
 # but a case that passed at baseline and fails now is not.
-GATED_COUNTS = ("router_cases", "router_easy_cases", "governance_cases", "dryrun_specialists")
+GATED_COUNTS = (
+    "router_cases",
+    "router_easy_cases",
+    "governance_cases",
+    "dryrun_specialists",
+    "personas_written",
+    "personas_well_formed",
+)
 HOW_MEASURED = {
     "router_exact_plan_rate": "share of router cases whose full ordered plan equals the expected",
     "router_easy_exact_rate": "same, over cases that contain a rule keyword (regression guard)",
@@ -38,6 +46,9 @@ HOW_MEASURED = {
     "governance_verdict_rate": "share of governance cases with the expected APPROVE/REVISE verdict",
     "governance_issue_recall": "share of governance cases where every expected issue was reported",
     "dryrun_specialists_governance_clean": "share of specialists whose dry-run output passes",
+    "personas_written": "specialist roles with a persona file",
+    "personas_well_formed": "personas that carry the required sections and reach the prompt",
+    "persona_coverage": "personas_written divided by the number of specialist roles",
 }
 
 
@@ -108,6 +119,35 @@ def eval_governance(cases: list[dict]) -> tuple[dict, list[dict]]:
     }, rows
 
 
+PERSONA_SECTIONS = ("## Remit", "## Output contract")
+
+
+def eval_personas() -> tuple[dict, list[dict]]:
+    """Personas are prose, so this checks structure and wiring, not writing quality."""
+    rows = []
+    for key in persona_keys():
+        text = load_persona(key) or ""
+        system, _ = build_prompt(get_role(key), "eval task", "")
+        missing = [s for s in PERSONA_SECTIONS if s not in text]
+        rows.append(
+            {
+                "id": f"persona:{key}",
+                "role": key,
+                "in_prompt": text in system,
+                "sections_ok": not missing,
+                "missing_sections": missing,
+                "chars": len(text),
+                "borderline": False,
+            }
+        )
+    ok = sum(r["in_prompt"] and r["sections_ok"] for r in rows)
+    return {
+        "personas_written": len(rows),
+        "personas_well_formed": ok,
+        "persona_coverage": len(rows) / len(SPECIALISTS),
+    }, rows
+
+
 def eval_dry_run_end_to_end() -> dict:
     llm = DryRunLLM()
     clean = sum(produce(k, "eval task", llm)[1].ok for k in SPECIALISTS)
@@ -130,12 +170,15 @@ def main(argv=None) -> int:
     cases = json.loads(CASES.read_text())
     r_metrics, r_rows = eval_router(cases["router"])
     g_metrics, g_rows = eval_governance(cases["governance"])
+    p_metrics, p_rows = eval_personas()
     e_metrics = eval_dry_run_end_to_end()
-    metrics = {**r_metrics, **g_metrics, **e_metrics}
+    metrics = {**r_metrics, **g_metrics, **p_metrics, **e_metrics}
     borderline = [x for x in r_rows + g_rows if x["borderline"]]
-    failures = [x for x in r_rows if not x["exact"]] + [
-        x for x in g_rows if not (x["verdict_ok"] and x["issues_ok"])
-    ]
+    failures = (
+        [x for x in r_rows if not x["exact"]]
+        + [x for x in g_rows if not (x["verdict_ok"] and x["issues_ok"])]
+        + [x for x in p_rows if not (x["in_prompt"] and x["sections_ok"])]
+    )
 
     result = {
         "version": __version__,
@@ -146,6 +189,7 @@ def main(argv=None) -> int:
         "borderline_for_human_review": borderline,
         "router_rows": r_rows,
         "governance_rows": g_rows,
+        "persona_rows": p_rows,
     }
     RESULTS.mkdir(exist_ok=True)
     (RESULTS / "latest.json").write_text(json.dumps(result, indent=2))

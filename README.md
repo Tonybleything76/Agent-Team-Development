@@ -86,6 +86,37 @@ The CLI loads `.env` from the current directory (values already in the environme
 "…"`) to put them elsewhere. `huminloop pending --state approved|rejected` lists decided runs.
 All variables are listed in `.env.example`.
 
+## See it work without a key
+
+`docs/example-run/` holds real output from an actual OpenRouter run — both artifacts, plus the
+`manifest.json` the gate reads, including the per-artifact SHA-256. Nothing there is a mock.
+
+The same task run before the Strategist persona existed produced confident benchmark figures
+with no sourcing. With the persona it produces labelled assumptions:
+
+```
+[ASSUMPTION: 500 unplanned downtime hrs/yr x $8,000/hr avg cost x 25% reduction = $1.0M gross
+benefit - every input must be replaced with client CMMS/finance data before this number is
+cited to the CFO]
+```
+
+That rule lives in `huminloop/personas/strategist.md`, a file a human edits, not in a prompt
+buried in code.
+
+## Personas
+
+A role's one-line remit is enough to route and to test. It is not enough to produce work worth
+reviewing. A persona adds how the specialist works, what its output must carry, and what it
+must refuse — as markdown in `huminloop/personas/<role>.md`, appended to the contract every
+specialist owes regardless of role. Roles without a persona fall back to their remit, so the
+layer is additive.
+
+Three are written: `strategist` and `data_scientist` (which together cover the whole `strategy`
+route, so that workflow is fully persona-driven), and `legal` as a support-tier example whose
+defining feature is the boundary it refuses to cross — it never opines on the law and routes
+anything needing counsel to a human. The eval gates that personas stay well-formed and reach
+the prompt; it does not grade the writing.
+
 ## Test it
 
 CI (`.github/workflows/ci.yml`) runs exactly these on every push and pull request; the eval step
@@ -103,7 +134,8 @@ uv run python -m evals.run   # scored eval; writes evals/results/latest.json (gi
 - Not a production deployment. There is no queue, no UI, no auth; the gate is an atomic file move and a log line, on purpose.
 - Not connected to tools yet. MCP server wiring from the first sketch was removed because it never worked; re-adding it is the next step once the gate is proven.
 - Not a claim about output quality. The dry-run provider exists to prove the control flow, not the content, and the eval is a regression harness over fixed cases — it measures that the rules do what they say, not that routing or governance is good in the wild. The eval's "hard" router cases are there to keep that honest; see the committed `evals/results/baseline.json` (and `latest.json` after you run the eval).
-- Not yet exercised against a real model in this repo. The OpenRouter, OpenAI and Anthropic providers are unit-tested with fake clients only.
+- Only 3 of 20 specialists have a persona. The rest fall back to a one-line remit and will produce generic output; that is visible in `persona_coverage` rather than hidden.
+- The unit tests exercise the providers with fake clients. Real-provider behaviour is evidenced by the committed example run, not by the test suite.
 
 ## History
 

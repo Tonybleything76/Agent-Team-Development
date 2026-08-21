@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0 — 2026-08-21
+
+- Persona layer: per-role markdown in `huminloop/personas/`, appended to the house contract and
+  editable without touching Python. Written: strategist, data_scientist (the `strategy` route is
+  now fully persona-driven) and legal (support tier, defined by what it refuses).
+- Eval gates `personas_written` and `personas_well_formed`, and reports `persona_coverage`
+  (3/20) rather than implying the roster is finished.
+- `docs/example-run/` carries real provider output, so the system can be judged without a key.
+
 ## 0.3.1 — 2026-08-21
 
 First run against a real provider (OpenRouter, anthropic/claude-sonnet-5), which found a defect

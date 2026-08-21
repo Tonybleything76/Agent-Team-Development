@@ -11,6 +11,7 @@
 | Orchestrator | `huminloop/orchestrator.py::run` | Runs the plan sequentially, passes prior output as context, isolates per-specialist failures, writes manifest + log. |
 | Human gate | `huminloop/gate.py` | pending → approved/rejected by a named person; re-reads every artifact and re-derives governance from the bytes before recording a decision (digest + verdict must match the manifest); refuses governance-flagged or errored runs without `--force` + note; validates `run_id`; claims the decision with an exclusive marker so concurrent decisions cannot both "succeed". |
 | Storage | `huminloop/storage.py` | `out/<state>/<run_id>/{manifest.json,<role>.md}` and `logs/runs.jsonl`. |
+| Personas | `huminloop/personas/` | Per-role markdown appended to the system prompt: how the role works, its output contract, what it refuses. Optional per role; absent means fall back to the remit. |
 | LLM layer | `huminloop/llm.py` | `dryrun` (default, offline, deterministic); `openrouter` (recommended: one key, per-role model/version and reasoning effort via env); direct `openai`, `anthropic`. |
 | CLI | `huminloop/cli.py` | `run`, `roles`, `pending`, `show`, `approve`, `reject`. |
 
