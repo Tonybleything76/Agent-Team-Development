@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.5.0 — 2026-08-22
+
+- Shared house brief (`huminloop/personas/_house.md`) sent to every specialist, personified or
+  not: pair technical rigour with the human impact of the change. Name who works differently and
+  what they lose, respect the expertise being automated, specify the human checkpoint where a
+  system gains authority over safety, money or someone's job, and say "headcount reduction" in
+  those words rather than laundering it into "productivity". Gated in the eval as
+  `specialists_receiving_house_brief` (20/20).
+- Pre-Sales and Finance personas, completing the `proposal` route (pre_sales, legal, finance) as
+  a second fully persona-driven workflow. Coverage 5/20, reported not hidden.
+- Default token budget 4000 → 6000: the third specialist in a three-role chain carries the most
+  upstream context and was still being truncated. The truncation flag caught it, which is what
+  it is for.
+- Second committed example run at `docs/example-run/proposal/`.
+
 ## 0.4.0 — 2026-08-21
 
 - Persona layer: per-role markdown in `huminloop/personas/`, appended to the house contract and

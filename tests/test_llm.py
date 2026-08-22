@@ -235,3 +235,23 @@ def test_roles_without_a_persona_still_work():
     assert not has_persona("hr")
     system, _ = build_prompt(get_role("hr"), "task", "")
     assert "Your working brief:" not in system and "HR" in system
+
+
+def test_house_brief_reaches_every_specialist_even_without_a_persona():
+    from huminloop.llm import build_prompt
+    from huminloop.personas import has_persona, load_house_brief
+    from huminloop.roles import SPECIALISTS, get_role
+
+    house = load_house_brief()
+    assert house and "techno-social" in house
+    for key in SPECIALISTS:
+        system, _ = build_prompt(get_role(key), "task", "")
+        assert house in system, key
+    assert not has_persona("hr")  # a role with no persona still gets the house brief
+
+
+def test_house_brief_is_not_mistaken_for_a_role_persona():
+    from huminloop.personas import load_persona, persona_keys
+
+    assert "_house" not in persona_keys()
+    assert load_persona("_house") is None or "_house" not in persona_keys()

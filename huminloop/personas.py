@@ -10,6 +10,17 @@ from functools import cache
 from pathlib import Path
 
 PERSONA_DIR = Path(__file__).parent / "personas"
+# The house brief goes to every specialist. It carries what the whole team owes regardless of
+# role — rigour paired with the human impact of the change — so it lives in one file rather
+# than being restated in each persona, where it would drift.
+HOUSE_FILE = PERSONA_DIR / "_house.md"
+
+
+@cache
+def load_house_brief() -> str | None:
+    if not HOUSE_FILE.is_file():
+        return None
+    return HOUSE_FILE.read_text(encoding="utf-8").strip() or None
 
 
 @cache
@@ -26,4 +37,5 @@ def has_persona(role_key: str) -> bool:
 
 
 def persona_keys() -> list[str]:
-    return sorted(p.stem for p in PERSONA_DIR.glob("*.md"))
+    """Role personas only; files beginning with an underscore are shared briefs, not roles."""
+    return sorted(p.stem for p in PERSONA_DIR.glob("*.md") if not p.stem.startswith("_"))

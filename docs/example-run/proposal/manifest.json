@@ -1,0 +1,53 @@
+{
+  "artifacts": [
+    {
+      "error": null,
+      "file": "pre_sales.md",
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "role": "pre_sales",
+      "sha256": "6190ebf2aeb6f0e04b2f7db5156033f9d004f056c3cdefa2b50d0a138a0ca239"
+    },
+    {
+      "error": null,
+      "file": "legal.md",
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "role": "legal",
+      "sha256": "115c6f66a75044de350d1e644c312ebb22fb11341dd519e3e81930ebe1240b88"
+    },
+    {
+      "error": null,
+      "file": "finance.md",
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "role": "finance",
+      "sha256": "d3bca2e72df42e9ec31c1bed18387b67f9f88d4d581da0fe37725b43b2658f60"
+    }
+  ],
+  "created_at": "2026-08-22T00:21:50+00:00",
+  "plan": {
+    "matched_rules": [
+      "proposal"
+    ],
+    "roles": [
+      "pre_sales",
+      "legal",
+      "finance"
+    ]
+  },
+  "provider": "openrouter",
+  "run_id": "20260822_002150_22d7d5",
+  "status": "pending",
+  "task": "Draft an RFP response and SOW for an AI readiness engagement at a regional hospital network",
+  "version": "0.4.0"
+}

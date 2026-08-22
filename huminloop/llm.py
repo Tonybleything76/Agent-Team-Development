@@ -3,7 +3,7 @@ import os
 from dataclasses import dataclass
 from typing import Protocol
 
-from .personas import load_persona
+from .personas import load_house_brief, load_persona
 from .roles import Role
 
 log = logging.getLogger(__name__)
@@ -15,8 +15,10 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 # Bounds on every network call: an unbounded request can hang a run or cost real money.
 DEFAULT_TIMEOUT_S = 120.0
 # A five-section consulting deliverable does not fit in 2000 tokens: the first real run was cut
-# off mid-sentence and the missing tail read as a governance failure. Budget for the whole shape.
-DEFAULT_MAX_TOKENS = 4000
+# off mid-sentence and the missing tail read as a governance failure. 4000 still truncated the
+# third specialist in a three-role chain, which carries the most upstream context and the most
+# to say, so the default budgets for the longest position rather than the average one.
+DEFAULT_MAX_TOKENS = 6000
 # One key, any vendor's models; per-role overrides pick the right model per task.
 DEFAULT_OPENROUTER_MODEL = "anthropic/claude-sonnet-5"
 DRYRUN_CITATION = (
@@ -102,10 +104,14 @@ class LLMClient(Protocol):
 
 def build_prompt(role: Role, task: str, context: str) -> tuple[str, str]:
     system = SYSTEM_TEMPLATE.format(title=role.title, instruction=role.instruction)
+    house = load_house_brief()
+    if house:
+        # Every specialist gets this, personified or not: the team's standard for pairing
+        # technical rigour with the human impact of what it recommends.
+        system = f"{system}\n\n{house}"
     persona = load_persona(role.key)
     if persona:
-        # The persona is how this specialist works; the template above is the house contract
-        # every specialist owes regardless of role, so it stays in force.
+        # The persona is how this specialist in particular works.
         system = f"{system}\n\nYour working brief:\n\n{persona}"
     prompt = f"{TASK_PREFIX}{task}\n"
     if context:

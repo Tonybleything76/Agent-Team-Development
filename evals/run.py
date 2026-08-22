@@ -17,7 +17,7 @@ from huminloop import __version__
 from huminloop.governance import review_text
 from huminloop.llm import DryRunLLM, build_prompt
 from huminloop.orchestrator import produce
-from huminloop.personas import load_persona, persona_keys
+from huminloop.personas import load_house_brief, load_persona, persona_keys
 from huminloop.roles import SPECIALISTS, get_role
 from huminloop.router import Router
 from huminloop.storage import now_iso
@@ -37,6 +37,7 @@ GATED_COUNTS = (
     "dryrun_specialists",
     "personas_written",
     "personas_well_formed",
+    "specialists_receiving_house_brief",
 )
 HOW_MEASURED = {
     "router_exact_plan_rate": "share of router cases whose full ordered plan equals the expected",
@@ -49,6 +50,7 @@ HOW_MEASURED = {
     "personas_written": "specialist roles with a persona file",
     "personas_well_formed": "personas that carry the required sections and reach the prompt",
     "persona_coverage": "personas_written divided by the number of specialist roles",
+    "specialists_receiving_house_brief": "specialists whose prompt carries the shared house brief",
 }
 
 
@@ -125,6 +127,7 @@ PERSONA_SECTIONS = ("## Remit", "## Output contract")
 def eval_personas() -> tuple[dict, list[dict]]:
     """Personas are prose, so this checks structure and wiring, not writing quality."""
     rows = []
+    house = load_house_brief() or ""
     for key in persona_keys():
         text = load_persona(key) or ""
         system, _ = build_prompt(get_role(key), "eval task", "")
@@ -141,10 +144,13 @@ def eval_personas() -> tuple[dict, list[dict]]:
             }
         )
     ok = sum(r["in_prompt"] and r["sections_ok"] for r in rows)
+    # The house brief must reach every specialist, personified or not.
+    housed = sum(house in build_prompt(get_role(k), "eval task", "")[0] for k in SPECIALISTS)
     return {
         "personas_written": len(rows),
         "personas_well_formed": ok,
         "persona_coverage": len(rows) / len(SPECIALISTS),
+        "specialists_receiving_house_brief": housed,
     }, rows
 
 
