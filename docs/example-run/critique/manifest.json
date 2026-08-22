@@ -1,0 +1,122 @@
+{
+  "artifacts": [
+    {
+      "critique": {
+        "critic_role": "qa_qc",
+        "points": [
+          {
+            "claim": "The Risks section lists sponsorship, data quality, adoption, accountability, and headcount, but never OT/cybersecurity exposure from connecting machine-level sensors to a predictive model \u2014 a material risk given Phase 0 explicitly scopes sensor/data integration on live production equipment; add a risk line naming who (OT/security lead) must sign off before Phase 1 sensor connectivity goes live.",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "added a risk line naming the OT/security lead sign-off gate before any live sensor connectivity in Phase 1, since Phase 0 scopes integration with production equipment.",
+            "severity": "serious"
+          },
+          {
+            "claim": "Phase 2 specifies quality inspector training precisely (\"2 days classroom + 2 weeks shadow-use, taught by vendor's applications engineer plus internal quality lead\") but Phase 1 gives maintenance technicians no equivalent \u2014 no stated who-teaches-what-how-long for interpreting risk scores before the 90-day pilot starts, despite this being the first and highest-stakes human/AI interaction in the plan.",
+            "dimension": "human-impact",
+            "disposition": "accepted",
+            "response": "added a who-teaches-what-how-long spec for maintenance technicians in Phase 1, mirroring the Phase 2 inspector training detail.",
+            "severity": "serious"
+          },
+          {
+            "claim": "The Future State and Phase 1 describe what technicians and inspectors gain (assistive scores, retained sign-off) but never state what they lose \u2014 e.g., a technician whose every override is now logged and reviewed weekly loses some of the tacit-judgment latitude they previously exercised unquestioned; naming that cost explicitly (not just the logging mechanism) would meet the house brief's own bar.",
+            "dimension": "human-impact",
+            "disposition": "accepted",
+            "response": "added an explicit statement of what technicians lose (unquestioned discretion over stop/run calls) alongside the logging mechanism.",
+            "severity": "minor"
+          },
+          {
+            "claim": "The deliverable runs to roughly 850 words against the ~700-word budget specified in the brief; no section is truncated, but Body and Risks could be tightened (e.g., merging Phase 3 governance detail into Next Steps) to meet the stated constraint.",
+            "dimension": "consistency",
+            "disposition": "accepted",
+            "response": "tightened Body and Risks, moved granular Phase 3 governance detail into Next Steps, trimmed to fit ~700 words with no truncation.",
+            "severity": "minor"
+          },
+          {
+            "claim": "The McKinsey 20\u201335%/10\u201320% benchmark is correctly labeled as industry range rather than client prediction, but it is not qualified as process- vs. discrete-manufacturing-specific; since the client is named as discrete manufacturing, a one-line caveat on applicability would strengthen the evidentiary chain.",
+            "dimension": "evidence",
+            "disposition": "accepted",
+            "response": "added a one-line caveat that the McKinsey benchmark spans process and discrete manufacturing and should be treated as directional for this client until Phase 1 data exists.",
+            "severity": "minor"
+          }
+        ],
+        "premortem": "Twelve months later, the pilot technically succeeds (downtime drops, override log looks clean) but the program stalls in Phase 2 because a sensor-to-cloud integration built during Phase 0/1 got flagged by the client's OT security team after the fact, forcing a costly network re-architecture and a trust breach with plant IT \u2014 a risk category never named in the Risks section even though the Current State explicitly describes machine-level sensors and OT/IT integration work. Separately, maintenance technicians who were never given a specified training path for interpreting risk scores (unlike quality inspectors, who got a defined 2-day/2-week program) developed inconsistent mental models of what the score meant, producing override patterns the weekly review couldn't cleanly interpret \u2014 undermining the very feedback loop Phase 1 depended on.",
+        "steelman": "The draft correctly treats AI transformation as an evidence-gated sequencing problem rather than a technology rollout: it refuses to assume client data, forces a go/no-go audit before spend, ties every phase's expansion to measured results from the prior one, keeps override authority with humans while logging and reviewing those overrides as information rather than resistance, and surfaces the hard truths (unfunded phases, possible pre-selected vendor, possible headcount impact) directly in Risks instead of burying them \u2014 this is a roadmap built to survive contact with a real plant floor, not a slide that looks good in a steering committee."
+      },
+      "error": null,
+      "file": "strategist.md",
+      "process_flags": [],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": true,
+      "role": "strategist",
+      "sha256": "f4248daccdee454a6b18d398430eaa8afa7fc9252072fb5e5a96acd93b110349"
+    },
+    {
+      "critique": {
+        "critic_role": "qa_qc",
+        "points": [
+          {
+            "claim": "The claim that \"override rate\" as a \"leading indicator of technician distrust\" is sufficient treats a metric as a control; the brief requires a named human checkpoint (who reviews overrides, on what evidence, with what authority, how recorded) before Phase 1 puts model-generated work orders in front of technicians \u2014 this is currently unspecified.",
+            "dimension": "human-impact",
+            "disposition": "accepted",
+            "response": "added a named human checkpoint (who reviews overrides, on what evidence, with what authority, how recorded) before Phase 1 goes live, not just a metric.",
+            "severity": "serious"
+          },
+          {
+            "claim": "The ROI formula nets out \"false-positive work orders \u00d7 technician-hours\" as a cost but is silent on whether the business case implicitly assumes reduced maintenance headcount once downtime-driven reactive labor falls; if that's the real trade-off, the house brief requires it stated plainly rather than left implicit in a savings formula.",
+            "dimension": "human-impact",
+            "disposition": "accepted",
+            "response": "added explicit language stating the ROI formula does not currently assume headcount reduction, and that if leadership intends one, it must be named and modeled separately as its own line with its own human-impact analysis.",
+            "severity": "serious"
+          },
+          {
+            "claim": "Decision gates (Phase 0 coverage threshold, Phase 1 statistical floor, Phase 2 net-positive test) specify technical pass/fail conditions but not who is accountable for the go/no-go call when a gate is missed by a small margin \u2014 e.g., who can authorize proceeding despite <80% CMMS coverage, and on what basis.",
+            "dimension": "consistency",
+            "disposition": "accepted",
+            "response": "named the accountable decision-maker for each gate, including who can authorize proceeding on a marginal miss and what they must document.",
+            "severity": "minor"
+          },
+          {
+            "claim": "The 8-week Phase 0 estimate is asserted without a stated basis (e.g., how it was sized against typical CMMS remediation effort); the Risks section already concedes it may double, so the number in Body reads more like a placeholder than an estimate \u2014 worth flagging so it isn't quoted to the client as firm.",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "relabeled the 8-week Phase 0 estimate as an explicit assumption with stated basis and a validation trigger, rather than a firm number.",
+            "severity": "minor"
+          }
+        ],
+        "premortem": "Twelve months later the Phase 1 pilot clears its statistical floor and Phase 2 scales, but adoption stalls: technicians, seeing the model call false alarms, start quietly overriding or ignoring work orders because no one ever told them who has final say when their diagnosis disagrees with the model's, what evidence a reviewer needs to back an override, or how that override is recorded and fed back. The draft tracks \"override rate\" as a leading indicator but never turns it into a checkpoint with an accountable reviewer, so the signal is noticed by no one until trust has collapsed and the business-outcome metric never separates from the noise the Risks section warned about.",
+        "steelman": "The draft's core contribution is refusing to let the Strategist's roadmap be treated as measurable when it isn't \u2014 it forces a proxy/outcome distinction, a hard data-quality gate before any modeling spend, a statistical floor before \"results\" can be claimed, and explicit labeling of the Deloitte benchmark as external rather than a client target \u2014 which is exactly the discipline needed to stop a predictive-maintenance program from reporting hours-avoided as dollars-saved or declaring victory on three lucky months of rare-event data."
+      },
+      "error": null,
+      "file": "data_scientist.md",
+      "process_flags": [],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": true,
+      "role": "data_scientist",
+      "sha256": "c21768da032180e416b29011b54ef390f98b016d1d67c2582b517f1666bad430"
+    }
+  ],
+  "created_at": "2026-08-22T19:02:53+00:00",
+  "plan": {
+    "matched_rules": [
+      "strategy"
+    ],
+    "roles": [
+      "strategist",
+      "data_scientist"
+    ]
+  },
+  "provider": "openrouter",
+  "run_id": "20260822_190253_5e20ad",
+  "status": "pending",
+  "task": "Build an AI transformation roadmap and ROI model for a mid-size manufacturer",
+  "version": "0.5.0"
+}

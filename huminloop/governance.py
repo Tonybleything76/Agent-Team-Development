@@ -42,8 +42,17 @@ def strip_controls(text: str) -> str:
 
 
 def flagged_roles(artifacts: list[dict]) -> list[str]:
-    """Roles whose artifact is not governance-clean, including specialists that errored."""
-    return [a["role"] for a in artifacts if a.get("error") or not (a.get("review") or {}).get("ok")]
+    """Roles whose artifact is not clean, by content or by what happened while producing it.
+
+    `review` is derived purely from the artifact bytes, so the gate can re-derive and verify it.
+    `process_flags` records what the bytes cannot show — a truncated generation, a blocking
+    critique the author dismissed — and counts just as much toward needing a human's --force.
+    """
+    return [
+        a["role"]
+        for a in artifacts
+        if a.get("error") or not (a.get("review") or {}).get("ok") or a.get("process_flags")
+    ]
 
 
 @dataclass

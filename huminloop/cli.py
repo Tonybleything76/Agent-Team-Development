@@ -89,8 +89,13 @@ def _cmd_run(args) -> int:
         if a.error:
             print(f"  {a.role:<18} ERROR   {a.error}")
         else:
-            issues = "; ".join(a.review["issues"]) if a.review["issues"] else ""
-            print(f"  {a.role:<18} {a.review['verdict']:<8} {a.file}  {issues}")
+            notes = list(a.review["issues"]) + list(a.process_flags)
+            if a.critique:
+                pts = a.critique["points"]
+                kept = sum(1 for p in pts if p["disposition"] == "accepted")
+                notes.insert(0, f"critique: {len(pts)} point(s), {kept} accepted")
+            flag = "" if not a.process_flags else "*"
+            print(f"  {a.role:<18} {a.review['verdict'] + flag:<9} {a.file}  {'; '.join(notes)}")
     print(f"status: pending -> review with `huminloop show {rec.run_id}`, then approve or reject.")
     if rec.artifacts and all(a.error for a in rec.artifacts):
         # A run where nothing succeeded is a failure for anything scripting this command,

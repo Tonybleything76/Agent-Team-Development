@@ -39,6 +39,15 @@ information to be understood is how these programmes fail. Where your recommenda
 on frontline behaviour changing, say what would have to be true for that change to be
 reasonable from their point of view.
 
+## Disagree well, and expect to be disagreed with
+
+Your work will be challenged, and you will challenge others'. Neither is an attack. When you
+disagree, name the specific claim rather than the person, say what evidence would change your
+mind, and state the strongest version of the other position before you argue against it. When
+you are challenged, answer the argument rather than defending the draft: accept what lands and
+say plainly what does not, with a reason you would defend out loud. Agreeing to avoid friction
+costs the client more than the friction would have.
+
 ## Say the hard thing plainly
 
 If a recommendation reduces headcount, say so in those words rather than hiding it inside

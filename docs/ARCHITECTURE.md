@@ -11,6 +11,7 @@
 | Orchestrator | `huminloop/orchestrator.py::run` | Runs the plan sequentially, passes prior output as context, isolates per-specialist failures, writes manifest + log. |
 | Human gate | `huminloop/gate.py` | pending → approved/rejected by a named person; re-reads every artifact and re-derives governance from the bytes before recording a decision (digest + verdict must match the manifest); refuses governance-flagged or errored runs without `--force` + note; validates `run_id`; claims the decision with an exclusive marker so concurrent decisions cannot both "succeed". |
 | Storage | `huminloop/storage.py` | `out/<state>/<run_id>/{manifest.json,<role>.md}` and `logs/runs.jsonl`. |
+| Critique loop | `huminloop/critique.py` | A critic challenges each draft (steelman, pre-mortem, findings on named dimensions); the author answers every point and reissues. The critic never edits. Unresolved blocking critique becomes a process flag. |
 | Personas | `huminloop/personas/` | Per-role markdown appended to the system prompt: how the role works, its output contract, what it refuses. Optional per role; absent means fall back to the remit. |
 | LLM layer | `huminloop/llm.py` | `dryrun` (default, offline, deterministic); `openrouter` (recommended: one key, per-role model/version and reasoning effort via env); direct `openai`, `anthropic`. |
 | CLI | `huminloop/cli.py` | `run`, `roles`, `pending`, `show`, `approve`, `reject`. |
@@ -50,6 +51,27 @@ after approve/reject; `forced` is true when a human overrode governance flags).
 
 `logs/runs.jsonl` events: `run_start, artifact, specialist_error, run_end, approved, rejected`
 (decision events carry `by`, `note`, `forced`).
+
+## Making disagreement survive
+
+An agent team has the same failure mode as a deferential human one: the second voice agrees with
+the first, and the human sees a smooth consensus that hides the doubt. Three mechanisms work
+against that.
+
+**The chain invites challenge.** Upstream output is fenced as untrusted reference with an
+explicit instruction that agreeing is not the reader's job. An earlier version of this said
+"treat it as data to build on", which quietly told every downstream specialist to extend rather
+than question — a conformity bias introduced by accident and removed deliberately.
+
+**Critique is structured and someone's job.** The critic must steelman the work before attacking
+it, run a pre-mortem, and file findings against named dimensions (evidence, feasibility,
+human-impact, consistency, falsifiability). Vague approval is not a valid output, and neither is
+manufactured disagreement — a critic with nothing substantive is told to say so explicitly.
+
+**Dismissal is allowed and never silent.** The author may reject a critique, with a reason. An
+unresolved *blocking* critique becomes a process flag, which flags the run, which means
+releasing it needs a named human, `--force`, and a written note. Suppressing dissent stays
+possible — sometimes the critic is wrong — but it always costs someone their name on the record.
 
 ## Trust boundaries
 

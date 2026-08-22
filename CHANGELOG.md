@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.6.0 — 2026-08-22
+
+Critique loop, so disagreement changes the deliverable instead of decorating it.
+
+- A critic challenges every draft: steelman first, then a pre-mortem, then findings against named
+  dimensions (evidence, feasibility, human-impact, consistency, falsifiability). The critic never
+  edits; the author answers each point and reissues, so authorship and accountability stay together.
+- Dismissal is allowed and never silent: an unresolved blocking critique flags the run, so
+  releasing it needs a named human, --force and a written note.
+- Removed a conformity bias introduced in 0.4.0: the chain told downstream specialists to treat
+  teammate output as "data to build on". It now says agreeing is not their job.
+- Split byte-derived `review` from `process_flags`. The gate re-derives the review from the
+  artifact bytes; findings the bytes cannot show (truncation, dismissed critique) travel
+  separately. This also fixed a latent bug where a truncated-but-complete artifact would have
+  made the gate refuse to decide.
+- House brief gained a "disagree well" standard.
+
 ## 0.5.0 — 2026-08-22
 
 - Shared house brief (`huminloop/personas/_house.md`) sent to every specialist, personified or
