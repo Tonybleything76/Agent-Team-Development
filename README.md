@@ -1,10 +1,11 @@
 # HuminLoop Agents
 
 A hierarchical AI consulting team in code: a Router/Supervisor dispatches a task to the right
-specialists, a Governance evaluator checks every artifact, and **a named human must approve every
-run before it leaves `pending/`**. Built to show how an autonomous agent team stays accountable.
+specialists, a critic challenges every draft before it moves on, a Governance evaluator checks
+every artifact, and **a named human must approve every run before it leaves `pending/`**. Built
+to show how an autonomous agent team stays accountable.
 
-> Status: working prototype, v0.2.0. Runs fully offline by default. See "What this is not" below.
+> Status: working prototype, v0.6.0. Runs fully offline by default. See "What this is not" below.
 
 ## Why it exists
 
@@ -23,7 +24,12 @@ CLI), and it says so.
 ```
 task ──▶ Router ──▶ [specialist 1] ─▶ [specialist 2] ─▶ … ──▶ Governance check (each artifact)
                           │                                          │
-                          └── prior output is passed as context ─────┘
+                          │  each draft: a critic challenges it,     │
+                          │  the author answers every point          │
+                          │  and reissues                            │
+                          │                                          │
+                          └── prior output passed on as ─────────────┘
+                              untrusted reference
                                                                      ▼
                                                         out/pending/<run_id>/  ◀── waits here
                                                                      │
@@ -38,27 +44,75 @@ task ──▶ Router ──▶ [specialist 1] ─▶ [specialist 2] ─▶ … 
 2. **Specialists** (`huminloop/roles.py`): a registry of 22 roles in three tiers — supervisor,
    client-facing, support. Each is a title and a remit; the orchestrator turns that into a system
    prompt. Adding a specialist is one `Role(...)` entry plus a routing rule. Each specialist sees
-   the first 600 characters of every predecessor's artifact as context.
-3. **Governance** (`huminloop/governance.py`): every artifact must carry Objective, Body, Citations
+   the first 600 characters of every predecessor's artifact, fenced as untrusted reference material
+   with an explicit instruction that agreeing is not their job.
+3. **Critique loop** (`huminloop/critique.py`): before an artifact is finalised, a critic (QA/QC)
+   must steelman it, run a pre-mortem, and file findings against named dimensions — evidence,
+   feasibility, human-impact, consistency, falsifiability — each with a severity. The critic never
+   edits. The author answers every point, accepts or rejects each with a reason, and reissues, so
+   authorship and accountability stay together. An unresolved *blocking* critique flags the run,
+   which means releasing it needs a named human, `--force` and a written note. Dismissal is
+   allowed; silent dismissal is not.
+4. **Governance** (`huminloop/governance.py`): every artifact must carry Objective, Body, Citations
    (with an https URL inside that section), Risks and Next Steps — plain, markdown or bold
    headings — with no placeholder text (`TBD`, `...`, `-`), nothing shorter than three characters,
    and no email, phone (with separators), SSN-shaped or Luhn-valid card-shaped numbers. Rule-based,
-   so it catches shape and obvious leaks, not judgment. Verdict is APPROVE or REVISE and is recorded in the run manifest.
-4. **The human gate** (`huminloop/gate.py`): every run lands in `out/pending/`. A run moves to
+   so it catches shape and obvious leaks, not judgment. Verdict is APPROVE or REVISE and is recorded
+   in the run manifest. Byte-derived `review` is kept separate from `process_flags` — findings the
+   bytes cannot show, like truncation or a dismissed critique — so the gate can re-derive one from
+   the artifact and still see the other.
+5. **The human gate** (`huminloop/gate.py`): every run lands in `out/pending/`. A run moves to
    `out/approved/` only when someone runs `huminloop approve <run_id> --by "<name>"`. If Governance
-   flagged anything — or a specialist errored — approval is refused unless you pass `--force`
-   *and* a `--note` saying why, and the manifest records `forced: true` with the flagged roles.
-   Rejections require a reason. The decision is written into the
-   manifest before the directory moves, so an interrupted decision is never lost, and every
-   decision is appended to `logs/runs.jsonl` with who and when. `run_id`s are validated against
-   the generated shape; nothing outside `out/` can be addressed.
-5. **LLM layer** (`huminloop/llm.py`): `LLM_PROVIDER=dryrun` (default) needs no key and produces
+   flagged anything — or a critique went unresolved, or a specialist errored — approval is refused
+   unless you pass `--force` *and* a `--note` saying why, and the manifest records `forced: true`
+   with the flagged roles. Rejections require a reason. The decision is written into the manifest
+   before the directory moves, so an interrupted decision is never lost, and every decision is
+   appended to `logs/runs.jsonl` with who and when. `run_id`s are validated against the generated
+   shape; nothing outside `out/` can be addressed.
+6. **LLM layer** (`huminloop/llm.py`): `LLM_PROVIDER=dryrun` (default) needs no key and produces
    deterministic output so the whole loop — including the gate — runs in CI. `openrouter` is
    the recommended real provider: one key, any vendor's models, and the model is resolved per
    specialist role (`OPENROUTER_MODEL_<ROLE>` beats `OPENROUTER_MODEL` beats the package
    default) and so is reasoning effort (`OPENROUTER_EFFORT_<ROLE>` / `OPENROUTER_EFFORT`,
    low|medium|high), so each task runs on the right model, version and effort. Direct `openai`
    and `anthropic` providers remain as optional extras.
+
+## Making disagreement survive
+
+An agent team has the same failure mode as a deferential human one: the second voice agrees with
+the first, and the human sees a smooth consensus that hides the doubt. An earlier version of the
+chain told downstream specialists to treat teammate output as "data to build on", which quietly
+instructed every one of them to extend rather than question. That was a conformity bias introduced
+by accident in 0.4.0 and removed deliberately in 0.6.0.
+
+What replaced it: upstream work arrives fenced as untrusted reference, challenge is a named role's
+actual job rather than an optional courtesy, and dismissing a critique is permitted but always
+costs someone their name on the record. `docs/example-run/critique/` shows a real run of it,
+including the caveat that in that run the authors accepted all nine findings — which may mean the
+critiques were good, or may be the same agreeableness the loop exists to fight, pointed the other
+way.
+
+## Personas
+
+A role's one-line remit is enough to route and to test. It is not enough to produce work worth
+reviewing. A persona adds how the specialist works, what its output must carry, and what it
+must refuse — as markdown in `huminloop/personas/<role>.md`, appended to the contract every
+specialist owes regardless of role. Roles without a persona fall back to their remit, so the
+layer is additive.
+
+Every specialist, personified or not, receives the shared house brief
+(`huminloop/personas/_house.md`): pair technical rigour with the human impact of the change, name
+who works differently and what they lose, respect the expertise being automated, specify the human
+checkpoint where a system gains authority over safety, money or someone's job, and say "headcount
+reduction" in those words rather than laundering it into "productivity". The eval gates that all
+20 specialists receive it.
+
+Five personas are written. `strategist` and `data_scientist` cover the whole `strategy` route and
+`pre_sales`, `legal` and `finance` cover the whole `proposal` route, so both of those workflows are
+fully persona-driven end to end. `legal` doubles as the support-tier example whose defining feature
+is the boundary it refuses to cross — it never opines on the law and routes anything needing counsel
+to a human. The eval gates that personas stay well-formed and reach the prompt; it does not grade
+the writing.
 
 ## Run it
 
@@ -88,8 +142,14 @@ All variables are listed in `.env.example`.
 
 ## See it work without a key
 
-`docs/example-run/` holds real output from an actual OpenRouter run — both artifacts, plus the
-`manifest.json` the gate reads, including the per-artifact SHA-256. Nothing there is a mock.
+`docs/` holds three real OpenRouter runs — artifacts, plus the `manifest.json` the gate reads,
+including the per-artifact SHA-256. Nothing there is a mock.
+
+- `docs/example-run/` — the `strategy` route, before the critique loop existed.
+- `docs/example-run/proposal/` — the `proposal` route, three specialists.
+- `docs/example-run/critique/` — the same task as the first, run after the critique loop was
+  added, with the full critique record in the manifest: the steelman, the pre-mortem, every point
+  with its severity and dimension, and the author's disposition and reason for each.
 
 The same task run before the Strategist persona existed produced confident benchmark figures
 with no sourcing. With the persona it produces labelled assumptions:
@@ -103,20 +163,6 @@ cited to the CFO]
 That rule lives in `huminloop/personas/strategist.md`, a file a human edits, not in a prompt
 buried in code.
 
-## Personas
-
-A role's one-line remit is enough to route and to test. It is not enough to produce work worth
-reviewing. A persona adds how the specialist works, what its output must carry, and what it
-must refuse — as markdown in `huminloop/personas/<role>.md`, appended to the contract every
-specialist owes regardless of role. Roles without a persona fall back to their remit, so the
-layer is additive.
-
-Three are written: `strategist` and `data_scientist` (which together cover the whole `strategy`
-route, so that workflow is fully persona-driven), and `legal` as a support-tier example whose
-defining feature is the boundary it refuses to cross — it never opines on the law and routes
-anything needing counsel to a human. The eval gates that personas stay well-formed and reach
-the prompt; it does not grade the writing.
-
 ## Test it
 
 CI (`.github/workflows/ci.yml`) runs exactly these on every push and pull request; the eval step
@@ -124,18 +170,24 @@ fails the build on any case that passed at baseline and fails now.
 
 ```bash
 uv run ruff check .          # lint
-uv run pytest                # unit tests: router, governance, gate, orchestrator, CLI
+uv run pytest                # unit tests: router, governance, gate, critique, orchestrator, CLI
 uv run python -m evals.run   # scored eval; writes evals/results/latest.json (git-ignored),
                              # fails on regression against the committed evals/results/baseline.json
 ```
 
+At v0.6.0 that is 141 tests green, and an eval reporting router exact-plan 0.969 (1.000 on the
+easy regression cases, 0.875 on the eight deliberately ambiguous hard ones), governance verdict
+and issue recall both 1.000, persona coverage 5/20, and the house brief reaching 20/20
+specialists.
+
 ## What this is not
 
 - Not a production deployment. There is no queue, no UI, no auth; the gate is an atomic file move and a log line, on purpose.
-- Not connected to tools yet. MCP server wiring from the first sketch was removed because it never worked; re-adding it is the next step once the gate is proven.
+- Not connected to tools yet. MCP server wiring from the first sketch was removed because it never worked; re-adding it is the next step now that the gate is proven.
 - Not a claim about output quality. The dry-run provider exists to prove the control flow, not the content, and the eval is a regression harness over fixed cases — it measures that the rules do what they say, not that routing or governance is good in the wild. The eval's "hard" router cases are there to keep that honest; see the committed `evals/results/baseline.json` (and `latest.json` after you run the eval).
-- Only 3 of 20 specialists have a persona. The rest fall back to a one-line remit and will produce generic output; that is visible in `persona_coverage` rather than hidden.
-- The unit tests exercise the providers with fake clients. Real-provider behaviour is evidenced by the committed example run, not by the test suite.
+- The critique loop is one round, and the critic is a single role (QA/QC). It proves that structured challenge changes the deliverable; it does not prove the challenge is always right, and 100% acceptance in the committed example run is a signal to watch rather than a score.
+- Only 5 of 20 specialists have a persona. The rest fall back to a one-line remit and will produce generic output; that is visible in `persona_coverage` rather than hidden.
+- The unit tests exercise the providers with fake clients. Real-provider behaviour is evidenced by the committed example runs, not by the test suite.
 
 ## History
 
@@ -146,8 +198,9 @@ package with the gate implemented for real. See `CHANGELOG.md`.
 ## Layout
 
 ```
-huminloop/        package: roles, router, governance, llm, orchestrator, gate, storage, cli
+huminloop/        package: roles, router, personas, critique, governance, llm, orchestrator, gate, storage, cli
+huminloop/personas/  shared house brief + per-role markdown, edited without touching Python
 tests/          pytest suite
 evals/          scored eval cases + runner; results land in evals/results/
-docs/           ARCHITECTURE.md — design notes and what is next
+docs/           ARCHITECTURE.md — design notes and what is next; example-run/ — real provider output
 ```
