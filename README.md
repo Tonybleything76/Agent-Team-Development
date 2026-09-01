@@ -5,14 +5,19 @@ specialists, a critic challenges every draft before it moves on, a Governance ev
 every artifact, and **a named human must approve every run before it leaves `pending/`**. Built
 to show how an autonomous agent team stays accountable.
 
-> Status: working prototype, v0.6.0. Runs fully offline by default. See "What this is not" below.
+> Status: working prototype, v0.9.0. Runs fully offline by default. See "What this is not" below.
 
 ## Why it exists
 
-The Big Four sell AI transformation with large, layered teams: client-facing strategists and
-pre-sales alongside legal, privacy, finance, HR, IT and QA in support. This repo models that team
-as 20 specialist agents plus two supervisor roles, and puts the part that matters most — who
-decides what goes out the door — in a place you can read, test and audit.
+The Big Four staff an AI transformation engagement with a layered team: a domain owner who decides
+which processes get redesigned, a change and adoption lead who owns organizational readiness, a
+value realization lead who decides whether a pilot earned the right to scale, plus data, architecture,
+programme and governance seats around them. This repo models that team as 22 specialist agents and
+two supervisors, and puts the part that matters most — who decides what goes out the door — in a
+place you can read, test and audit.
+
+The roster is not invented. `docs/ROSTER-EVIDENCE.md` traces every seat, and the decision it owns,
+to published material across Deloitte, PwC, EY, KPMG, McKinsey, BCG, Accenture and IBM.
 
 The design principle is the one I use in consulting: humans own judgment and release; agents
 execute analysis and drafting at speed. The code enforces a recorded human decision before
@@ -41,7 +46,7 @@ task ──▶ Router ──▶ [specialist 1] ─▶ [specialist 2] ─▶ … 
 1. **Router** (`huminloop/router.py`): deterministic keyword rules map a task to an ordered list of
    specialists. Deterministic on purpose — a plan must be explainable and testable. Unmatched tasks
    fall back to the Strategist.
-2. **Specialists** (`huminloop/roles.py`): a registry of 22 roles in three tiers — supervisor,
+2. **Specialists** (`huminloop/roles.py`): a registry of 24 roles in three tiers — supervisor,
    client-facing, support. Each is a title and a remit; the orchestrator turns that into a system
    prompt. Adding a specialist is one `Role(...)` entry plus a routing rule. Each specialist sees
    the first 600 characters of every predecessor's artifact, fenced as untrusted reference material
@@ -105,14 +110,14 @@ Every specialist, personified or not, receives the shared house brief
 who works differently and what they lose, respect the expertise being automated, specify the human
 checkpoint where a system gains authority over safety, money or someone's job, and say "headcount
 reduction" in those words rather than laundering it into "productivity". The eval gates that all
-20 specialists receive it.
+22 specialists receive it.
 
-Five personas are written. `strategist` and `data_scientist` cover the whole `strategy` route and
-`pre_sales`, `legal` and `finance` cover the whole `proposal` route, so both of those workflows are
-fully persona-driven end to end. `legal` doubles as the support-tier example whose defining feature
-is the boundary it refuses to cross — it never opines on the law and routes anything needing counsel
-to a human. The eval gates that personas stay well-formed and reach the prompt; it does not grade
-the writing.
+Thirteen personas are written, covering every transformation advisor and the `strategy` and
+`proposal` routes end to end. Each carries a `## Refuse or escalate` section, gated by the eval:
+the Value Realization Lead will not call a pilot successful on a proxy metric, the Governance
+Advisor never opines on whether something is legal, and `legal` routes anything needing counsel to
+a human. The refusal is what makes a persona an advisor rather than a generator. The eval gates
+that personas stay well-formed and reach the prompt; it does not grade the writing.
 
 ## Run it
 
@@ -175,25 +180,37 @@ uv run python -m evals.run   # scored eval; writes evals/results/latest.json (gi
                              # fails on regression against the committed evals/results/baseline.json
 ```
 
-At v0.6.0 that is 141 tests green, and an eval reporting router exact-plan 0.969 (1.000 on the
-easy regression cases, 0.875 on the eight deliberately ambiguous hard ones), governance verdict
-and issue recall both 1.000, persona coverage 5/20, and the house brief reaching 20/20
-specialists.
+At v0.9.0 that is 158 tests green and no eval regression. Router exact-plan 0.957 (1.000 on the
+easy regression cases, 0.913 on the deliberately ambiguous hard ones), governance verdict and issue
+recall both 1.000, persona coverage 13/22, and the house brief reaching 22/22 specialists.
+
+**Read the holdout number, not the derived one.** `transformation_route_coverage` is reported three
+ways. The routing keywords were extracted from ten transformation cases, so the derived set scores
+1.000 by construction — that measures nothing. Five more cases were written and held back, never
+read during extraction, and those score **0.800**, which is the honest figure and the one the eval
+gates on. The gap between them is the overfitting the holdout exists to expose.
 
 ## What this is not
 
 - Not a production deployment. There is no queue, no UI, no auth; the gate is an atomic file move and a log line, on purpose.
-- Not connected to tools yet. MCP server wiring from the first sketch was removed because it never worked; re-adding it is the next step now that the gate is proven.
+- Not connected to tools yet. MCP server wiring from the first sketch was removed because it never worked. It stays parked: the 2026-08 review found the team was staffed wrong, and tool access would only have made a mis-staffed team faster.
 - Not a claim about output quality. The dry-run provider exists to prove the control flow, not the content, and the eval is a regression harness over fixed cases — it measures that the rules do what they say, not that routing or governance is good in the wild. The eval's "hard" router cases are there to keep that honest; see the committed `evals/results/baseline.json` (and `latest.json` after you run the eval).
 - The critique loop is one round, and the critic is a single role (QA/QC). It proves that structured challenge changes the deliverable; it does not prove the challenge is always right, and 100% acceptance in the committed example run is a signal to watch rather than a score.
-- Only 5 of 20 specialists have a persona. The rest fall back to a one-line remit and will produce generic output; that is visible in `persona_coverage` rather than hidden.
+- Only 13 of 22 specialists have a persona. The nine without one are support and delivery seats the roster inherited rather than transformation advisors, but they still fall back to a one-line remit and will produce generic output; that is visible in `persona_coverage` rather than hidden.
+- Two hard router cases fail and are meant to. They are reported, not hidden, and never tuned away — a hard case that always passes has stopped testing anything.
 - The unit tests exercise the providers with fake clients. Real-provider behaviour is evidenced by the committed example runs, not by the test suite.
 
 ## History
 
 First sketched August 2025 as 22 copy-pasted agent packages on the `mcp-agent` framework; the
 code did not run and the repo shipped with a virtualenv and a key. Rebuilt August 2026 as one
-package with the gate implemented for real. See `CHANGELOG.md`.
+package with the gate implemented for real.
+
+Restaffed September 2026, and that is the more interesting revision. The roster had argued that
+transformation fails for human-system reasons and then staffed twenty specialists with no change
+management, adoption, readiness or workforce advisor anywhere in it — a small agency's org chart
+wearing a transformation team's thesis. Six agency seats were deleted, eight advisors added, and
+the routing and personas rebuilt around them. See `CHANGELOG.md`.
 
 ## Layout
 
@@ -202,5 +219,7 @@ huminloop/        package: roles, router, personas, critique, governance, llm, o
 huminloop/personas/  shared house brief + per-role markdown, edited without touching Python
 tests/          pytest suite
 evals/          scored eval cases + runner; results land in evals/results/
-docs/           ARCHITECTURE.md — design notes and what is next; example-run/ — real provider output
+docs/           ARCHITECTURE.md — design notes; ROSTER-EVIDENCE.md — the 47 sources behind the
+                roster; example-run/ — real provider output; design/ — the run-renderer reference
+DESIGN.md       the visual system every rendered artifact calibrates against
 ```
