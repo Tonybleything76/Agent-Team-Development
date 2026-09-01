@@ -1,0 +1,483 @@
+<title>Run Renderer Reference</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --ground:#fcfcfb;
+  --panel:#f4f6f5;
+  --ink:#181a19;
+  --ink-2:#3d443f;
+  --muted:#6e756f;
+  --faint:#9aa19b;
+  --rule:#dfe2e0;
+  --rule-soft:#eaedeb;
+  --accent:#1d5240;
+  --accent-ink:#123528;
+  --accent-wash:#eef3f0;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#131615;
+    --panel:#1a1e1c;
+    --ink:#e9ece9;
+    --ink-2:#c2c8c3;
+    --muted:#8d948e;
+    --faint:#6a716b;
+    --rule:#2a302c;
+    --rule-soft:#212623;
+    --accent:#78c3a0;
+    --accent-ink:#9fd8bb;
+    --accent-wash:#18231e;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#131615;
+  --panel:#1a1e1c;
+  --ink:#e9ece9;
+  --ink-2:#c2c8c3;
+  --muted:#8d948e;
+  --faint:#6a716b;
+  --rule:#2a302c;
+  --rule-soft:#212623;
+  --accent:#78c3a0;
+  --accent-ink:#9fd8bb;
+  --accent-wash:#18231e;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:16px;
+  line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent-ink)}
+a:hover{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+code{
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  background:var(--panel);padding:2px 6px;font-size:.88em;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:clamp(32px,5vw,72px) clamp(20px,4vw,56px) 120px}
+
+/* ---------- header ---------- */
+.rid{
+  font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--muted);font-weight:600;
+  font-variant-numeric:tabular-nums;
+  display:flex;flex-wrap:wrap;gap:6px 14px;
+}
+.rid span::after{content:" ·";color:var(--faint)}
+.rid span:last-child::after{content:""}
+.orient{
+  margin:18px 0 0;max-width:66ch;
+  font-family:"Spectral",Georgia,serif;font-weight:300;
+  font-size:17px;line-height:1.66;color:var(--ink-2);
+}
+.orient code{font-size:.82em}
+
+.flow{
+  list-style:none;margin:0;padding:0;
+  display:flex;flex-wrap:wrap;gap:0;
+  border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
+}
+.flow li{
+  display:flex;flex-direction:column;gap:3px;
+  padding:13px 26px 13px 0;margin-right:26px;
+  position:relative;
+}
+.flow li::after{
+  content:"";position:absolute;right:0;top:50%;
+  width:9px;height:9px;margin-top:-5px;
+  border-top:1px solid var(--faint);border-right:1px solid var(--faint);
+  transform:rotate(45deg);
+}
+.flow li:last-child{margin-right:0;padding-right:0}
+.flow li:last-child::after{display:none}
+.flow .step{
+  font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);font-weight:700;
+}
+.flow .val{font-size:14px;color:var(--ink-2);white-space:nowrap}
+.flow .val b{color:var(--ink);font-weight:600}
+.flow li.terminal .val b{color:var(--accent-ink)}
+@media (max-width:700px){
+  .flow li{padding:11px 20px 11px 0;margin-right:20px}
+  .flow .val{font-size:13px}
+}
+
+h1.task{
+  font-family:"Spectral",Georgia,serif;
+  font-weight:300;
+  font-size:clamp(28px,4.4vw,42px);
+  line-height:1.22;
+  letter-spacing:-.015em;
+  margin:22px 0 30px;
+  max-width:22ch;
+  text-wrap:balance;
+}
+.route{
+  display:flex;flex-wrap:wrap;gap:14px 40px;
+  padding:18px 0;
+  border-top:1px solid var(--ink);
+  border-bottom:1px solid var(--rule);
+  font-size:14px;
+}
+.route div{display:flex;gap:9px;align-items:baseline}
+.route dt{
+  font-size:11px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--muted);font-weight:600;margin:0;
+}
+.route dd{margin:0;font-weight:600}
+
+/* ---------- decision bar ---------- */
+.gate{
+  margin-top:28px;
+  background:var(--accent-wash);
+  border-left:4px solid var(--accent);
+  padding:18px 24px;
+  display:flex;flex-wrap:wrap;gap:8px 20px;align-items:baseline;
+}
+.gate .verdict{
+  font-size:13px;font-weight:700;letter-spacing:.15em;
+  color:var(--accent-ink);
+}
+.gate .who{font-size:16px;font-weight:600}
+.gate .when{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.gate .note{
+  flex-basis:100%;margin:4px 0 0;
+  font-family:"Spectral",Georgia,serif;font-weight:300;font-size:16px;
+  color:var(--ink-2);
+}
+.gate.forced{border-left-color:#8a5a12;background:transparent;border:1px solid #8a5a12;border-left-width:4px}
+
+/* ---------- body ---------- */
+.body{display:grid;grid-template-columns:190px minmax(0,1fr);gap:56px;margin-top:52px;align-items:start}
+nav.index{position:sticky;top:24px;display:flex;flex-direction:column;font-size:14px}
+nav.index .grp{
+  font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--faint);font-weight:700;margin:20px 0 4px;padding-left:15px;
+}
+nav.index .grp:first-child{margin-top:0}
+nav.index a{
+  display:flex;align-items:center;min-height:44px;
+  padding:2px 0 2px 15px;
+  border-left:1px solid var(--rule);
+  color:var(--ink-2);text-decoration:none;
+}
+nav.index a:hover{border-left-color:var(--accent);color:var(--ink)}
+nav.index a[aria-current="true"]{border-left:2px solid var(--accent);color:var(--ink);font-weight:600}
+
+section{margin:0 0 52px;scroll-margin-top:24px}
+h2{
+  font-family:"Spectral",Georgia,serif;font-weight:400;
+  font-size:26px;letter-spacing:-.01em;margin:0 0 4px;
+  display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
+}
+h2 .kind{
+  font-family:"Public Sans",sans-serif;font-size:12px;font-weight:600;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--faint);
+}
+.sub{font-size:14px;color:var(--muted);margin:0 0 26px}
+
+.quote{background:var(--panel);padding:20px 24px;margin:0 0 18px;max-width:74ch}
+.quote .lbl{
+  font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--muted);font-weight:700;margin-bottom:8px;
+}
+.quote p{
+  margin:0;font-family:"Spectral",Georgia,serif;font-weight:300;
+  font-size:17px;line-height:1.72;color:var(--ink-2);
+}
+
+/* ---------- findings ---------- */
+.finding{padding:26px 0;border-top:1px solid var(--rule-soft)}
+.fhead{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;font-size:12px}
+.n{font-weight:700;color:var(--faint);font-size:15px;font-variant-numeric:tabular-nums}
+.sev{letter-spacing:-2px;color:var(--accent);font-family:ui-monospace,monospace}
+.sev-word{font-weight:700;text-transform:uppercase;letter-spacing:.09em}
+.dim{
+  color:var(--muted);text-transform:uppercase;letter-spacing:.09em;font-weight:600;
+  border:1px solid var(--rule);padding:1px 8px;
+}
+.disp{margin-left:auto;color:var(--muted)}
+.claim{margin:14px 0 0;max-width:70ch;color:var(--ink)}
+.answer{margin-top:18px;padding-left:22px;border-left:2px solid var(--rule);max-width:68ch}
+.answer .lbl{
+  font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--muted);font-weight:700;
+}
+.answer p{margin:6px 0 0;color:var(--ink-2)}
+
+/* ---------- artifact disclosure ---------- */
+details.artifact{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+details.artifact summary{
+  list-style:none;cursor:pointer;
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  min-height:44px;padding:14px 0;font-weight:600;font-size:15px;
+}
+details.artifact summary::-webkit-details-marker{display:none}
+details.artifact summary::before{content:"▸";color:var(--faint);font-size:13px}
+details.artifact[open] summary::before{content:"▾"}
+details.artifact summary .meta{
+  margin-left:auto;font-weight:400;font-size:13px;color:var(--muted);
+  font-variant-numeric:tabular-nums;
+}
+details.artifact .doc{
+  padding:4px 0 24px;max-width:70ch;
+  font-family:"Spectral",Georgia,serif;font-weight:300;font-size:17px;line-height:1.74;
+  color:var(--ink-2);
+}
+details.artifact .doc h4{
+  font-family:"Public Sans",sans-serif;font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--muted);margin:22px 0 6px;font-weight:700;
+}
+.gov{font-size:14px;color:var(--muted);margin:16px 0 0}
+.gov b{color:var(--ink)}
+
+/* ---------- closing decision ---------- */
+.decision{border-top:2px solid var(--accent);padding-top:26px}
+.decision .verdict{font-size:13px;font-weight:700;letter-spacing:.16em;color:var(--accent-ink)}
+.decision .who{font-family:"Spectral",Georgia,serif;font-size:32px;font-weight:400;margin-top:10px}
+.decision .when{font-size:13px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
+.decision .note{
+  font-family:"Spectral",Georgia,serif;font-weight:300;font-size:17px;
+  margin:18px 0 0;max-width:60ch;color:var(--ink-2);
+}
+.hash{font-family:ui-monospace,monospace;font-size:12px;color:var(--faint);margin-top:20px;word-break:break-all}
+
+/* ---------- responsive ---------- */
+@media (max-width:880px){
+  .body{grid-template-columns:1fr;gap:0}
+  nav.index{
+    position:static;flex-direction:row;gap:2px;
+    overflow-x:auto;border-bottom:1px solid var(--rule);
+    margin-bottom:34px;padding-bottom:2px;
+  }
+  nav.index .grp{display:none}
+  nav.index a{
+    border-left:none;border-bottom:2px solid transparent;
+    padding:0 14px;white-space:nowrap;
+  }
+  nav.index a[aria-current="true"]{border-left:none;border-bottom-color:var(--accent)}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="rid">
+      <span>HuminLoop</span>
+      <span>Run 20260822T150714</span>
+      <span>openrouter · anthropic/claude-sonnet-5</span>
+      <span>2026-08-22</span>
+    </div>
+
+    <p class="orient">A governed agent team. Specialists draft, a critic challenges every draft on the record, rule-based governance checks each artifact, and the run waits in <code>pending</code> until a named human releases it. This is one complete run.</p>
+
+    <h1 class="task">Build an AI transformation roadmap and ROI model for a mid-size manufacturer</h1>
+
+    <ol class="flow" aria-label="What happened in this run">
+      <li><span class="step">Route</span><span class="val">rule <b>strategy</b></span></li>
+      <li><span class="step">Draft</span><span class="val"><b>Strategist</b> → <b>Data Scientist</b></span></li>
+      <li><span class="step">Challenge</span><span class="val"><b>9</b> findings</span></li>
+      <li><span class="step">Reissue</span><span class="val"><b>2</b> revised</span></li>
+      <li><span class="step">Governance</span><span class="val"><b>Approve</b></span></li>
+      <li class="terminal"><span class="step">Gate</span><span class="val"><b>Released</b></span></li>
+    </ol>
+
+    <div class="gate">
+      <span class="verdict">APPROVED</span>
+      <span class="who">Tony Bleything</span>
+      <span class="when">2026-08-22 15:07</span>
+      <p class="note">“Roadmap is sound; ROI assumptions labelled correctly. The OT sign-off gate added in review is the right call.”</p>
+    </div>
+  </header>
+
+  <div class="body">
+
+    <nav class="index" aria-label="Sections of this run">
+      <div class="grp">Run</div>
+      <a href="#routing" aria-current="true">Routing</a>
+      <div class="grp">Strategist</div>
+      <a href="#c-strategist">Critique (3)</a>
+      <a href="#a-strategist">Artifact</a>
+      <div class="grp">Data Scientist</div>
+      <a href="#c-data">Critique (3)</a>
+      <a href="#a-data">Artifact</a>
+      <div class="grp">Gate</div>
+      <a href="#decision">Decision</a>
+    </nav>
+
+    <main>
+
+      <section id="routing">
+        <h2>Routing</h2>
+        <p class="sub">Keyword rule <strong>strategy</strong> matched the task. Deterministic plan, no model call.</p>
+      </section>
+
+      <section id="c-strategist">
+        <h2>Strategist <span class="kind">Critique</span></h2>
+        <p class="sub">Challenged by QA/QC · 3 findings · all accepted · artifact reissued</p>
+
+        <div class="quote">
+          <div class="lbl">Steelman</div>
+          <p>The draft correctly treats AI transformation as an evidence-gated sequencing problem rather than a technology rollout: it refuses to assume client data, forces a go/no-go audit before spend, ties every phase's expansion to measured results from the prior one, and keeps override authority with humans while logging those overrides as information rather than resistance.</p>
+        </div>
+
+        <div class="quote">
+          <div class="lbl">Pre-mortem</div>
+          <p>Twelve months later the pilot technically succeeds — downtime drops, the override log looks clean — but the program stalls in Phase 2 because a sensor-to-cloud integration built during Phase 0 got flagged by the client's OT security team after the fact, forcing a costly network re-architecture and a trust breach with plant IT.</p>
+        </div>
+
+        <article class="finding">
+          <div class="fhead">
+            <span class="n">1</span>
+            <span class="sev" aria-hidden="true">■■</span>
+            <span class="sev-word">Serious</span>
+            <span class="dim">Feasibility</span>
+            <span class="disp">Accepted</span>
+          </div>
+          <p class="claim">The Risks section lists sponsorship, data quality, adoption, accountability and headcount, but never OT/cybersecurity exposure from connecting machine-level sensors to a predictive model — a material risk given Phase 0 explicitly scopes sensor integration on live production equipment.</p>
+          <div class="answer">
+            <div class="lbl">Author</div>
+            <p>Added a risk line naming the OT/security lead sign-off gate before any live sensor connectivity in Phase 1, since Phase 0 scopes integration with production equipment.</p>
+          </div>
+        </article>
+
+        <article class="finding">
+          <div class="fhead">
+            <span class="n">2</span>
+            <span class="sev" aria-hidden="true">■■</span>
+            <span class="sev-word">Serious</span>
+            <span class="dim">Human impact</span>
+            <span class="disp">Accepted</span>
+          </div>
+          <p class="claim">Phase 2 specifies quality inspector training precisely — two days classroom plus two weeks shadow-use — but Phase 1 gives maintenance technicians no equivalent. No stated who-teaches-what-how-long for interpreting risk scores before the 90-day pilot starts, despite this being the first and highest-stakes human/AI interaction in the plan.</p>
+          <div class="answer">
+            <div class="lbl">Author</div>
+            <p>Added a who-teaches-what-how-long spec for maintenance technicians in Phase 1, mirroring the Phase 2 inspector training detail.</p>
+          </div>
+        </article>
+
+        <article class="finding">
+          <div class="fhead">
+            <span class="n">3</span>
+            <span class="sev" aria-hidden="true">■</span>
+            <span class="sev-word">Minor</span>
+            <span class="dim">Evidence</span>
+            <span class="disp">Accepted</span>
+          </div>
+          <p class="claim">The McKinsey 20–35% benchmark is correctly labelled as an industry range rather than a client prediction, but it is not qualified as process- versus discrete-manufacturing-specific. Since the client is named as discrete manufacturing, a one-line caveat on applicability would strengthen the evidentiary chain.</p>
+          <div class="answer">
+            <div class="lbl">Author</div>
+            <p>Added a one-line caveat that the benchmark spans process and discrete manufacturing and should be treated as directional for this client until Phase 1 data exists.</p>
+          </div>
+        </article>
+      </section>
+
+      <section id="a-strategist">
+        <h2>Strategist <span class="kind">Artifact</span></h2>
+        <details class="artifact">
+          <summary>Read the full artifact <span class="meta">5,130 chars · sha256 f4248dacc… · revised</span></summary>
+          <div class="doc">
+            <h4>Objective</h4>
+            <p>Sequence an AI transformation for a 400-person discrete manufacturer such that every phase's spend is gated on measured results from the phase before it, and no phase begins without a named human accountable for its go/no-go call.</p>
+            <h4>Body</h4>
+            <p>Phase 0 is a four-to-eight-week data and readiness audit, not a pilot. It establishes whether machine-level telemetry exists at sufficient coverage to support a predictive maintenance model at all, and it terminates the programme if it does not. The OT/security lead signs off before any live sensor connectivity, a gate added after review.</p>
+            <p>Phase 1 is a single-line 90-day pilot with maintenance technicians retaining override authority on every model-generated work order. Overrides are logged and reviewed weekly as information about the model, not as resistance to be managed.</p>
+          </div>
+        </details>
+        <p class="gov">Governance <b>APPROVE</b> · all five sections present · citation verified · no PII detected</p>
+      </section>
+
+      <section id="c-data">
+        <h2>Data Scientist <span class="kind">Critique</span></h2>
+        <p class="sub">Challenged by QA/QC · 3 findings · all accepted · artifact reissued</p>
+
+        <div class="quote">
+          <div class="lbl">Steelman</div>
+          <p>The draft's core contribution is refusing to let the Strategist's roadmap be treated as measurable when it isn't — it forces a proxy versus outcome distinction, a hard data-quality gate before any modeling spend, a statistical floor before results can be claimed, and explicit labelling of the Deloitte benchmark as external rather than a client target.</p>
+        </div>
+
+        <div class="quote">
+          <div class="lbl">Pre-mortem</div>
+          <p>Twelve months later the Phase 1 pilot clears its statistical floor and Phase 2 scales, but adoption stalls: technicians, seeing the model call false alarms, start quietly overriding or ignoring work orders because no one ever told them who has final say when their diagnosis disagrees with the model's.</p>
+        </div>
+
+        <article class="finding">
+          <div class="fhead">
+            <span class="n">1</span>
+            <span class="sev" aria-hidden="true">■■</span>
+            <span class="sev-word">Serious</span>
+            <span class="dim">Human impact</span>
+            <span class="disp">Accepted</span>
+          </div>
+          <p class="claim">Treating “override rate” as a leading indicator of technician distrust makes a metric do a control's job. The brief requires a named human checkpoint — who reviews overrides, on what evidence, with what authority, how recorded — before Phase 1 puts model-generated work orders in front of technicians.</p>
+          <div class="answer">
+            <div class="lbl">Author</div>
+            <p>Added a named human checkpoint (who reviews overrides, on what evidence, with what authority, how recorded) before Phase 1 goes live, not just a metric.</p>
+          </div>
+        </article>
+
+        <article class="finding">
+          <div class="fhead">
+            <span class="n">2</span>
+            <span class="sev" aria-hidden="true">■■</span>
+            <span class="sev-word">Serious</span>
+            <span class="dim">Human impact</span>
+            <span class="disp">Accepted</span>
+          </div>
+          <p class="claim">The ROI formula nets out false-positive work orders times technician-hours as a cost, but is silent on whether the business case implicitly assumes reduced maintenance headcount once downtime-driven reactive labour falls. If that is the real trade-off, the house brief requires it stated plainly rather than left implicit in a savings formula.</p>
+          <div class="answer">
+            <div class="lbl">Author</div>
+            <p>Added explicit language stating the ROI formula does not assume headcount reduction, and that if leadership intends one it must be named and modelled separately with its own human-impact analysis.</p>
+          </div>
+        </article>
+
+        <article class="finding">
+          <div class="fhead">
+            <span class="n">3</span>
+            <span class="sev" aria-hidden="true">■</span>
+            <span class="sev-word">Minor</span>
+            <span class="dim">Consistency</span>
+            <span class="disp">Accepted</span>
+          </div>
+          <p class="claim">Decision gates — Phase 0 coverage threshold, Phase 1 statistical floor, Phase 2 net-positive test — specify technical pass/fail conditions but not who is accountable for the go/no-go call when a gate is missed by a small margin.</p>
+          <div class="answer">
+            <div class="lbl">Author</div>
+            <p>Named the accountable decision-maker for each gate, including who can authorize proceeding on a marginal miss and what they must document.</p>
+          </div>
+        </article>
+      </section>
+
+      <section id="a-data">
+        <h2>Data Scientist <span class="kind">Artifact</span></h2>
+        <details class="artifact">
+          <summary>Read the full artifact <span class="meta">5,060 chars · sha256 c21768da0… · revised</span></summary>
+          <div class="doc">
+            <h4>Objective</h4>
+            <p>Establish what can honestly be measured at each phase of the roadmap, what cannot, and what statistical floor a Phase 1 result must clear before the word “results” is used with the client's board.</p>
+            <h4>Body</h4>
+            <p>Phase 0 gates on data coverage, not on enthusiasm. Below the coverage threshold there is no model to build, and the correct output of Phase 0 is a written recommendation not to proceed. Override rate is instrumented from day one, but as a signal for a named human to review, never as an automated control.</p>
+          </div>
+        </details>
+        <p class="gov">Governance <b>APPROVE</b> · all five sections present · citation verified · no PII detected</p>
+      </section>
+
+      <section id="decision" class="decision">
+        <h2>Human decision</h2>
+        <p class="sub">This run sat in <code>out/pending/</code> until a named person released it. The gate re-read every artifact and re-derived its governance verdict from the bytes before recording this.</p>
+        <div class="verdict">APPROVED</div>
+        <div class="who">Tony Bleything</div>
+        <div class="when">2026-08-22 15:07</div>
+        <p class="note">“Roadmap is sound; ROI assumptions labelled correctly. The OT sign-off gate added in review is the right call.”</p>
+        <p class="hash">Artifacts verified at decision time · strategist sha256 f4248dacc… · data_scientist sha256 c21768da0… · forced: false · flagged roles: none</p>
+      </section>
+
+    </main>
+  </div>
+</div>
