@@ -1,5 +1,47 @@
 # Changelog
 
+## 0.7.0 — 2026-09-01
+
+The roster is an AI transformation engagement team, not a small agency.
+
+The repo argued that transformation fails for human-system reasons, then staffed twenty
+specialists with no change-management, adoption, readiness or workforce advisor anywhere in them.
+Five of the nine advisory domains the team claims to cover had no dispatchable role at all. That
+gap — not missing tooling — is why the team could not be trusted on real work.
+
+- **Deleted six agency roles**: `social_manager`, `oem_partner`, `ea`, `it`, `marketing`,
+  `content_creator`. They ran a business rather than delivering an engagement. Five routing rules
+  died with them (campaign, social, it, partner, admin); the router goes from 18 rules to 13.
+- **Added eight transformation advisors**: `domain_owner`, `value_realization_lead`,
+  `change_management_lead`, `process_excellence_lead`, `data_readiness_lead`,
+  `enterprise_architect`, `program_management_lead`, `governance_advisor`. Each carries the
+  decision it owns, not just a topic.
+- **Rewrote `product_manager`** as the AI Product Manager rather than adding a second, near-identical
+  PM seat. The research names this one of the three chronically understaffed engagement roles.
+- `len(SPECIALISTS)` 20 → 22. `dryrun_specialists` and `specialists_receiving_house_brief` read 22;
+  `persona_coverage` is now 5/22 = 0.227, down from 0.250 — the denominator grew, the numerator
+  did not. Personas for the new advisors are the next piece of work.
+- Roster is evidence-backed: `docs/ROSTER-EVIDENCE.md`, 47 cited sources across Deloitte, PwC, EY,
+  KPMG, McKinsey, BCG, Accenture and IBM. Every added seat traces to a role those firms actually
+  staff, with the decision it owns.
+
+**`router_hard_exact_rate` went 0.875 → 1.000 and this is not an improvement.** The only failing
+hard case was `h05`, which tested a genuine ambiguity between an EA meeting summary and
+cybersecurity. Deleting `ea` voided the ambiguity, so the case now passes mechanically. It is
+retargeted with a note saying exactly this. A real ambiguity should replace it when the
+transformation routing vocabulary is written. Treat the 1.000 as an artifact of the roster change.
+
+**Nine router eval cases were retargeted, never removed.** `evals/run.py` treats a shrinking
+`router_cases` or `router_easy_cases` as a regression, deliberately, so deleting the orphaned cases
+would have failed CI and the fix would have been to disarm the guard. `r04`, `r05`, `r16`, `r17`,
+`r18`, `r21`, `r23` and `h07` describe agency work with no seat on the new roster; each now records
+the honest outcome — a fallback to the Strategist — with a note. Counts hold at 32 and 24.
+
+**Interim state, stated plainly:** the eight new advisors have one-line remits and no routing rules
+yet. Nothing dispatches to them, and without personas they will produce generic output — the same
+failure this change exists to fix. This release makes the roster right; it does not yet make the
+team good. Routing vocabulary and personas follow.
+
 ## 0.6.0 — 2026-08-22
 
 Critique loop, so disagreement changes the deliverable instead of decorating it.

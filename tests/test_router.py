@@ -11,9 +11,10 @@ def router():
 
 def test_whole_word_matching_prevents_substring_hits(router):
     # 'nda' must not fire inside 'agenda'; 'msa' must not fire inside 'msatellite'.
-    plan = router.route("Schedule the weekly agenda and travel for the kickoff meeting")
-    assert plan.roles == ["ea"]
+    plan = router.route("Schedule the weekly agenda for the kickoff meeting")
     assert "legal" not in plan.matched_rules
+    # Nothing else claims scheduling either, now that the agency roles are gone.
+    assert plan.used_default
 
 
 def test_plural_keyword_matches(router):
@@ -21,9 +22,13 @@ def test_plural_keyword_matches(router):
 
 
 def test_multiple_rules_merge_in_order_without_duplicates(router):
-    plan = router.route("Write a blog and a LinkedIn thread about the campaign")
-    assert plan.matched_rules == ["campaign", "social"]
-    assert plan.roles == ["marketing", "content_creator", "social_manager"]
+    # 'strategy' and 'analytics' both dispatch data_scientist; it must appear once, in the
+    # position the first matching rule gave it, with privacy's roles appended after.
+    plan = router.route(
+        "Build the transformation roadmap, define the KPIs, and write the data retention policy"
+    )
+    assert plan.matched_rules == ["strategy", "analytics", "privacy"]
+    assert plan.roles == ["strategist", "data_scientist", "privacy", "legal"]
     assert len(plan.roles) == len(set(plan.roles))
 
 

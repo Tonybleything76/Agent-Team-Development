@@ -1,6 +1,6 @@
 {
-  "version": "0.5.0",
-  "ran_at": "2026-08-22T19:07:14+00:00",
+  "version": "0.6.0",
+  "ran_at": "2026-09-01T14:13:22+00:00",
   "how_measured": {
     "router_exact_plan_rate": "share of router cases whose full ordered plan equals the expected",
     "router_easy_exact_rate": "same, over cases that contain a rule keyword (regression guard)",
@@ -16,11 +16,11 @@
   },
   "gated": "per-case pass->fail transitions plus router_cases, router_easy_cases, governance_cases, dryrun_specialists, personas_written, personas_well_formed, specialists_receiving_house_brief",
   "metrics": {
-    "router_exact_plan_rate": 0.96875,
-    "router_first_role_rate": 0.96875,
+    "router_exact_plan_rate": 1.0,
+    "router_first_role_rate": 1.0,
     "router_easy_exact_rate": 1.0,
-    "router_hard_exact_rate": 0.875,
-    "router_hard_passing": 7,
+    "router_hard_exact_rate": 1.0,
+    "router_hard_passing": 8,
     "router_cases": 32,
     "router_easy_cases": 24,
     "router_hard_cases": 8,
@@ -29,14 +29,12 @@
     "governance_cases": 18,
     "personas_written": 5,
     "personas_well_formed": 5,
-    "persona_coverage": 0.25,
-    "specialists_receiving_house_brief": 20,
+    "persona_coverage": 0.22727272727272727,
+    "specialists_receiving_house_brief": 22,
     "dryrun_specialists_governance_clean": 1.0,
-    "dryrun_specialists": 20
+    "dryrun_specialists": 22
   },
-  "failures": [
-    "h05"
-  ],
+  "failures": [],
   "borderline_for_human_review": [
     "g12",
     "g18"

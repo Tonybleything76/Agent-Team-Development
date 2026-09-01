@@ -30,21 +30,20 @@
   {
    "id": "r04",
    "task": "Plan the Q4 content calendar and campaign briefs",
-   "expect_first": "marketing",
+   "expect_first": "strategist",
    "expect_roles": [
-    "marketing",
-    "content_creator",
-    "social_manager"
-   ]
+    "strategist"
+   ],
+   "note": "no seat on the transformation roster after the v0.7 change; falls back to the Strategist"
   },
   {
    "id": "r05",
    "task": "Turn the white paper into a LinkedIn thread",
-   "expect_first": "social_manager",
+   "expect_first": "strategist",
    "expect_roles": [
-    "social_manager",
-    "content_creator"
-   ]
+    "strategist"
+   ],
+   "note": "no seat on the transformation roster after the v0.7 change; falls back to the Strategist"
   },
   {
    "id": "r06",
@@ -134,26 +133,29 @@
   {
    "id": "r16",
    "task": "Provision accounts and set up monitoring and backups",
-   "expect_first": "it",
+   "expect_first": "strategist",
    "expect_roles": [
-    "it"
-   ]
+    "strategist"
+   ],
+   "note": "no seat on the transformation roster after the v0.7 change; falls back to the Strategist"
   },
   {
    "id": "r17",
    "task": "Select an OEM partner and draft the co-marketing MDF plan",
-   "expect_first": "oem_partner",
+   "expect_first": "strategist",
    "expect_roles": [
-    "oem_partner"
-   ]
+    "strategist"
+   ],
+   "note": "no seat on the transformation roster after the v0.7 change; falls back to the Strategist"
   },
   {
    "id": "r18",
    "task": "Schedule the weekly agenda and travel for the kickoff meeting",
-   "expect_first": "ea",
+   "expect_first": "strategist",
    "expect_roles": [
-    "ea"
-   ]
+    "strategist"
+   ],
+   "note": "no seat on the transformation roster after the v0.7 change; falls back to the Strategist"
   },
   {
    "id": "r19",
@@ -175,12 +177,11 @@
   {
    "id": "r21",
    "task": "Write a blog post and schedule a LinkedIn thread about the campaign",
-   "expect_first": "marketing",
+   "expect_first": "strategist",
    "expect_roles": [
-    "marketing",
-    "content_creator",
-    "social_manager"
-   ]
+    "strategist"
+   ],
+   "note": "no seat on the transformation roster after the v0.7 change; falls back to the Strategist"
   },
   {
    "id": "r22",
@@ -193,10 +194,11 @@
   {
    "id": "r23",
    "task": "Incident response runbook for the IT team",
-   "expect_first": "it",
+   "expect_first": "strategist",
    "expect_roles": [
-    "it"
-   ]
+    "strategist"
+   ],
+   "note": "no seat on the transformation roster after the v0.7 change; falls back to the Strategist"
   },
   {
    "id": "r24",
@@ -252,12 +254,12 @@
   {
    "id": "h05",
    "task": "Summarize the thread from the security meeting",
-   "expect_first": "ea",
+   "expect_first": "cybersecurity",
    "expect_roles": [
-    "ea"
+    "cybersecurity"
    ],
    "hard": true,
-   "note": "genuinely ambiguous: EA summary vs cybersecurity"
+   "note": "was EA-vs-cybersecurity ambiguity; EA is gone, so the ambiguity is void and this now passes mechanically. The hard-rate improvement is an artifact of the roster change, not progress. Replace with a real ambiguity in Phase 2."
   },
   {
    "id": "h06",
@@ -272,11 +274,12 @@
   {
    "id": "h07",
    "task": "Draft the kickoff meeting agenda and book travel",
-   "expect_first": "ea",
+   "expect_first": "strategist",
    "expect_roles": [
-    "ea"
+    "strategist"
    ],
-   "hard": true
+   "hard": true,
+   "note": "no seat on the transformation roster after the v0.7 change; falls back to the Strategist"
   },
   {
    "id": "h08",

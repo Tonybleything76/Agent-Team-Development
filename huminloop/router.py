@@ -35,16 +35,6 @@ ROUTING_RULES: list[tuple[str, tuple[str, ...], tuple[str, ...]]] = [
         ("sales",),
     ),
     (
-        "campaign",
-        ("blog", "content calendar", "campaign", "content brief", "editorial"),
-        ("marketing", "content_creator", "social_manager"),
-    ),
-    (
-        "social",
-        ("linkedin", "social post", "social thread", "twitter thread", "x thread"),
-        ("social_manager", "content_creator"),
-    ),
-    (
         "product",
         ("prd", "backlog", "user story", "user stories", "acceptance criteria"),
         ("product_manager", "product_developer", "qa_qc"),
@@ -84,29 +74,6 @@ ROUTING_RULES: list[tuple[str, tuple[str, ...], tuple[str, ...]]] = [
     ),
     ("finance", ("invoice", "forecast", "pricing", "budget", "month-end"), ("finance",)),
     ("operations", ("capacity", "burn report", "burn rate", "vendor management"), ("operations",)),
-    (
-        "it",
-        ("provision", "provisioning", "backup", "monitoring", "incident"),
-        ("it",),
-    ),
-    (
-        "partner",
-        (
-            "oem",
-            "co-marketing",
-            "mdf",
-            "partner program",
-            "partner selection",
-            "channel partner",
-            "partnership",
-        ),
-        ("oem_partner",),
-    ),
-    (
-        "admin",
-        ("agenda", "travel", "meeting summary", "meeting notes", "calendar invite"),
-        ("ea",),
-    ),
 ]
 
 DEFAULT_ROLES: tuple[str, ...] = ("strategist",)
