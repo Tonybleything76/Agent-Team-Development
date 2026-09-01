@@ -1,5 +1,54 @@
 # Changelog
 
+## 0.9.0 — 2026-09-01
+
+The eight transformation advisors have personas. They were reachable in v0.8.0 but still ran on a
+one-line remit, which produces confident generic output — the failure that lost trust in this team
+in the first place. Milestone 1b closes that.
+
+- **Eight personas written**: `domain_owner`, `value_realization_lead`, `change_management_lead`,
+  `process_excellence_lead`, `data_readiness_lead`, `enterprise_architect`,
+  `program_management_lead`, `governance_advisor`. `personas_written` 5 → 13,
+  `persona_coverage` 0.227 → **0.591**. The nine specialists still without one are support and
+  delivery seats the roster inherited, not the advisors this rebuild was for.
+- **`## Refuse or escalate` is now gated.** `PERSONA_SECTIONS` was `("## Remit",
+  "## Output contract")`; the refusal section is the one that makes a specialist an advisor
+  rather than a generator, and it is the easiest to drop when writing eight personas in one
+  sitting. All five existing personas already carried it, so this cost nothing and prevents the
+  regression it was added for.
+
+**Each persona names what it will not do, and the refusals have teeth.** The Value Realization
+Lead will not mark a benefit realized on a pilot's own instrumentation, and will not convert freed
+hours into cash without a named person committing to the decision. The Change Lead will not sign a
+readiness assessment built only from management self-report, and publishes its delay gate before
+anyone is under pressure. The Process Lead will not deliver a happy-path map or place a checkpoint
+where the reviewer lacks the evidence to judge. The Data Readiness Lead withholds approval on any
+dataset whose lawful basis for training cannot be established. The Governance Advisor will not
+issue a conditional approval worded so it reads as approval.
+
+**Overlap was designed against, not left to chance.** `value_realization_lead`, `data_scientist`
+and `finance` all touch baselines and ROI, so each now states its boundary: the Data Scientist
+designs the measurement, Finance checks a single case's arithmetic, and Value Realization owns the
+portfolio ledger and the scale-or-stop decision. The Governance Advisor's persona explicitly
+distinguishes it from the automated `governance` evaluator — that one checks bytes, this one
+decides whether a system should exist.
+
+**A local-tooling bug in `persona_keys()` is fixed.** It globbed `*.md` and turned any stray file
+into a phantom role, so a gitignored `domain_owner.plain.md` sibling written by local tooling
+crashed the eval with `KeyError: 'domain_owner.plain'`. It now returns only stems that name a real
+role. Because silently skipping a file could hide a misspelled persona that loads for nobody,
+`tests/test_personas.py` fails loudly on any non-sibling file that does not name a known role.
+
+**The proof task was rewritten and dry-run, not paid for.** The old task fired zero routing rules
+and would have produced one Strategist memo proving nothing. The rewritten task (in `TODOS.md`)
+fires six rules and dispatches six advisors — 18 LLM calls against the 21-call worst case already
+measured — and reaches adoption, process and program management, which the plan set as the bar.
+Verified offline as run `20260901_144930_dd8b92`. **The paid run is still unspent and is a human
+decision.**
+
+Eval re-baselined at v0.9.0; `h05` and `t12` remain recorded known failures and the holdout still
+reads 0.800. 158 tests, ruff clean.
+
 ## 0.8.0 — 2026-09-01
 
 The eight transformation advisors are now reachable. v0.7.0 seated them and routed nothing to

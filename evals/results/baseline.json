@@ -1,6 +1,6 @@
 {
-  "version": "0.8.0",
-  "ran_at": "2026-09-01T14:36:25+00:00",
+  "version": "0.9.0",
+  "ran_at": "2026-09-01T14:50:00+00:00",
   "how_measured": {
     "router_exact_plan_rate": "share of router cases whose full ordered plan equals the expected",
     "router_easy_exact_rate": "same, over cases that contain a rule keyword (regression guard)",
@@ -35,9 +35,9 @@
     "governance_verdict_rate": 1.0,
     "governance_issue_recall": 1.0,
     "governance_cases": 18,
-    "personas_written": 5,
-    "personas_well_formed": 5,
-    "persona_coverage": 0.22727272727272727,
+    "personas_written": 13,
+    "personas_well_formed": 13,
+    "persona_coverage": 0.5909090909090909,
     "specialists_receiving_house_brief": 22,
     "dryrun_specialists_governance_clean": 1.0,
     "dryrun_specialists": 22

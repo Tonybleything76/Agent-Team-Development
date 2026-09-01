@@ -9,6 +9,8 @@ touching Python, and a role without one falls back to its remit.
 from functools import cache
 from pathlib import Path
 
+from .roles import ROLES
+
 PERSONA_DIR = Path(__file__).parent / "personas"
 # The house brief goes to every specialist. It carries what the whole team owes regardless of
 # role — rigour paired with the human impact of the change — so it lives in one file rather
@@ -37,5 +39,14 @@ def has_persona(role_key: str) -> bool:
 
 
 def persona_keys() -> list[str]:
-    """Role personas only; files beginning with an underscore are shared briefs, not roles."""
-    return sorted(p.stem for p in PERSONA_DIR.glob("*.md") if not p.stem.startswith("_"))
+    """Role personas only.
+
+    Files beginning with an underscore are shared briefs, not roles. Everything else must name
+    a real role: local tooling writes gitignored siblings next to working docs (`*.plain.md`),
+    and a bare glob turned one of those into a phantom role that crashed the eval on a KeyError.
+    A stem that is not a role is skipped here; `tests/test_personas.py` fails loudly on one that
+    looks like a misspelled role, so a typo cannot silently mean "persona never loads".
+    """
+    return sorted(
+        p.stem for p in PERSONA_DIR.glob("*.md") if not p.stem.startswith("_") and p.stem in ROLES
+    )
