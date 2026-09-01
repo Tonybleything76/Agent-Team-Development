@@ -42,3 +42,5 @@ evals/results/latest.json
 
 # Harness artifacts
 *.claudish-error
+.gstack/
+.design-work/
