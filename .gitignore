@@ -44,3 +44,6 @@ evals/results/latest.json
 *.claudish-error
 .gstack/
 .design-work/
+
+# Claude Code worktrees (separate checkouts, never tracked)
+.claude/
