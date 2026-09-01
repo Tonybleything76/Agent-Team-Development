@@ -253,13 +253,14 @@
   },
   {
    "id": "h05",
-   "task": "Summarize the thread from the security meeting",
-   "expect_first": "cybersecurity",
+   "task": "Draft the pilot script for the new onboarding training video",
+   "expect_first": "hr",
    "expect_roles": [
-    "cybersecurity"
+    "hr",
+    "ld"
    ],
    "hard": true,
-   "note": "was EA-vs-cybersecurity ambiguity; EA is gone, so the ambiguity is void and this now passes mechanically. The hard-rate improvement is an artifact of the roster change, not progress. Replace with a real ambiguity in Phase 2."
+   "note": "replaces the voided EA-vs-cybersecurity case. 'pilot' is the broadest keyword the v0.8.0 value_realization rule adds, and here it is a first cut of a script, not a scoped deployment; the router dispatches value_realization_lead as well. A known, recorded failure that prices that keyword honestly."
   },
   {
    "id": "h06",
@@ -290,6 +291,166 @@
     "legal"
    ],
    "hard": true
+  },
+  {
+   "id": "t01",
+   "task": "Our line managers are pushing back hard on the new agent workflow. How do we handle the resistance before go-live?",
+   "expect_first": "change_management_lead",
+   "expect_roles": [
+    "change_management_lead"
+   ],
+   "hard": true,
+   "category": "transformation"
+  },
+  {
+   "id": "t02",
+   "task": "The pilot hit its numbers but the CFO wants proof before we fund the enterprise rollout. What does the business case need to show?",
+   "expect_first": "value_realization_lead",
+   "expect_roles": [
+    "value_realization_lead",
+    "change_management_lead"
+   ],
+   "hard": true,
+   "category": "transformation"
+  },
+  {
+   "id": "t03",
+   "task": "Who owns the claims process end to end once the agent handles intake, and where does the handoff sit?",
+   "expect_first": "domain_owner",
+   "expect_roles": [
+    "domain_owner",
+    "process_excellence_lead"
+   ],
+   "hard": true,
+   "category": "transformation"
+  },
+  {
+   "id": "t04",
+   "task": "We have three years of ticket data sitting in two systems and nobody trusts it. Is it good enough to fine-tune on?",
+   "expect_first": "data_readiness_lead",
+   "expect_roles": [
+    "data_readiness_lead"
+   ],
+   "hard": true,
+   "category": "transformation"
+  },
+  {
+   "id": "t05",
+   "task": "Legal is asking whether this system falls under the EU AI Act. Do we need a conformity assessment before we ship?",
+   "expect_first": "governance_advisor",
+   "expect_roles": [
+    "governance_advisor"
+   ],
+   "hard": true,
+   "category": "transformation"
+  },
+  {
+   "id": "t06",
+   "task": "Where exactly does a human stay in the loop once the agent drafts the reply that goes to the customer?",
+   "expect_first": "process_excellence_lead",
+   "expect_roles": [
+    "process_excellence_lead"
+   ],
+   "hard": true,
+   "category": "transformation"
+  },
+  {
+   "id": "t07",
+   "task": "We are running four workstreams and the integration one is two sprints behind. How do I get the delivery plan back on track?",
+   "expect_first": "program_management_lead",
+   "expect_roles": [
+    "program_management_lead"
+   ],
+   "hard": true,
+   "category": "transformation"
+  },
+  {
+   "id": "t08",
+   "task": "Should we standardise on one model provider or keep the abstraction layer? The architecture review is Thursday.",
+   "expect_first": "enterprise_architect",
+   "expect_roles": [
+    "enterprise_architect"
+   ],
+   "hard": true,
+   "category": "transformation"
+  },
+  {
+   "id": "t09",
+   "task": "Our executive sponsor has changed for the second time and the steering committee has lost the plot. How do we re-establish sponsorship?",
+   "expect_first": "change_management_lead",
+   "expect_roles": [
+    "change_management_lead"
+   ],
+   "hard": true,
+   "category": "transformation"
+  },
+  {
+   "id": "t10",
+   "task": "The target operating model has the agent doing triage. Who decides the new role boundaries and the process redesign that goes with it?",
+   "expect_first": "change_management_lead",
+   "expect_roles": [
+    "change_management_lead",
+    "process_excellence_lead"
+   ],
+   "hard": true,
+   "category": "transformation"
+  },
+  {
+   "id": "t11",
+   "task": "Adoption stalled at about a third of licensed users six months in. Half the team quietly went back to the old way of working.",
+   "expect_first": "change_management_lead",
+   "expect_roles": [
+    "change_management_lead"
+   ],
+   "hard": true,
+   "category": "transformation",
+   "holdout": true
+  },
+  {
+   "id": "t12",
+   "task": "Nobody has cleaned the CRM in years and half the fields are free text. Can we still train a model on this?",
+   "expect_first": "data_readiness_lead",
+   "expect_roles": [
+    "data_readiness_lead"
+   ],
+   "hard": true,
+   "category": "transformation",
+   "holdout": true,
+   "note": "holdout miss, recorded rather than fixed. The client says 'train a model on this'; the vocabulary derived from t04 says 'fine-tune' and 'training data'. Adding 'train a model' after seeing this case would be copying words between two files, not routing on unseen language, so the miss stands as the measurement."
+  },
+  {
+   "id": "t13",
+   "task": "The steering committee wants one view of benefits realization across the five use cases before the next funding round.",
+   "expect_first": "value_realization_lead",
+   "expect_roles": [
+    "value_realization_lead",
+    "change_management_lead"
+   ],
+   "hard": true,
+   "category": "transformation",
+   "holdout": true
+  },
+  {
+   "id": "t14",
+   "task": "Map the target state for order-to-cash and show me where the handoffs between people and agents actually sit.",
+   "expect_first": "process_excellence_lead",
+   "expect_roles": [
+    "process_excellence_lead"
+   ],
+   "hard": true,
+   "category": "transformation",
+   "holdout": true
+  },
+  {
+   "id": "t15",
+   "task": "Does the screening model need a bias audit before it goes live, and who signs off on that?",
+   "expect_first": "governance_advisor",
+   "expect_roles": [
+    "governance_advisor"
+   ],
+   "hard": true,
+   "category": "transformation",
+   "holdout": true
   }
  ],
  "governance": [

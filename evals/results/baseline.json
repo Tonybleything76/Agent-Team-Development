@@ -1,6 +1,6 @@
 {
-  "version": "0.6.0",
-  "ran_at": "2026-09-01T14:13:22+00:00",
+  "version": "0.8.0",
+  "ran_at": "2026-09-01T14:36:25+00:00",
   "how_measured": {
     "router_exact_plan_rate": "share of router cases whose full ordered plan equals the expected",
     "router_easy_exact_rate": "same, over cases that contain a rule keyword (regression guard)",
@@ -12,18 +12,26 @@
     "personas_written": "specialist roles with a persona file",
     "personas_well_formed": "personas that carry the required sections and reach the prompt",
     "persona_coverage": "personas_written divided by the number of specialist roles",
-    "specialists_receiving_house_brief": "specialists whose prompt carries the shared house brief"
+    "specialists_receiving_house_brief": "specialists whose prompt carries the shared house brief",
+    "transformation_route_coverage": "share of cases tagged category=transformation whose full ordered plan equals the expected one; per-case, not 'contains an advisor'",
+    "transformation_route_coverage_derived": "same, over the extraction subset the routing vocabulary was written from. Expected to be high by construction and therefore NOT evidence the router generalises",
+    "transformation_route_coverage_holdout": "same, over the holdout subset that was not read while deriving vocabulary. This is the only gated rate: below 0.80 the run fails"
   },
-  "gated": "per-case pass->fail transitions plus router_cases, router_easy_cases, governance_cases, dryrun_specialists, personas_written, personas_well_formed, specialists_receiving_house_brief",
+  "gated": "per-case pass->fail transitions, transformation_route_coverage_holdout >= 0.80, plus router_cases, router_easy_cases, governance_cases, dryrun_specialists, personas_written, personas_well_formed, specialists_receiving_house_brief, transformation_cases, transformation_holdout_cases",
   "metrics": {
-    "router_exact_plan_rate": 1.0,
-    "router_first_role_rate": 1.0,
+    "router_exact_plan_rate": 0.9574468085106383,
+    "router_first_role_rate": 0.9574468085106383,
     "router_easy_exact_rate": 1.0,
-    "router_hard_exact_rate": 1.0,
-    "router_hard_passing": 8,
-    "router_cases": 32,
+    "router_hard_exact_rate": 0.9130434782608695,
+    "router_hard_passing": 21,
+    "router_cases": 47,
     "router_easy_cases": 24,
-    "router_hard_cases": 8,
+    "router_hard_cases": 23,
+    "transformation_route_coverage": 0.9333333333333333,
+    "transformation_route_coverage_derived": 1.0,
+    "transformation_route_coverage_holdout": 0.8,
+    "transformation_cases": 15,
+    "transformation_holdout_cases": 5,
     "governance_verdict_rate": 1.0,
     "governance_issue_recall": 1.0,
     "governance_cases": 18,
@@ -34,7 +42,10 @@
     "dryrun_specialists_governance_clean": 1.0,
     "dryrun_specialists": 22
   },
-  "failures": [],
+  "failures": [
+    "h05",
+    "t12"
+  ],
   "borderline_for_human_review": [
     "g12",
     "g18"

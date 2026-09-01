@@ -74,6 +74,15 @@ def _excerpt(text: str) -> str:
 
 
 CRITIC_ROLE = "qa_qc"
+# No routing rule matched, so the plan is a guess rather than a decision. This is a fact about
+# how the run was planned, not about the artifact's bytes, so it travels in process_flags — the
+# same path truncation and dismissed critiques use. flagged_roles() iterates artifacts, so a
+# plan-level field would never reach the gate; attaching it to the artifact the default plan
+# produced is what makes a human's --force the only way past it.
+DEFAULT_PLAN_FLAG = (
+    "No routing rule matched; the default specialist was dispatched on a guess "
+    "(check the task is aimed at the right seat)"
+)
 
 
 def critique_and_revise(
@@ -221,6 +230,8 @@ def run(
                         },
                         log_file,
                     )
+            if plan.used_default:
+                flags = [*flags, DEFAULT_PLAN_FLAG]
             path = out / f"{role_key}.md"
             path.write_text(text, encoding="utf-8")
             review_dict = asdict(review) | {"verdict": review.verdict}

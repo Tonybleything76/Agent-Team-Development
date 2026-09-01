@@ -6,6 +6,19 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 
+# The holdout gate is live for every run, so a fixture that carries no tagged case scores 0.0
+# and fails by design. Synthetic fixtures that are not about transformation coverage carry this
+# one passing holdout case so they test the thing they are named for.
+PASSING_HOLDOUT_CASE = {
+    "id": "synthetic-holdout",
+    "task": "How do we handle the resistance before go-live?",
+    "expect_first": "change_management_lead",
+    "expect_roles": ["change_management_lead"],
+    "hard": True,
+    "category": "transformation",
+    "holdout": True,
+}
+
 
 def test_eval_module_runs_as_ci_will_and_writes_results(tmp_path):
     """Runs the module exactly as CI does, but with results redirected out of the repo."""
@@ -34,7 +47,8 @@ def test_eval_flags_a_case_that_passed_at_baseline_and_fails_now(monkeypatch, tm
                         "task": "Sign the NDA",
                         "expect_first": "finance",
                         "expect_roles": ["finance"],
-                    }
+                    },
+                    PASSING_HOLDOUT_CASE,
                 ],
                 "governance": [],
             }
@@ -62,7 +76,8 @@ def test_eval_passes_when_the_failure_is_already_in_the_baseline(monkeypatch, tm
                         "expect_first": "finance",
                         "expect_roles": ["finance"],
                         "hard": True,
-                    }
+                    },
+                    PASSING_HOLDOUT_CASE,
                 ],
                 "governance": [],
             }
@@ -74,3 +89,73 @@ def test_eval_passes_when_the_failure_is_already_in_the_baseline(monkeypatch, tm
     monkeypatch.setattr(ev, "BASELINE", baseline)
     monkeypatch.setattr(ev, "RESULTS", tmp_path)
     assert ev.main([]) == 0
+
+
+def _write_cases(tmp_path, router_cases):
+    cases = tmp_path / "cases.json"
+    cases.write_text(json.dumps({"router": router_cases, "governance": []}))
+    baseline = tmp_path / "baseline.json"
+    baseline.write_text(json.dumps({"metrics": {}, "failures": []}))
+    return cases, baseline
+
+
+def test_no_tagged_cases_scores_zero_and_fails_rather_than_passing_vacuously(monkeypatch, tmp_path):
+    """The whole point of hits / max(n, 1): an empty tagged set must not read 1.0.
+
+    A rate that returns 1.0 over an empty universe would let anyone disarm the gate by deleting
+    the cases, which is the failure this metric exists to prevent.
+    """
+    from evals import run as ev
+
+    cases, baseline = _write_cases(
+        tmp_path,
+        [
+            {
+                "id": "synthetic",
+                "task": "Sign the NDA",
+                "expect_first": "legal",
+                "expect_roles": ["legal"],
+            }
+        ],
+    )
+    monkeypatch.setattr(ev, "CASES", cases)
+    monkeypatch.setattr(ev, "BASELINE", baseline)
+    monkeypatch.setattr(ev, "RESULTS", tmp_path)
+    assert ev.main([]) == 1
+    metrics = json.loads((tmp_path / "latest.json").read_text())["metrics"]
+    assert metrics["transformation_route_coverage_holdout"] == 0.0
+    assert metrics["transformation_holdout_cases"] == 0
+
+
+def test_holdout_below_the_gate_fails_even_with_no_other_regression(monkeypatch, tmp_path):
+    from evals import run as ev
+
+    missing = dict(PASSING_HOLDOUT_CASE, id="synthetic-miss", task="something unroutable")
+    cases, baseline = _write_cases(tmp_path, [PASSING_HOLDOUT_CASE, missing])
+    monkeypatch.setattr(ev, "CASES", cases)
+    monkeypatch.setattr(ev, "BASELINE", baseline)
+    monkeypatch.setattr(ev, "RESULTS", tmp_path)
+    # 1 of 2 holdout cases routes correctly: 0.500, below the 0.80 gate.
+    assert ev.main([]) == 1
+    metrics = json.loads((tmp_path / "latest.json").read_text())["metrics"]
+    assert metrics["transformation_route_coverage_holdout"] == 0.5
+
+
+def test_coverage_asserts_the_whole_plan_not_merely_that_an_advisor_appears(monkeypatch, tmp_path):
+    """A 'contains any advisor' assertion would score this 1.0; per-case exactness scores 0.0."""
+    from evals import run as ev
+
+    wrong_order = dict(
+        PASSING_HOLDOUT_CASE,
+        id="synthetic-order",
+        task="Who owns the claims process end to end, and where does the handoff sit?",
+        expect_first="process_excellence_lead",
+        expect_roles=["process_excellence_lead", "domain_owner"],
+    )
+    cases, baseline = _write_cases(tmp_path, [wrong_order])
+    monkeypatch.setattr(ev, "CASES", cases)
+    monkeypatch.setattr(ev, "BASELINE", baseline)
+    monkeypatch.setattr(ev, "RESULTS", tmp_path)
+    assert ev.main([]) == 1
+    metrics = json.loads((tmp_path / "latest.json").read_text())["metrics"]
+    assert metrics["transformation_route_coverage_holdout"] == 0.0

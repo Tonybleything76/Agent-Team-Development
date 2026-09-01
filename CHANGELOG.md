@@ -1,5 +1,74 @@
 # Changelog
 
+## 0.8.0 — 2026-09-01
+
+The eight transformation advisors are now reachable. v0.7.0 seated them and routed nothing to
+them, which is the worse of the two failure modes: a roster that implies a capability the system
+cannot dispatch.
+
+**Eval cases were written before the routing rules, and five were held back.** Fifteen
+transformation questions in client language went into `evals/cases.json` tagged
+`"category": "transformation"`. Routing vocabulary was derived from ten of them plus the advisors'
+own remits; the five tagged `"holdout": true` were not read during extraction. That ordering is
+the whole method — deriving keywords from the cases you then measure against tests only that you
+can copy words between two files.
+
+- **Eight routing rules added** (`domain_ownership`, `value_realization`, `change_adoption`,
+  `process_design`, `data_readiness`, `architecture`, `program_delivery`, `ai_governance`), one
+  per advisor. The router goes from 13 rules to 21. They sit between `strategy` and `proposal`,
+  ordered by engagement logic rather than alphabetically, because a task matching two rules
+  dispatches in `ROUTING_RULES` order: who owns the outcome, what it is worth, who absorbs the
+  change, how the work is done, then data, architecture, delivery and assurance.
+- **`transformation_route_coverage` added**, reported three ways: whole, derived, holdout. It
+  asserts each case's full ordered plan against `expect_roles`, not "contains an advisor" — a
+  contains-any check would be satisfied by one broad keyword while the first role is wrong. Rates
+  are `hits / max(n, 1)`, so an empty tagged set reads **0.0 and fails**, never a vacuous 1.0.
+- **The holdout is gated at 0.80** and checked before the baseline branch, so a below-gate result
+  cannot be recorded as the new normal.
+
+**The numbers, with the asterisk they need.** `transformation_route_coverage_derived` is **1.000**
+and that is by construction, not evidence — the vocabulary was written from those ten cases.
+The number that means anything is `transformation_route_coverage_holdout` at **0.800**, four of
+five, against language the keyword list had not seen.
+
+**`t12` is a recorded miss, not a fixed one.** The client says *"can we still train a model on
+this?"*; the vocabulary derived from `t04` says `fine-tune` and `training data`. Adding
+`train a model` after seeing `t12` fail would be copying words between two files and would have
+reported 1.000 with no way to tell the difference. One honest vocabulary pass was run, not two;
+the second is still available if coverage needs to move, and the decision trigger stands — if the
+holdout cannot reach 0.80 after two honest passes, keyword routing has hit its ceiling and
+semantic routing is back in scope with evidence.
+
+**`h05` is a real ambiguity again.** The old case tested an EA-versus-cybersecurity ambiguity that
+deleting `ea` voided in v0.7.0, so it passed mechanically and held
+`router_hard_exact_rate` at a fake 1.000. It is replaced by an ambiguity this release
+introduces: `pilot` is the transformation term for a scoped first deployment and also the ordinary
+word for a first cut of a script, so "Draft the pilot script for the new onboarding training
+video" pulls in `value_realization_lead` alongside `hr` and `ld`. Recorded as a known failure,
+which prices the broadest new keyword honestly. `router_hard_exact_rate` now reads **0.913** over
+23 hard cases — down from 1.000, and the lower number is the truthful one.
+
+**A default plan now flags the artifact it produced.** `Plan.used_default` was read only by a
+test. When no routing rule matches, the artifact the fallback Strategist produced carries a
+`process_flag` saying the specialist was dispatched on a guess. `process_flags` is artifact-level
+and `flagged_roles()` iterates artifacts, so a plan-level field would never have reached the gate.
+**This is a behaviour change:** an unroutable task now requires a human's `--force` to approve,
+where before it produced a confident, governance-clean memo about the wrong thing and passed
+silently.
+
+**Counts held, guards armed.** `router_cases` 32 → 47, `router_easy_cases` unchanged at 24,
+`router_hard_cases` 8 → 23. No case was deleted. `GATED_COUNTS` is untouched; the two new count
+guards (`transformation_cases`, `transformation_holdout_cases`) live in a separate
+`TRANSFORMATION_GATED_COUNTS` checked alongside it, because deleting the *failing* tagged cases
+would otherwise raise coverage rather than lower it.
+
+**Still interim.** The advisors route now, but their personas are not written, so they will
+produce generic output — the same failure that lost trust in the first place. Personas are the
+next piece of work. Do not spend on a live proof run before then.
+
+Eval re-baselined deliberately at v0.8.0 with `h05` and `t12` recorded as known failures. 152
+tests, ruff clean.
+
 ## 0.7.0 — 2026-09-01
 
 The roster is an AI transformation engagement team, not a small agency.

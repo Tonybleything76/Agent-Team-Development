@@ -132,3 +132,23 @@ def test_truncated_output_is_named_as_truncation_not_missing_sections(workdir):
     # process_flags where the gate will not try to re-derive it from the artifact.
     assert art.process_flags[0].startswith("Output truncated at the token budget")
     assert not rec.all_approved_by_governance
+
+
+def test_default_plan_flags_the_artifact_it_produced(workdir, fake_llm):
+    """A task nothing routes to still produces a confident memo. Say so on the artifact.
+
+    process_flags is artifact-level and flagged_roles() iterates artifacts, so this is the only
+    place the fact can live and still force a human's --force at the gate.
+    """
+    rec = orchestrator.run("xyzzy plugh", llm=fake_llm, critique=False)
+    art = rec.artifacts[0]
+    assert art.role == "strategist"
+    assert orchestrator.DEFAULT_PLAN_FLAG in art.process_flags
+    assert not rec.all_approved_by_governance
+
+
+def test_routed_plan_carries_no_default_flag(workdir, fake_llm):
+    rec = orchestrator.run("Define KPIs", llm=fake_llm, critique=False)
+    art = rec.artifacts[0]
+    assert orchestrator.DEFAULT_PLAN_FLAG not in art.process_flags
+    assert rec.all_approved_by_governance

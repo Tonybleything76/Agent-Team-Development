@@ -65,3 +65,46 @@ def test_conversational_course_does_not_route_to_ld(router):
         "strategist",
         "data_scientist",
     ]
+
+
+def test_transformation_advisors_are_all_reachable():
+    """Every advisor added in v0.7.0 must have at least one rule that dispatches to it.
+
+    The roster shipped before the routing did, so this is the guard against that recurring: a
+    seat nobody can reach is worse than no seat, because the roster implies it works.
+    """
+    advisors = {
+        "domain_owner",
+        "value_realization_lead",
+        "change_management_lead",
+        "process_excellence_lead",
+        "data_readiness_lead",
+        "enterprise_architect",
+        "program_management_lead",
+        "governance_advisor",
+    }
+    routed = {r for _, _, roles in ROUTING_RULES for r in roles}
+    assert advisors <= routed, f"unreachable advisors: {sorted(advisors - routed)}"
+
+
+def test_transformation_keywords_do_not_fire_on_the_pinned_strings(router):
+    # The strings other tests pin. If a new keyword fires on any of them the dispatch order
+    # changes silently, so assert the rule names directly rather than only the roles.
+    assert router.route("Schedule the weekly agenda for the kickoff meeting").used_default
+    assert router.route(
+        "Build the transformation roadmap, define the KPIs, and write the data retention policy"
+    ).matched_rules == ["strategy", "analytics", "privacy"]
+    assert router.route("Of course we should start with a roadmap").matched_rules == ["strategy"]
+
+
+def test_advisor_leads_when_a_transformation_rule_matches_alone(router):
+    plan = router.route("How do we handle the resistance before go-live?")
+    assert plan.matched_rules == ["change_adoption"]
+    assert plan.roles == ["change_management_lead"]
+
+
+def test_transformation_block_dispatches_in_engagement_order(router):
+    # Two advisors on one task combine in ROUTING_RULES order, not in mention order: the seat
+    # that owns the outcome is briefed before the seat that redesigns the work.
+    plan = router.route("Where does the handoff sit once we own the claims process end to end?")
+    assert plan.roles == ["domain_owner", "process_excellence_lead"]

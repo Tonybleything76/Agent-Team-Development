@@ -3,8 +3,11 @@
 Usage:  python -m evals.run [--set-baseline]
 Writes evals/results/latest.json (git-ignored). Regression is judged per case against the
 committed baseline.json: any case that passed at baseline and fails now fails the run, and case
-counts may not shrink. Rates are reported, not gated. Cases marked "borderline" never pass
-silently: they are listed for a human to check regardless of outcome.
+counts may not shrink. Rates are reported, not gated, with one exception:
+transformation_route_coverage_holdout must stay at or above HOLDOUT_COVERAGE_GATE, because it is
+the only number here measured against language the router's keywords were not written from.
+Cases marked "borderline" never pass silently: they are listed for a human to check regardless
+of outcome.
 """
 
 import argparse
@@ -39,6 +42,14 @@ GATED_COUNTS = (
     "personas_well_formed",
     "specialists_receiving_house_brief",
 )
+# Transformation coverage carries its own anti-shrink guard rather than being folded into
+# GATED_COUNTS, which is left exactly as it was. Deleting tagged cases already drives the rate
+# toward 0.0 via hits / max(n, 1), but deleting the *failing* ones would raise it, so the case
+# counts are guarded too. Checked alongside GATED_COUNTS in main().
+TRANSFORMATION_GATED_COUNTS = ("transformation_cases", "transformation_holdout_cases")
+# The holdout is the only gated rate. Below this the eval exits non-zero: the keyword router is
+# no longer routing language it has not been shown, and semantic routing is back in scope.
+HOLDOUT_COVERAGE_GATE = 0.80
 HOW_MEASURED = {
     "router_exact_plan_rate": "share of router cases whose full ordered plan equals the expected",
     "router_easy_exact_rate": "same, over cases that contain a rule keyword (regression guard)",
@@ -51,6 +62,18 @@ HOW_MEASURED = {
     "personas_well_formed": "personas that carry the required sections and reach the prompt",
     "persona_coverage": "personas_written divided by the number of specialist roles",
     "specialists_receiving_house_brief": "specialists whose prompt carries the shared house brief",
+    "transformation_route_coverage": (
+        "share of cases tagged category=transformation whose full ordered plan equals the "
+        "expected one; per-case, not 'contains an advisor'"
+    ),
+    "transformation_route_coverage_derived": (
+        "same, over the extraction subset the routing vocabulary was written from. Expected to "
+        "be high by construction and therefore NOT evidence the router generalises"
+    ),
+    "transformation_route_coverage_holdout": (
+        "same, over the holdout subset that was not read while deriving vocabulary. This is the "
+        f"only gated rate: below {HOLDOUT_COVERAGE_GATE:.2f} the run fails"
+    ),
 }
 
 
@@ -89,7 +112,36 @@ def eval_router(cases: list[dict]) -> tuple[dict, list[dict]]:
         "router_cases": n,
         "router_easy_cases": len(easy),
         "router_hard_cases": len(hard),
+        **transformation_coverage(cases, rows),
     }, rows
+
+
+def transformation_coverage(cases: list[dict], rows: list[dict]) -> dict:
+    """Coverage over the transformation cases, reported whole / derived / holdout.
+
+    A case counts as covered only when its full ordered plan matches `expect_roles` — the same
+    bar every other router rate uses. "Contains at least one advisor" would be gameable: a
+    single broad keyword would satisfy nearly every tagged case with the wrong first role.
+
+    Rates are hits / max(n, 1), matching eval_governance. An empty tagged set therefore reads
+    0.0 and fails the gate rather than passing vacuously on an empty universe.
+    """
+    tagged = [
+        (c, r) for c, r in zip(cases, rows, strict=True) if c.get("category") == "transformation"
+    ]
+    holdout = [(c, r) for c, r in tagged if c.get("holdout")]
+    derived = [(c, r) for c, r in tagged if not c.get("holdout")]
+
+    def rate(subset):
+        return sum(r["exact"] for _, r in subset) / max(len(subset), 1)
+
+    return {
+        "transformation_route_coverage": rate(tagged),
+        "transformation_route_coverage_derived": rate(derived),
+        "transformation_route_coverage_holdout": rate(holdout),
+        "transformation_cases": len(tagged),
+        "transformation_holdout_cases": len(holdout),
+    }
 
 
 def eval_governance(cases: list[dict]) -> tuple[dict, list[dict]]:
@@ -215,6 +267,18 @@ def main(argv=None) -> int:
     failed_ids = {f["id"] for f in failures}
     hard_ids = {r["id"] for r in r_rows if r["hard"]}
 
+    # Gated before the baseline branch on purpose: a below-gate holdout must not be recordable
+    # as the new normal. If this fires after two honest passes at vocabulary extraction, the
+    # keyword router has hit its ceiling and semantic routing has earned its way back into scope.
+    holdout_rate = metrics["transformation_route_coverage_holdout"]
+    if holdout_rate < HOLDOUT_COVERAGE_GATE:
+        print(
+            f"  GATE FAILED: transformation_route_coverage_holdout {holdout_rate:.3f} "
+            f"< {HOLDOUT_COVERAGE_GATE:.2f} over {metrics['transformation_holdout_cases']} "
+            f"holdout case(s)"
+        )
+        return 1
+
     if args.set_baseline:
         if (failed_ids - hard_ids) and not args.allow_failures:
             print("  refusing to set a baseline with failures (use --allow-failures to override)")
@@ -225,7 +289,11 @@ def main(argv=None) -> int:
                     "version": __version__,
                     "ran_at": result["ran_at"],
                     "how_measured": HOW_MEASURED,
-                    "gated": "per-case pass->fail transitions plus " + ", ".join(GATED_COUNTS),
+                    "gated": (
+                        "per-case pass->fail transitions, "
+                        f"transformation_route_coverage_holdout >= {HOLDOUT_COVERAGE_GATE:.2f}, "
+                        "plus " + ", ".join(GATED_COUNTS + TRANSFORMATION_GATED_COUNTS)
+                    ),
                     "metrics": metrics,
                     "failures": sorted(failed_ids),
                     "borderline_for_human_review": [b["id"] for b in borderline],
@@ -242,7 +310,7 @@ def main(argv=None) -> int:
     newly_failing = sorted(failed_ids - set(base.get("failures", [])))
     shrunk = {
         k: (base["metrics"][k], metrics.get(k, 0))
-        for k in GATED_COUNTS
+        for k in GATED_COUNTS + TRANSFORMATION_GATED_COUNTS
         if k in base["metrics"] and metrics.get(k, 0) < base["metrics"][k]
     }
     if newly_failing or shrunk:
