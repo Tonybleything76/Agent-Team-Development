@@ -133,6 +133,8 @@ uv run huminloop pending       # what is waiting for a human
 uv run huminloop show <run_id> # read the manifest and every artifact
 uv run huminloop approve <run_id> --by "Your Name"
 uv run huminloop reject  <run_id> --by "Your Name" --reason "placeholder content"
+uv run huminloop resynthesize <run_id>            # retry a failed Engagement Lead synthesis
+uv run huminloop render <run_id>                  # approved run -> self-contained HTML report
 ```
 
 To use a real model: `cp .env.example .env`, set `LLM_PROVIDER=openrouter` and
@@ -157,8 +159,14 @@ including the per-artifact SHA-256. Nothing there is a mock.
   with its severity and dimension, and the author's disposition and reason for each.
 - `docs/example-run/synthesis/` — all eight transformation advisors plus the Engagement Lead,
   which reads every artifact in full and reports Recommendation, Decisions, Disagreements and
-  Escalations. Carries the repo's first `decision` key: approved with `--force` because seven
-  escalations means seven questions only a human can answer.
+  Escalations. Carries the repo's first `decision` key: approved with `--force` because three
+  escalations means three questions only a human can answer.
+
+Any of the three approved runs can be turned into the client-facing HTML report with
+`uv run huminloop render <run_id>` (needs the run under `out/approved/`, not the `docs/` copy —
+run one yourself or point `--root` at a directory holding the example). The page is the
+"Institutional Briefing" system in `DESIGN.md`: one accent colour reserved for the human
+decision, severity shown as symbol plus word rather than colour alone, no icons, no shadows.
 
 The same task run before the Strategist persona existed produced confident benchmark figures
 with no sourcing. With the persona it produces labelled assumptions:

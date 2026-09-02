@@ -36,6 +36,35 @@ def test_registers_parse_numbered_entries():
     assert regs["decisions"][0].endswith("-> domain_owner")
 
 
+def test_escalations_body_stops_before_the_envelope_next_steps():
+    """The registers live inside the outer envelope's Body: section. Escalations is always the
+    last register, so its body capture must stop at Citations:/Risks:/Next Steps: — not run on
+    and absorb Next Steps' own numbered lines as escalations. Real bug: a genuine 3-item
+    Escalations register was reported as 7 because it swallowed 4 Next Steps items."""
+    text = (
+        "Objective: Decide whether to scale.\n\n"
+        "Body:\n\n"
+        "## Recommendation\nHold the rollout.\n\n"
+        "## Decisions\n1. Who owns override review? -> domain_owner\n\n"
+        "## Disagreements\nNone.\n\n"
+        "## Escalations\n"
+        "1. Does the union agreement permit the role change?\n"
+        "2. Is there a deadline driving this?\n"
+        "3. Will leadership state headcount impact explicitly?\n\n"
+        "Citations:\n- https://example.com/a\n\n"
+        "Risks: Unaddressed classification gap.\n\n"
+        "Next Steps:\n"
+        "1. Legal issues a classification memo.\n"
+        "2. Sponsor names an owner.\n"
+        "3. Data lead profiles the extract.\n"
+        "4. Change lead runs interviews.\n"
+    )
+    regs = parse_registers(text)
+    assert len(regs["escalations"]) == 3
+    assert "union agreement" in regs["escalations"][0]
+    assert not any("classification memo" in e for e in regs["escalations"])
+
+
 def test_explicit_none_is_empty_not_missing():
     """An empty register and an absent one must never be indistinguishable."""
     filled = parse_registers("## Disagreements\n1. a vs b on timing\n")

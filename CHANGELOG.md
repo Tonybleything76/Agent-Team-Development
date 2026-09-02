@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.13.0 — 2026-09-02
+
+Milestone 2: the run renderer. `DESIGN.md` and the approved reference implementation existed
+since 2026-08-31; this is the Python that actually produces the page from a real run instead of
+a hand-authored mock of one.
+
+- **`huminloop render <run_id>`** turns an approved run into a single self-contained HTML file:
+  the header, the run-flow strip, the decision bar (including the forced/amber state), a sticky
+  index scaled to however many advisors actually ran, each specialist's Critique and Artifact
+  sections, and — new, since no prior version of this page ever had one — the Engagement Lead's
+  Recommendation, Decisions, Disagreements, and Escalations as their own Synthesis section.
+  Refuses to render anything but an approved run, and re-verifies every artifact's SHA-256
+  before rendering — a run whose bytes changed after the decision was recorded is not rendered,
+  the same rule the approval gate already holds itself to.
+- **The Engagement Lead's `Escalations` register was reporting the wrong count.** `parse_registers`
+  captured each register's body up to the next `##` heading or end of string, but Escalations
+  is always the last of the four registers and sits inside the outer envelope's plain `Body:`
+  section — with no more `##` headings coming, its capture ran straight through `Citations:`,
+  `Risks:`, and `Next Steps:`, silently absorbing Next Steps' own numbered lines as escalations.
+  The already-committed example run's manifest said 7 for exactly this reason; the real number,
+  and what the artifact's own text has always said, is 3. Fixed, and corrected in the committed
+  example — the approval note, the process flags, and the synthesis counts, not the artifact
+  text itself, which was never wrong.
+- Task headlines that are a full scenario-plus-question paragraph (real ones, not the reference's
+  eleven-word original) now split at the task's own trailing question rather than wrapping a
+  paragraph into display type — the split is structural, not a paraphrase: nothing reworded,
+  nothing invented.
+
 ## 0.12.0 — 2026-09-02
 
 The first real proof run's Engagement Lead came back empty. Not truncated — empty:

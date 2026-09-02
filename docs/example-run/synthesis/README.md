@@ -45,11 +45,11 @@ That is a synthesis taking a position and naming it as a judgment call rather th
 inside "the team recommends." The second disagreement does the same on whether to hold all three
 functions pending EU AI Act classification or let one proceed under proof criteria in parallel.
 
-**Escalations become the gate, not a suggestion.** Seven questions in this run only the sponsor,
+**Escalations become the gate, not a suggestion.** Three questions in this run only the sponsor,
 Legal, or the client can answer — is there a commercial deadline, does scaling imply headcount
-reduction, what's the classification — and each one rides into `process_flags`, which is why
-this run needed `--force` and a written note to approve. The mechanism, not just the wording,
-is doing the "this is not a rubber stamp" work.
+reduction, when do the outstanding completion dates land — and each one rides into
+`process_flags`, which is why this run needed `--force` and a written note to approve. The
+mechanism, not just the wording, is doing the "this is not a rubber stamp" work.
 
 ## Layout
 

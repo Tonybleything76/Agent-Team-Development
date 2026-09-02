@@ -444,13 +444,9 @@
       "error": null,
       "file": "engagement_lead.md",
       "process_flags": [
-        "Escalated to the human: Is there a commercial or external commitment fixing a go-live date? That would explain pressure to scale all three at once despite two unnamed behind-schedule workstreams and no process owners \u2014 only the sponsor knows.",
+        "Escalated to the human: Is there a commercial or external commitment fixing a go-live date? That would explain pressure to scale all three functions at once despite two unnamed behind-schedule workstreams \u2014 only the sponsor can answer this.",
         "Escalated to the human: Does leadership want to state now, explicitly, whether headcount reduction is part of this scale-up, or is that genuinely undecided?",
-        "Escalated to the human: Sequencing turns on a fact nobody here has: confirmed completion dates from the Claims Data Lead (remediation) and Member Services Lead (task spec) \u2014 get both before locking which function opens first.",
-        "Escalated to the human: Sponsor decides function sequencing and pause status for the other two within one week.",
-        "Escalated to the human: Legal issues written Annex III classification memo before any further design commitment.",
-        "Escalated to the human: Change Lead runs frontline readiness interviews (claims and member services) this week to test the resistance-as-ownership-gap hypothesis directly.",
-        "Escalated to the human: Data Readiness, Process Excellence, and Enterprise Architect each confirm in writing whether their gate is open or closed before go-live is scheduled."
+        "Escalated to the human: Sequencing turns on confirmed completion dates for claims data remediation and the member services task spec \u2014 get both in writing before locking which function opens first."
       ],
       "review": {
         "issues": [],
@@ -470,7 +466,7 @@
       "engagement_lead"
     ],
     "forced": true,
-    "note": "Reviewed: 2 genuine disagreements (member services vs claims first; hold-all vs staged-rollout), 6 decisions, 7 escalations. Voice matches v0.11.0 standard. Approved as first example run with a decision key.",
+    "note": "Reviewed: 2 genuine disagreements (member services vs claims first; hold-all vs staged-rollout), 6 decisions, 3 escalations. Voice matches v0.11.0 standard. Approved as first example run with a decision key.",
     "state": "approved"
   },
   "plan": {
@@ -501,7 +497,7 @@
   "synthesis": {
     "decisions": 6,
     "disagreements": 2,
-    "escalations": 7,
+    "escalations": 3,
     "role": "engagement_lead"
   },
   "task": "Our 2,000-person healthcare operations team has finished the claims copilot pilot and the steering committee wants to scale it across claims, member services and compliance. Line managers are resisting and nobody has mapped where a human stays in the loop end-to-end. Two workstreams are behind. Legal is asking whether this falls under the EU AI Act, the claims data quality is poor, and we have not settled model selection or the integration blueprint. What do we need to decide before go-live?",

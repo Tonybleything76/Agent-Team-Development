@@ -8,6 +8,7 @@ from pathlib import Path
 from . import __version__, gate, orchestrator
 from .governance import strip_controls
 from .llm import PROVIDERS, get_llm
+from .render import RenderError, render_run
 from .roles import ROLES
 from .storage import (
     ARTIFACT_DIR_ENV,
@@ -152,6 +153,20 @@ def _cmd_pending(args) -> int:
     return 0
 
 
+def _cmd_render(args) -> int:
+    found = find_run(artifact_root(None), args.run_id)
+    if not found:
+        print(f"run {args.run_id} not found", file=sys.stderr)
+        return 1
+    _, d = found
+    manifest = read_manifest(d)
+    page = render_run(manifest, d)
+    out = Path(args.out) if args.out else d / "run.html"
+    out.write_text(page, encoding="utf-8")
+    print(f"wrote {out}")
+    return 0
+
+
 def _cmd_show(args) -> int:
     found = find_run(artifact_root(None), args.run_id)
     if not found:
@@ -218,6 +233,11 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("run_id")
     s.set_defaults(fn=_cmd_show)
 
+    s = sub.add_parser("render", help="render an approved run to a self-contained HTML report")
+    s.add_argument("run_id")
+    s.add_argument("--out", help="output path (default: <run_dir>/run.html)")
+    s.set_defaults(fn=_cmd_render)
+
     s = sub.add_parser("approve", help="human approval: move a run to approved/")
     s.add_argument("run_id")
     s.add_argument("--by", required=True, help="name of the person approving")
@@ -247,7 +267,7 @@ def main(argv: list[str] | None = None) -> int:
             os.environ[ARTIFACT_DIR_ENV] = DEFAULT_ARTIFACT_DIR
             os.environ[LOG_DIR_ENV] = DEFAULT_LOG_DIR
         return args.fn(args)
-    except (gate.GateError, StorageError, ValueError, RuntimeError, OSError) as exc:
+    except (gate.GateError, RenderError, StorageError, ValueError, RuntimeError, OSError) as exc:
         if args.verbose:
             raise
         print(f"error: {exc}", file=sys.stderr)

@@ -11,7 +11,7 @@ from .critique import (
     numbered_points,
     parse_critique,
 )
-from .governance import Review, flagged_roles, review_text
+from .governance import REQUIRED_SECTIONS, Review, flagged_roles, review_text
 from .llm import (
     LLMClient,
     build_critic_prompt,
@@ -154,9 +154,14 @@ SYNTHESIS_ROLE = "engagement_lead"
 # The registers the Engagement Lead must carry inside Body. Absence and emptiness must never
 # look the same, so an empty register is required to say "None." rather than be omitted.
 SYNTHESIS_REGISTERS = ("Recommendation", "Decisions", "Disagreements", "Escalations")
+# The registers live inside the outer envelope's plain "Body:" section, so the last register's
+# body must stop at the next envelope label too — not just the next "##" heading — or it runs
+# on through "Citations:"/"Risks:"/"Next Steps:" and silently absorbs their numbered lines.
+_ENVELOPE_LABEL_RE = "|".join(re.escape(sec) for sec in REQUIRED_SECTIONS)
 _REGISTER_RE = re.compile(
     r"^[ \t]*#{1,6}[ \t]*(?P<name>" + "|".join(SYNTHESIS_REGISTERS) + r")[ \t]*$"
-    r"(?P<body>.*?)(?=^[ \t]*#{1,6}[ \t]*\S|\Z)",
+    r"(?P<body>.*?)"
+    r"(?=^[ \t]*#{1,6}[ \t]*\S|^[ \t]*(?:" + _ENVELOPE_LABEL_RE + r")[ \t]*:|\Z)",
     re.IGNORECASE | re.MULTILINE | re.DOTALL,
 )
 
