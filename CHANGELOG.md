@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.14.0 — 2026-09-02
+
+The rendered page buried the one thing a reader actually needs — what the team decided, and
+what it needs from you — after sixteen sections of per-advisor detail. And it silently dropped
+the Engagement Lead's own Next Steps and Risks sections entirely: real implementation timeline
+content, generated every run, never once rendered.
+
+- **The Team's Plan now leads the page**, immediately after the header — Recommendation,
+  Decisions, Disagreements, Escalations — before any per-advisor Critique or Artifact section.
+  Everything below it is now explicitly framed, in the page's own copy and nav grouping, as
+  supporting detail: "how the team got there."
+- **Implementation & Timeline and What Could Go Wrong are new sections** inside the plan,
+  pulled from the Engagement Lead's own Next Steps and Risks — content the artifact always
+  contained and the renderer never surfaced.
+- **Disagreements and Escalations carry a one-line explainer** of what they are, since "the Lead
+  had to weigh conflicting advisor conclusions" reads clearer cold than the register name alone.
+- Nav reorganized to match: "Start here" (the plan) above "How the team got there" (routing and
+  every advisor's critique/artifact), rather than one flat list.
+
 ## 0.13.1 — 2026-09-02
 
 The healthcare example run's task happened to end in a clean short question, so the headline

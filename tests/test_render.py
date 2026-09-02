@@ -221,15 +221,22 @@ def test_render_the_committed_synthesis_example(tmp_path):
     shutil.copytree(FIXTURE_DIR, d)
     page = render_run(manifest, d)
 
-    assert page.count("<section") == 19  # routing + 8×(critique+artifact) + synthesis + decision
+    assert page.count("<section") == 19  # routing + 8×(critique+artifact) + plan + decision
+    assert '<section id="plan">' in page
+    assert page.index('id="plan"') < page.index('id="routing"')  # the plan leads, not buried
     assert '<span class="register-count">6</span>' in page  # Decisions
     assert '<span class="register-count">2</span>' in page  # Disagreements
     assert '<span class="register-count">3' in page  # Escalations, "3 — forces this approval"
+    assert "Implementation &amp; Timeline" in page  # the Lead's Next Steps, previously dropped
+    assert "What Could Go Wrong" in page  # the Lead's Risks, previously dropped
     assert "gate forced" in page
     assert "decision forced" in page
     assert "What do we need to decide before go-live?" in page
     assert "healthcare operations team" in page  # the context paragraph, not lost
-    # No stray Next Steps text leaked into the Escalations register (the bug this fixes):
+    # No stray Next Steps text leaked into the Escalations register itself (the bug this
+    # fixes) — scoped to that one register, not the Implementation/Risks sections that now
+    # legitimately follow it and legitimately mention the same phrase.
     escalations_idx = page.index('<h3>Escalations</h3>')
-    escalations_html = page[escalations_idx : escalations_idx + 2000]
+    next_register_idx = page.index("<h3>", escalations_idx + 1)
+    escalations_html = page[escalations_idx:next_register_idx]
     assert "classification memo" not in escalations_html

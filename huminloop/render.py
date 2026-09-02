@@ -196,6 +196,14 @@ h2 .kind{
   letter-spacing:.14em;text-transform:uppercase;color:var(--faint);
 }
 .sub{font-size:14px;color:var(--muted);margin:0 0 26px;max-width:70ch}
+.section-divider{
+  font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--faint);border-top:1px solid var(--ink);padding-top:18px;margin:0 0 40px;
+}
+#plan{
+  border-bottom:2px solid var(--rule);padding-bottom:44px;margin-bottom:12px;
+}
+#plan h2{font-size:32px}
 .quote{background:var(--panel);padding:20px 24px;margin:0 0 18px;max-width:74ch}
 .quote .lbl{
   font-size:10px;letter-spacing:.18em;text-transform:uppercase;
@@ -205,6 +213,12 @@ h2 .kind{
   margin:0;font-family:"Spectral",Georgia,serif;font-weight:300;
   font-size:17px;line-height:1.72;color:var(--ink-2);
 }
+.quote ol{margin:0;padding-left:1.2em}
+.quote li{
+  font-family:"Spectral",Georgia,serif;font-weight:300;
+  font-size:17px;line-height:1.72;color:var(--ink-2);margin:0 0 10px;
+}
+.quote li:last-child{margin-bottom:0}
 .finding{padding:26px 0;border-top:1px solid var(--rule-soft)}
 .fhead{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;font-size:12px}
 .n{font-weight:700;color:var(--faint);font-size:15px;font-variant-numeric:tabular-nums}
@@ -230,6 +244,7 @@ h2 .kind{
   letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0;
 }
 .register-count{font-size:12px;color:var(--faint);font-variant-numeric:tabular-nums}
+.register-note{font-size:13px;color:var(--muted);margin:2px 0 6px;max-width:68ch}
 .reg-item{padding:18px 0;border-top:1px solid var(--rule-soft);display:flex;gap:16px}
 .reg-item .n{flex-shrink:0}
 .reg-item p{margin:0;max-width:68ch;color:var(--ink)}
@@ -503,7 +518,14 @@ def _decision_bar(manifest: dict, *, closing: bool) -> str:
 
 
 def _nav(artifacts: list[dict]) -> str:
-    rows = ['<div class="grp">Run</div>', '<a href="#routing" aria-current="true">Routing</a>']
+    lead = next((a for a in artifacts if a["role"] == SYNTHESIS_ROLE and not a.get("error")), None)
+    rows = []
+    if lead:
+        rows.append('<div class="grp">Start here</div>')
+        rows.append('<a href="#plan" class="lead" aria-current="true">The Team&#x27;s Plan</a>')
+    rows.append('<div class="grp">How the team got there</div>')
+    routing_current = "" if lead else ' aria-current="true"'
+    rows.append(f'<a href="#routing"{routing_current}>Routing</a>')
     for a in artifacts:
         role = a["role"]
         if role == SYNTHESIS_ROLE:
@@ -517,10 +539,6 @@ def _nav(artifacts: list[dict]) -> str:
             n = len((a["critique"] or {}).get("points") or [])
             rows.append(f'<a href="#c-{_slug(role)}">Critique ({n})</a>')
         rows.append(f'<a href="#a-{_slug(role)}">Artifact</a>')
-    lead = next((a for a in artifacts if a["role"] == SYNTHESIS_ROLE and not a.get("error")), None)
-    if lead:
-        rows.append('<div class="grp">Engagement Lead</div>')
-        rows.append('<a href="#synthesis" class="lead">Synthesis</a>')
     rows.append('<div class="grp">Gate</div>')
     rows.append('<a href="#decision">Decision</a>')
     return f'<nav class="index" aria-label="Sections of this run">{"".join(rows)}</nav>'
@@ -605,7 +623,9 @@ def _absent_section(role: str, artifact: dict) -> str:
     )
 
 
-def _register_group(name: str, entries: list[str], *, item_class: str = "") -> str:
+def _register_group(name: str, entries: list[str], *, item_class: str = "", note: str = "") -> str:
+    """`note` is a hardcoded explainer string this module wrote, not model output — rendered
+    as-is (it already carries its own entities), never passed through esc()."""
     count_label = f"{len(entries)}" if entries else "None"
     items = []
     for i, entry in enumerate(entries, 1):
@@ -619,11 +639,12 @@ def _register_group(name: str, entries: list[str], *, item_class: str = "") -> s
             )
         else:
             items.append(f'<div class="{cls}"><span class="n">{i}</span><p>{esc(entry)}</p></div>')
+    note_html = f'<p class="register-note">{note}</p>' if note else ""
     return (
         '<div class="register"><div class="register-head">'
         f"<h3>{esc(name)}</h3>"
         f'<span class="register-count">{count_label}</span></div>'
-        f'{"".join(items)}</div>'
+        f'{note_html}{"".join(items)}</div>'
     )
 
 
@@ -643,11 +664,12 @@ def _synthesis_section(artifact: dict, text: str) -> str:
     ).strip()
 
     parts = [
-        '<section id="synthesis">',
-        '<h2>Engagement Lead <span class="kind">Synthesis</span></h2>',
-        '<p class="sub">Reads every advisor artifact in full and reports what it recommends, '
-        "where the advisors disagreed, and what only a person can decide. This is the one "
-        "deliverable the client acts on.</p>",
+        '<section id="plan">',
+        '<h2>The Team&#x27;s Plan</h2>',
+        '<p class="sub">The Engagement Lead reads every advisor&#x27;s work in full and reports '
+        "back: what the team recommends, what it decided, where advisors pushed back on each "
+        "other before settling, and what only you can answer. This is the one deliverable you "
+        "act on &mdash; everything after this section is how the team got here.</p>",
     ]
     if recommendation:
         parts.append(
@@ -657,12 +679,36 @@ def _synthesis_section(artifact: dict, text: str) -> str:
     parts.append(_register_group("Decisions", regs.get("decisions") or []))
     parts.append(
         _register_group(
-            "Disagreements", regs.get("disagreements") or [], item_class="disagreement"
+            "Disagreements",
+            regs.get("disagreements") or [],
+            item_class="disagreement",
+            note="Where advisors reached different conclusions and the Lead had to weigh them.",
         )
     )
     parts.append(
-        _register_group("Escalations", regs.get("escalations") or [], item_class="escalation")
+        _register_group(
+            "Escalations",
+            regs.get("escalations") or [],
+            item_class="escalation",
+            note=(
+                "Questions no advisor can answer for you &mdash; each one is why this "
+                "run needed your sign-off."
+            ),
+        )
     )
+    next_steps = sections.get("next steps", "")
+    if next_steps:
+        parts.append(
+            '<div class="register"><div class="register-head">'
+            "<h3>Implementation &amp; Timeline</h3></div>"
+            f'<div class="quote">{_render_next_steps(next_steps)}</div></div>'
+        )
+    risks = sections.get("risks", "")
+    if risks:
+        parts.append(
+            '<div class="register"><div class="register-head"><h3>What Could Go Wrong</h3></div>'
+            f'<div class="quote"><p>{esc(risks)}</p></div></div>'
+        )
     parts.append("</section>")
     return "\n".join(parts)
 
@@ -685,7 +731,17 @@ def render_run(manifest: dict, run_dir: Path) -> str:
     headline, context = split_headline(manifest.get("task", ""))
     plan = manifest.get("plan") or {}
 
-    sections_html = ['<section id="routing"><h2>Routing</h2><p class="sub">']
+    lead = next((a for a in artifacts if a["role"] == SYNTHESIS_ROLE and not a.get("error")), None)
+
+    sections_html = []
+    if lead:
+        sections_html.append(_synthesis_section(lead, texts[SYNTHESIS_ROLE]))
+
+    sections_html.append(
+        '<p class="section-divider">How the team got there &mdash; each advisor&#x27;s draft, '
+        "what got challenged, and what changed.</p>"
+    )
+    sections_html.append('<section id="routing"><h2>Routing</h2><p class="sub">')
     rules = plan.get("matched_rules") or []
     if rules:
         sections_html.append(
@@ -707,10 +763,6 @@ def render_run(manifest: dict, run_dir: Path) -> str:
         if a.get("critique"):
             sections_html.append(_critique_section(role, a["critique"]))
         sections_html.append(_artifact_section(role, a, texts[role]))
-
-    lead = next((a for a in artifacts if a["role"] == SYNTHESIS_ROLE and not a.get("error")), None)
-    if lead:
-        sections_html.append(_synthesis_section(lead, texts[SYNTHESIS_ROLE]))
 
     sections_html.append(_decision_bar(manifest, closing=True))
 
@@ -744,9 +796,10 @@ def render_run(manifest: dict, run_dir: Path) -> str:
 <span>{esc((manifest.get('created_at') or '')[:10])}</span>
 </div>
 <p class="orient">A team of AI advisors that argues with itself on purpose. Each one drafts, a
-critic pushes back on the record, and the Engagement Lead reads every artifact in full before
-reporting what it recommends. Nothing goes out until a person reads it and puts their name on
-it.</p>
+critic pushes back on the record, and the Engagement Lead reads every artifact in full and
+reports back. Below: The Team&#x27;s Plan first &mdash; what they recommend, decided, disagreed
+on, and need from you &mdash; then how each advisor got there. Nothing goes out until a person
+reads it and puts their name on it.</p>
 {task_html}
 {_flow_strip(manifest)}
 {_decision_bar(manifest, closing=False)}
