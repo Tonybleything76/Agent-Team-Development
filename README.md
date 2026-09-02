@@ -155,6 +155,10 @@ including the per-artifact SHA-256. Nothing there is a mock.
 - `docs/example-run/critique/` — the same task as the first, run after the critique loop was
   added, with the full critique record in the manifest: the steelman, the pre-mortem, every point
   with its severity and dimension, and the author's disposition and reason for each.
+- `docs/example-run/synthesis/` — all eight transformation advisors plus the Engagement Lead,
+  which reads every artifact in full and reports Recommendation, Decisions, Disagreements and
+  Escalations. Carries the repo's first `decision` key: approved with `--force` because seven
+  escalations means seven questions only a human can answer.
 
 The same task run before the Strategist persona existed produced confident benchmark figures
 with no sourcing. With the persona it produces labelled assumptions:

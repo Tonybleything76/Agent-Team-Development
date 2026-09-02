@@ -1,0 +1,509 @@
+{
+  "artifacts": [
+    {
+      "critique": {
+        "critic_role": "qa_qc",
+        "points": [
+          {
+            "claim": "The deliverable's Objective and Body never address model selection or the integration blueprint, both explicitly flagged in the task as undecided before go-live; at minimum the draft should state why these are deliberately out of scope of this gate and when they get decided, or the committee may read silence as \"not blocking.\"",
+            "dimension": "evidence",
+            "disposition": "accepted",
+            "response": "Added explicit statement that model selection and integration blueprint are a separate, downstream decision gated by process/owner selection, owned by the technical lead, with a stated trigger for when they get decided.",
+            "severity": "serious"
+          },
+          {
+            "claim": "\"Prove the model of override, escalation, and logging\" (member services) and \"recommend member services opens first... to prove the human-in-loop checkpoint design\" never state what evidence or threshold would count as proven before claims is allowed to restart \u2014 without this, sequencing can be quietly reinterpreted as blanket approval.",
+            "dimension": "falsifiability",
+            "disposition": "accepted",
+            "response": "Added a concrete definition of \"proven\" for member services (named metrics/thresholds) before claims work resumes, so sequencing can't be read as blanket approval.",
+            "severity": "serious"
+          },
+          {
+            "claim": "\"the resistance from line managers is likely evidence that this ownership question has never actually been settled with them\" is an inference, not a checked fact; the next steps should include actually asking the line managers why they're resisting before asserting the cause, consistent with lead-with-curiosity practice.",
+            "dimension": "evidence",
+            "disposition": "accepted",
+            "response": "Added a next step to interview the resisting line managers directly before attributing cause, and softened the ownership-gap claim to a hypothesis pending that conversation.",
+            "severity": "minor"
+          },
+          {
+            "claim": "The two-week deadline for the committee to name three accountable owners is asserted without addressing whether the two behind-schedule workstreams have the standing or bandwidth to produce real (not nominal) owners in that window.",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "Replaced the flat two-week deadline with a conditional: two weeks for standing/empowered owners, with an explicit fallback if the two behind-schedule workstreams cannot produce one, rather than asserting feasibility.",
+            "severity": "minor"
+          }
+        ],
+        "premortem": "Twelve months later, member services launches, the human-in-loop pattern built there is declared \"proven,\" and the steering committee treats that as sufficient justification to unpause claims \u2014 without the data-quality remediation or EU AI Act classification actually having concluded, because the draft never specified what evidence would count as \"proven\" or who has authority to block claims from restarting once member services looks good. Separately, model selection and the integration blueprint \u2014 flagged in the task as unresolved \u2014 were never decided during the pause, so when claims finally does restart, it does so on an unvetted model/architecture, reintroducing exactly the risk the pause was meant to close.",
+        "steelman": "The draft correctly reframes \"scale the copilot\" as three separable go/no-go decisions rather than one, refuses to let any of them proceed without a named, budget-accountable owner, treats human-in-loop design and EU AI Act classification as hard gates rather than change-management footnotes, ties the data-quality objection to production-grade evidence rather than pilot dashboards, and sequences member services first for defensible reasons (lower regulatory stakes, cleaner test bed for the oversight pattern) while explicitly refusing to let that sequencing be read as approval for claims or compliance to proceed in parallel."
+      },
+      "error": null,
+      "file": "domain_owner.md",
+      "process_flags": [],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": true,
+      "role": "domain_owner",
+      "sha256": "c2eefb8171492520b0a7da4ddae11e62e04b3e0833f7fcec1300ebefc695340f"
+    },
+    {
+      "critique": {
+        "critic_role": "qa_qc",
+        "points": [
+          {
+            "claim": "The task explicitly lists \"we have not settled model selection or the integration blueprint\" as an open pre-go-live decision, but the draft's Objective, Body, and Next Steps never mention either \u2014 it should add a gate/owner for model selection and integration architecture, or explain why those are out of scope for this memo.",
+            "dimension": "evidence",
+            "disposition": "accepted",
+            "response": "Added model selection and integration blueprint as an explicit fifth gate with an owner, since the task named it as unresolved and the original draft silently dropped it.",
+            "severity": "serious"
+          },
+          {
+            "claim": "The Body opens by treating \"The Domain Owner memo\" as an established, correct prior artifact (\"correctly says... I agree\"), but no such memo was provided in the task materials \u2014 this needs to be flagged as an assumption or removed, since building the recommendation atop an unverified external document is exactly the discipline the draft demands of others' benefit claims.",
+            "dimension": "consistency",
+            "disposition": "accepted",
+            "response": "Removed the reference to a \"Domain Owner memo\"; no such artifact was provided, and citing it as an established, agreed-with source was exactly the unverified-claim discipline I hold others to. Reframed that opening as my own initial framing, not an endorsement of a prior document.",
+            "severity": "serious"
+          },
+          {
+            "claim": "\"Line manager resistance is data, not noise\" is asserted but never acted on beyond folding managers into human-in-loop sign-off; the draft doesn't ask what specifically the two behind-schedule workstreams and manager resistance are telling us, so a real signal about feasibility or workload may go unaddressed.",
+            "dimension": "human-impact",
+            "disposition": "accepted",
+            "response": "Added a specific action to investigate the two behind-schedule workstreams and the substance of manager resistance (workload, unclear authority, tooling gaps) before treating human-in-loop sign-off as sufficient response to that signal.",
+            "severity": "minor"
+          },
+          {
+            "claim": "The two-week baseline-pull deadline for the Claims Ops Director is asserted without checking whether the pre-pilot weekly reports actually contain clean, comparable fields \u2014 given the draft's own point that claims data quality is poor, that same poor data may make the baseline itself unreliable or slower to produce than two weeks.",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "Softened the two-week baseline deadline to a scoping step first: confirm the pre-pilot weekly report has clean, comparable fields before committing to a delivery date, given the stated data-quality problem.",
+            "severity": "minor"
+          }
+        ],
+        "premortem": "Twelve months later, go-live proceeds on schedule for claims because the four named gates get closed, but member services and compliance stall mid-rollout because nobody ever resolved model selection or the integration blueprint \u2014 the draft never surfaces these as decisions, so the steering committee assumed the claims-tier model and integration pattern would just carry over. Separately, the \"Domain Owner memo\" the draft leans on for framing turns out to be a document only the Value Realization Lead had seen; other functions built different assumptions, and the staged-gate plan unravels because it was calibrated against content the rest of the team never validated.",
+        "steelman": "The draft correctly reframes \"scale the copilot\" as a portfolio decision that must be gated by verified evidence, not enthusiasm \u2014 it separates enabled-but-unrealized benefits from cashable ones, refuses to extrapolate claims-pilot results to member services and compliance without measurement there, treats human-in-loop and EU AI Act classification as pre-conditions rather than parallel workstreams, and proposes staging the rollout to a bounded claims-only phase with pre-committed scale/stop criteria. That is a defensible, evidence-disciplined answer to \"should we scale now,\" and the Next Steps assign owners and short deadlines rather than leaving the gates abstract."
+      },
+      "error": null,
+      "file": "value_realization_lead.md",
+      "process_flags": [],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": true,
+      "role": "value_realization_lead",
+      "sha256": "63d579753de86451813d71318ab4d7612af01c609a46fa8c79732d10dd58540f"
+    },
+    {
+      "critique": {
+        "critic_role": "qa_qc",
+        "points": [
+          {
+            "claim": "\"I am withholding sign-off on any go-live date... I will name that in writing\" \u2014 no authority is established for this role to block a steering-committee decision; without naming who actually holds go/no-go authority and the escalation path if overridden, this is a personal commitment dressed as a control, and the deliverable should say so rather than imply the gate is enforceable.",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "The brief grants me delay authority, but \"withholding sign-off\" needs a named escalation path: who can override me, on what evidence, and how that override is recorded. Added this explicitly and reframed the commitment as exercising a defined remit-authority, not a personal veto over the steering committee.",
+            "severity": "serious"
+          },
+          {
+            "claim": "The Article 14 citation is used to support both the oversight-record requirement and, implicitly, the classification claim (\"plausibly... high-risk category for access to essential private services\") \u2014 these are different questions under the Act (Annex III scope vs. Article 14 obligations once in scope), and claims adjudication may sit outside the insurance underwriting/pricing categories Annex III actually names; the citation should be split or the classification claim hedged further pending legal's actual read.",
+            "dimension": "evidence",
+            "disposition": "accepted",
+            "response": "Annex III scope (whether claims adjudication is in-scope at all) and Article 14 (obligations once in-scope) are separate questions; I conflated them. Split the citations and hedged the classification claim further, pending legal's actual read.",
+            "severity": "serious"
+          },
+          {
+            "claim": "Running \"the first readiness conversation... directly with claims adjudicators and member services reps... not their managers\" to test manager-reported claims, while the same draft identifies unaddressed manager capacity as \"probably the real source of resistance,\" risks confirming to managers that they're being bypassed rather than backed \u2014 the plan should specify how managers are informed or included even while frontline staff are the primary source of evidence.",
+            "dimension": "human-impact",
+            "disposition": "accepted",
+            "response": "Running the first readiness conversation with frontline staff while bypassing managers, right after naming manager capacity as the likely real driver of resistance, tells managers they're being worked around. Added a parallel manager-inclusion step in Next Steps.",
+            "severity": "serious"
+          },
+          {
+            "claim": "\"Compliance likely gains audit/logging burden under Article 14 record-keeping\" is stated with near-certainty two lines below \"Legal classification \u2014 OPEN\"; hedge it the same way the rest of the document hedges pre-classification claims.",
+            "dimension": "consistency",
+            "disposition": "accepted",
+            "response": "Hedged the compliance audit-burden claim to match the \"OPEN\" status of legal classification elsewhere in the document.",
+            "severity": "minor"
+          }
+        ],
+        "premortem": "Twelve months later, go-live happened anyway on the committee's original timeline because the Lead's \"withholding sign-off\" turned out to be advisory, not binding \u2014 nobody had actually named who holds go/no-go authority, so the gate the whole Objective rests on was never a real control. Simultaneously, the plan to interview frontline staff \"not their managers\" was read by line managers as being overridden rather than heard, hardening exactly the resistance the ADKAR diagnosis said was already fragile, so by the time the human-in-loop map existed, managers had disengaged from implementing it.",
+        "steelman": "The draft's central argument is that \"scale the copilot\" is not one decision but a dependency chain \u2014 human-in-loop mapping must resolve before legal classification, override-protocol design, training, and model selection can be meaningfully done \u2014 and that the current line-manager resistance is not a communications problem but valid signal of unaddressed Ability and Desire gaps (unmapped overrides, poor data, no backfill). By refusing to sequence training ahead of the readiness gates, naming the data-quality failure as a legitimate reason staff route around the tool, and insisting the steering committee be told plainly if member-services headcount reduction is implied, the draft correctly resists the pressure to paper over unresolved structural questions with an adoption plan, and it gives the client a genuinely actionable, evidenced gate structure rather than a generic change-management narrative."
+      },
+      "error": null,
+      "file": "change_management_lead.md",
+      "process_flags": [],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": true,
+      "role": "change_management_lead",
+      "sha256": "7ec36c62e5ff5cbda864e9c6c4d6ba1b6d950c654ee6a5413a8bf19c4c765b45"
+    },
+    {
+      "critique": {
+        "critic_role": "qa_qc",
+        "points": [
+          {
+            "claim": "The brief explicitly lists \"model selection\" and \"integration blueprint\" as undecided items, and the draft never mentions either \u2014 not even to say \"out of scope here, owned by X, due by Y.\" Fix: add one line in Body or Risks naming who owns those two decisions and by when, even if this deliverable's scope stays HITL-focused.",
+            "dimension": "consistency",
+            "disposition": "accepted",
+            "response": "added a line naming that model selection and integration blueprint are separate decisions with named owners and dates, explicitly out of scope for this HITL map but tracked as gating dependencies.",
+            "severity": "serious"
+          },
+          {
+            "claim": "Annex III classification is stated as \"likely yes\" and treated as something that \"can proceed now, in parallel\" \u2014 but a legal risk classification under the EU AI Act is Legal's call to make, not Process Excellence's to greenlight for parallel work. Sound version: \"recommend Legal confirm Annex III status this week; until confirmed, treat as high-risk by default for oversight design purposes.\"",
+            "dimension": "evidence",
+            "disposition": "accepted",
+            "response": "reworded to make Annex III classification Legal's call; default to high-risk oversight design until Legal confirms, rather than Process Excellence pre-judging it.",
+            "severity": "serious"
+          },
+          {
+            "claim": "The 5% post-payment audit sample for low-value approvals is flagged as an assumption to validate, but there's no stated consequence if the assumption is wrong \u2014 e.g., what happens to accumulated undetected error if claims data quality (already known poor) pushes systemic bias into that unreviewed 95%. Add a trigger: \"if audit sample flags >X% error rate, per-case checkpoint reinstated.\"",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "added an explicit trigger (error rate threshold) that reinstates per-case review if the audit sample finds problems.",
+            "severity": "minor"
+          },
+          {
+            "claim": "Line managers are told their resistance is \"information, not a comms problem,\" which is right, but no next step addresses what happens to adjudicators who've been running the undocumented spreadsheet \u2014 are they credited, retrained, or exposed to compliance action for the workaround? Naming that risk without naming the person-level resolution leaves them exposed.",
+            "dimension": "human-impact",
+            "disposition": "accepted",
+            "response": "added a person-level resolution for adjudicators who ran the undocumented spreadsheet: no punitive action for disclosure, formal capture of their logic, named owner and deadline.",
+            "severity": "minor"
+          },
+          {
+            "claim": "\"Two workstreams are behind\" from the prompt is never addressed; even one sentence on which two and whether they gate the claims-first sequencing would close the loop the client explicitly opened.",
+            "dimension": "consistency",
+            "disposition": "accepted",
+            "response": "added a line naming that the two behind-schedule workstreams are unidentified in the brief and must be named before confirming they don't block claims-first sequencing.",
+            "severity": "minor"
+          }
+        ],
+        "premortem": "Twelve months later, claims went live on the strength of this checkpoint map, but the steering committee treated model selection and the integration blueprint as settled by omission \u2014 nobody flagged them as still-open decisions \u2014 so the copilot was integrated ad hoc into three different case-management systems with no consistent versioning, and when a model update silently changed confidence-score calibration, the denial-review checkpoint's override logic broke without anyone noticing for weeks. The draft's silence on model selection and integration blueprint, despite the brief naming both as unresolved, is what let that gap survive the review.",
+        "steelman": "The draft correctly reframes \"scale to three functions\" as three distinct go-live decisions bundled into one, and argues persuasively that human-oversight design (Article 14) cannot be written until the checkpoints are physically located \u2014 so it does that mapping exercise for claims first, surfaces a real undocumented control (the adjudicator's private exceptions spreadsheet) that would otherwise be automated away, assigns named owners to exception classes instead of \"handled manually,\" and sequences EU AI Act classification as parallel rather than blocking, which is a defensible reading of Annex III. This gives the steering committee something to act on this month rather than a plan to admire."
+      },
+      "error": null,
+      "file": "process_excellence_lead.md",
+      "process_flags": [],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": true,
+      "role": "process_excellence_lead",
+      "sha256": "8a4d2893028167235e5dbbd35fbaf9a3f9022b52c95426e4201ddaf5f281396b"
+    },
+    {
+      "critique": {
+        "critic_role": "qa_qc",
+        "points": [
+          {
+            "claim": "The Objective quietly narrows \"what do we need to decide before go-live\" to data-training approval only, and the Body never states that human-in-loop mapping, model selection, integration blueprint, and line-manager resistance are out of this document's scope and need named owners \u2014 a committee reading this as the answer to the title question could mistake data sign-off for the whole gate.",
+            "dimension": "consistency",
+            "disposition": "accepted",
+            "response": "Added an explicit scope statement in Objective and a short \"out of scope\" list in Body naming the other four go-live gates (human-in-the-loop map, model selection, integration blueprint, EU AI Act classification, line-manager resistance) and that each needs a named owner distinct from data readiness, so this document cannot be mistaken for the full go-live decision.",
+            "severity": "serious"
+          },
+          {
+            "claim": "\"This goes to the Governance Advisor before I approve\" and \"Privacy rules on lawful basis... before any training spend is authorized\" name reviewers but give no deadline or escalation path, unlike the claims profiling item which is dated \"this week\" \u2014 without a forcing date these two holds can stall indefinitely with no one accountable for resolving them.",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "Added explicit dates and an escalation path for the Governance Advisor and Privacy holds, mirroring the claims profiling deadline, with a named accountable owner if the date slips.",
+            "severity": "minor"
+          },
+          {
+            "claim": "\"claims records are near-certainly PHI\" is asserted without naming the specific fields (member ID, diagnosis/procedure codes) that make it so \u2014 specifying them would give Privacy a concrete referral instead of a general impression, the same standard the draft rightly applies to the \"poor quality\" claim it refuses to accept unverified.",
+            "dimension": "evidence",
+            "disposition": "accepted",
+            "response": "Named the specific fields (member ID, diagnosis/procedure codes, provider NPI, date of service) that make the claims dataset PHI, giving Privacy a concrete referral rather than a general assertion.",
+            "severity": "minor"
+          },
+          {
+            "claim": "Next Steps tells member-services and compliance leads to \"supply a task specification\" with no description of what that entails, how long it takes, or who helps them produce it \u2014 for teams already resisting the rollout, an unscoped ask can itself become the next stalling point rather than a path forward.",
+            "dimension": "human-impact",
+            "disposition": "accepted",
+            "response": "Replaced the unscoped \"supply a task specification\" ask with a description of what it requires (target outcome, accuracy bar, population definition), an estimated effort, and who is available to help member services and compliance leads produce it.",
+            "severity": "minor"
+          }
+        ],
+        "premortem": "Twelve months later, the steering committee greenlit go-live believing all major pre-launch gates were covered, because this was the deliverable circulated as \"what we need to decide before go-live.\" Data governance conditions got cleared, but nobody had ever assigned an owner or deadline to the human-in-loop mapping, model selection, or line-manager resistance \u2014 because this document, despite answering the title question, silently scoped itself to data readiness only and never flagged that the other named issues needed parallel deliverables. The program launched with clean data sign-off and no operational design for who overrides the copilot in claims, and line managers who were never consulted disengaged further.",
+        "steelman": "The draft's argument is that \"is the data good enough\" is an unanswerable question until each function supplies a task specification (predicted outcome, accuracy target, population), and that only claims has done enough work to be assessed at all \u2014 so the honest, defensible move is to withhold or conditionally hold approval per function rather than issue a blanket yes, while naming exactly what evidence (dated profiling report, bias finding on historical adjudications, lawful-basis determination) would convert a hold into an approval. This is disciplined refusal to let an unverified impression (\"poor quality\") stand in for a measured finding, and it correctly routes the disparate-treatment question to Governance and the PHI question to Privacy rather than absorbing decisions outside the writer's authority."
+      },
+      "error": null,
+      "file": "data_readiness_lead.md",
+      "process_flags": [],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": true,
+      "role": "data_readiness_lead",
+      "sha256": "f725a6943faf209a668bb38589c8a951cf7e69db238b2ecaf023148601005a3b"
+    },
+    {
+      "critique": {
+        "critic_role": "qa_qc",
+        "points": [
+          {
+            "claim": "The HITL checkpoint service is described only as a queue \"for named human review\" \u2014 it never specifies who these reviewers are, what authority they have to override the model, or how overrides get recorded, which is precisely the end-to-end HITL mapping the task says is missing. Fix: name the review role, its override authority, and the recording mechanism, or state plainly this is deferred and to whom.",
+            "dimension": "human-impact",
+            "disposition": "accepted",
+            "response": "Added named reviewer role, override authority, and recording mechanism for the HITL checkpoint; where the org hasn't decided who fills that role, stated it as deferred and to whom.",
+            "severity": "serious"
+          },
+          {
+            "claim": "The task states line managers are actively resisting scale-up, but this draft's Risks and Next Steps never mention it \u2014 an architecture-only answer to a question that is also organizational risks looking complete while ignoring a named blocker. At minimum, flag it as out-of-scope-for-this-seat and name who owns it.",
+            "dimension": "consistency",
+            "disposition": "accepted",
+            "response": "Added line manager resistance to Risks as an organizational blocker outside architecture's remit, named who should own it (steering committee / change lead), and noted the architecture cannot compensate for it.",
+            "severity": "serious"
+          },
+          {
+            "claim": "Risks correctly flags that manual-queue capacity at 2,000-person scale is unsized, but no corresponding Next Step exists to size it \u2014 the risk is named and then dropped rather than assigned an owner or a date.",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "Added a Next Step to size manual-queue capacity at 2,000-person scale, with an owner and target date.",
+            "severity": "minor"
+          },
+          {
+            "claim": "\"Two workstreams are behind\" from the prompt is never acknowledged; if not the architect's concern, a one-line handoff (who owns schedule risk) would keep the deliverable honest about what it does and doesn't cover.",
+            "dimension": "consistency",
+            "disposition": "accepted",
+            "response": "Added a one-line handoff noting the two behind-schedule workstreams are a delivery-lead/PM concern, not architecture, and named who should own that risk.",
+            "severity": "minor"
+          }
+        ],
+        "premortem": "Twelve months later, the gateway, audit schema, and accuracy targets all landed cleanly \u2014 and the rollout still stalled, because line managers never got a HITL design that told them who has override authority and how that override is recorded, so they kept routing around the copilot exactly as they were already resisting doing at pilot end. The draft treated \"HITL checkpoint service\" as a named architecture component and stopped there, leaving the actual human-authority question \u2014 who reviews, with what standing, who's accountable when they're wrong \u2014 unanswered and untouched in Next Steps, so the resistance the task explicitly flagged never got addressed by anyone on the team.",
+        "steelman": "The draft's core move is right and useful: it refuses to let \"scale the copilot\" be treated as one decision, correctly identifies that classification and HITL mapping are upstream gates that determine trust-boundary and audit design (not parallel workstreams), and turns \"model selection\" into an explicit criteria list rather than a vendor preference \u2014 while flagging every unvalidated number as an assumption and naming genuine one-way doors (PHI residency, retrieval schema, fine-tuning data) with realistic exit costs. For an Enterprise AI Architect asked what must be decided before go-live, this is a defensible, appropriately scoped answer."
+      },
+      "error": null,
+      "file": "enterprise_architect.md",
+      "process_flags": [],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": true,
+      "role": "enterprise_architect",
+      "sha256": "03f203544679901a8b7e29ecf80ab274c47d5c54c4f6d0ec399b54db92eb3246"
+    },
+    {
+      "critique": {
+        "critic_role": "qa_qc",
+        "points": [
+          {
+            "claim": "\"line manager resistance to the copilot\" is logged purely as an unowned RAID issue to be resolved by naming someone and confirming allocation; the draft never asks what managers believe they lose (override authority, discretion, accountability for outcomes) or whether their objections are evidence the current HITL design is wrong. Sound version: add a next step to interview a sample of resisting line managers before the HITL map is drawn, and treat their objections as design input, not adoption friction.",
+            "dimension": "human-impact",
+            "disposition": "accepted",
+            "response": "Added a Next Step to interview a sample of resisting line managers before the HITL map is finalized, and reframed their objections in Body/RAID as design input (evidence about override authority and accountability) rather than adoption friction to be managed away.",
+            "severity": "serious"
+          },
+          {
+            "claim": "The single citation (https://artificialintelligenceact.eu/) is a third-party explainer site, not the authoritative text, for a claim (Annex III classification, Article 14 oversight obligations) that Legal is being asked to act on this week. Point Legal to the official source (Regulation (EU) 2024/1689 via EUR-Lex) so the classification decision isn't anchored to a paraphrase.",
+            "dimension": "evidence",
+            "disposition": "accepted",
+            "response": "Replaced the third-party explainer citation with the official Regulation (EU) 2024/1689 text via EUR-Lex, since Legal is being asked to act on this classification this week and should anchor to the primary source.",
+            "severity": "serious"
+          },
+          {
+            "claim": "\"doing so was the steering committee's original error, and it is still uncorrected\" asserts intent/fault as settled fact with no evidence given for what the committee actually decided or why. Sound version: \"this was scheduled without an explicit decision to treat the three functions independently\" \u2014 same substantive point, no unverifiable claim about motive.",
+            "dimension": "falsifiability",
+            "disposition": "accepted",
+            "response": "Removed the unverifiable claim of committee fault/intent; rephrased to state only what is observable: the three functions were scheduled to a common date without an explicit decision to sequence them independently.",
+            "severity": "minor"
+          },
+          {
+            "claim": "The draft repeatedly stresses \"no named individuals... have been supplied to me,\" yet cites specific unnamed role sources (\"Data Readiness Lead has correctly flagged...\", \"Process Excellence's own estimate\") as if their input were confirmed and reliable. Worth stating explicitly whether these role-level inputs are themselves verified or are also assumptions, so the reader doesn't read selective certainty into an otherwise uniformly uncertain picture.",
+            "dimension": "consistency",
+            "disposition": "accepted",
+            "response": "Added an explicit note that role-level inputs attributed to Data Readiness and Process Excellence are themselves unverified relayed statements, not confirmed positions, so certainty isn't applied selectively.",
+            "severity": "minor"
+          }
+        ],
+        "premortem": "Twelve months later, claims went live on schedule after Legal issued a classification and HITL \"owners\" were named, but adoption collapsed in member-facing teams because the line managers who had been flagged as \"resisting\" in this document were never actually asked why \u2014 it turned out they'd built informal override practices around edge cases the copilot systematically mishandled, and nobody had captured that before the HITL map was finalized around the wrong checkpoints. The RAID log treated \"line manager resistance\" as a staffing/ownership gap to be closed by assigning a name, not as a signal about the design itself, and that framing is what let the real problem go unaddressed while the document's rigor around dates and owners created false confidence that the hard parts had been handled.",
+        "steelman": "The draft's core argument is that the steering committee is trying to buy a scale decision with a status update, and the PM Lead refuses to let that happen \u2014 instead of producing a plan with invented dates, they expose that every gating decision (legal classification, HITL design, data quality target, model/architecture lock) currently has no owner, no date, and no confirmed capacity, and they sequence those gates on a single function's critical path rather than let three functions be scheduled against one artificial deadline. That refusal to paper over unresourced work, combined with concrete next steps naming who must decide what by when, is exactly the discipline a program in this state needs before go-live is even discussable."
+      },
+      "error": null,
+      "file": "program_management_lead.md",
+      "process_flags": [],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": true,
+      "role": "program_management_lead",
+      "sha256": "c1cd2dcf51062bc8abfd8cecf0e4452a052f00ffd4bbbd033e3c3a4280163d2d"
+    },
+    {
+      "critique": {
+        "critic_role": "qa_qc",
+        "points": [
+          {
+            "claim": "The client explicitly listed \"model selection\" and \"the integration blueprint\" as unresolved before go-live, but the draft's Position, Risks, and Next Steps say nothing about either \u2014 add a technical-architecture gate (or state explicitly why it's out of scope for this legal/oversight memo) so the steering committee doesn't mistake four gates for the complete list.",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "added an explicit technical-architecture gate (model selection + integration blueprint) to Body, Risks, and Next Steps so it isn't mistaken for out-of-scope.",
+            "severity": "serious"
+          },
+          {
+            "claim": "The HITL map (Next Step 2) specifies reviewer, evidence, and override path but not what line managers lose (adjudication discretion), what they must newly learn (how to exercise and log an override), or who teaches them and by when \u2014 without this the map risks becoming the same \"asserted, not designed\" oversight the draft criticizes elsewhere.",
+            "dimension": "human-impact",
+            "disposition": "accepted",
+            "response": "HITL map step now names what managers lose (adjudication discretion), what they must learn (exercising/logging an override), who teaches it, and a deadline.",
+            "severity": "serious"
+          },
+          {
+            "claim": "Two workstreams are reported behind schedule and this is never addressed \u2014 no line in Risks about whether a \"hold\" position will actually survive a steering committee already under timeline pressure, or who has the standing to enforce it.",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "added a Risks line naming schedule pressure and the standing question directly.",
+            "severity": "minor"
+          },
+          {
+            "claim": "The draft runs materially longer than the ~700-word budget the format requires (roughly 800+ words by rough count); tightening the classification and privacy paragraphs would reduce risk of the Risks/Next Steps sections being truncated in delivery.",
+            "dimension": "consistency",
+            "disposition": "accepted",
+            "response": "tightened classification/privacy paragraphs to bring the whole deliverable under ~700 words.",
+            "severity": "minor"
+          },
+          {
+            "claim": "The Annex III(5) claim is appropriately hedged (\"most plausibly,\" \"not a ruling\") but would be stronger cited to the specific sub-point (5(c), insurance risk assessment/pricing) rather than a general \"closest analogue\" \u2014 this is a one-line fix that converts a plausible reading into a checkable one.",
+            "dimension": "evidence",
+            "disposition": "accepted",
+            "response": "cited Annex III(5)(c) specifically rather than \"closest analogue.\"",
+            "severity": "minor"
+          }
+        ],
+        "premortem": "Twelve months later, claims adjudication shipped on schedule because the steering committee accepted the four gates as the *complete* list of blockers, closed them on paper, and then discovered mid-rollout that the vendor model selected for member services couldn't support the override-logging path the HITL map required, forcing a re-architecture after commitments were already made public \u2014 because the memo never named model selection or integration architecture as a pre-go-live decision, even though the client explicitly flagged both as unresolved. Separately, line managers kept routing around the system because \"map the HITL end-to-end\" produced a diagram nobody was trained on, and the resistance the draft correctly diagnosed as signal was never converted into a training and role-change plan.",
+        "steelman": "The draft correctly refuses to treat \"the claims copilot\" as one decision, separates the three deployments because the EU AI Act classifies by use-case rather than by model, and turns the presenting symptom \u2014 line-manager resistance \u2014 into evidence that the human-oversight design is unmapped rather than a morale problem to be managed away. It backs each claim with a specific article (Art. 6, 14, 27, 50; Annex III), refuses to let \"the pilot performed well\" stand in for subgroup fairness evidence, and states a clean, defensible position \u2014 hold, not proceed-with-conditions \u2014 with named owners and evidence-based exit criteria for each gate. That is the right shape for a go/no-go memo under real governance exposure."
+      },
+      "error": null,
+      "file": "governance_advisor.md",
+      "process_flags": [],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": true,
+      "role": "governance_advisor",
+      "sha256": "a54b62997fe29f47641f01d2564347e8a912dda9812857f21c01de5069b85ca0"
+    },
+    {
+      "critique": {
+        "critic_role": "qa_qc",
+        "points": [
+          {
+            "claim": "The claim \"every advisor converged on this independently\" and the detailed attributed disagreements (Domain Owner vs. Process Excellence Lead vs. AI Governance & Risk Advisor) are stated as settled fact with no evidence these consultations occurred or are traceable to real people; a client-ready deliverable must not present synthesized internal reasoning as documented multi-party consensus.",
+            "dimension": "evidence",
+            "disposition": "accepted",
+            "response": "The draft stated \"every advisor converged on this independently\" and attributed specific positions to named roles (Domain Owner, Process Excellence Lead, AI Governance Advisor) as if these were documented, traceable consultations. No artifacts were provided in this exercise to substantiate that framing, so presenting it as settled multi-party record overstates what we actually have. I've reframed the Disagreements and Recommendation sections as the engagement team's synthesis of workstream inputs, not as verified independent consensus, and removed the \"converged independently\" claim.",
+            "severity": "blocking"
+          },
+          {
+            "claim": "At roughly 850\u2013900 words the draft exceeds the ~700-word budget by over 20%, directly against the instruction to size the deliverable so Risks and Next Steps are never at risk of truncation; Decisions/Disagreements/Escalations need consolidating into fewer, sharper items.",
+            "dimension": "consistency",
+            "disposition": "accepted",
+            "response": "Trimmed Decisions/Disagreements/Escalations to fewer, sharper items and tightened prose throughout to bring the whole deliverable under ~700 words while keeping Risks and Next Steps intact and unshortened.",
+            "severity": "serious"
+          },
+          {
+            "claim": "The claim that member services is \"likely limited-risk under Art. 50\" is asserted without citing Article 50 (only Annex III and Art. 14 are cited), and Art. 50 actually governs transparency obligations for specific system types rather than establishing a risk tier \u2014 this legal characterization should be flagged as unverified pending Legal, not stated as near-settled.",
+            "dimension": "evidence",
+            "disposition": "accepted",
+            "response": "Removed the \"likely limited-risk under Art. 50\" characterization and the implication that this is near-settled. Reframed as an open legal question pending Legal's classification, with no article-level prediction offered.",
+            "severity": "serious"
+          },
+          {
+            "claim": "Decision rows end with unexplained snake_case routing tokens (\"-> steering_committee_sponsor\", \"-> claims_business_lead\") that read as leaked internal syntax rather than client-facing prose; replace with plain role names.",
+            "dimension": "consistency",
+            "disposition": "accepted",
+            "response": "Replaced all snake_case routing tokens with plain role names in prose form.",
+            "severity": "minor"
+          },
+          {
+            "claim": "Escalation 1 asks whether a commercial deadline exists (\"only the sponsor knows\") but no Next Step assigns anyone to actually put that question to the sponsor \u2014 it's raised and then dropped rather than closed out.",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "Added a Next Step explicitly assigning the Sponsor question (commercial/external deadline) to be asked and answered before sequencing is locked.",
+            "severity": "minor"
+          }
+        ],
+        "premortem": "Twelve months later the client scaled member services first, following this memo's sequencing logic, and it surfaced during an internal audit that the specific positions attributed to \"Domain Owner,\" \"Process Excellence Lead,\" and \"AI Governance & Risk Advisor\" were never actually documented statements from named individuals \u2014 they were the Engagement Lead's synthesis presented as a resolved multi-party debate. When the 4-week proof criteria and risk classification turned out to have no traceable owner, confidence in the whole recommendation collapsed, and the unresolved Escalations items (remediation dates, task-spec completion, the commercial deadline question) were never actually chased down because the document's confident \"convergence\" language made them feel already settled.",
+        "steelman": "The draft rightly refuses to let the steering committee approve \"scale to three functions\" as if it were one decision, forces named, empowered owners into existence before go-live, ties sequencing to a concrete evidentiary tiebreaker (claims data CONDITIONAL vs. member services WITHHELD), keeps the EU AI Act classification open as a live legal risk rather than assuming it resolved, and states the headcount question in plain words instead of hiding it in \"efficiency\" \u2014 this is exactly the ownership-plus-oversight-plus-data-plus-legal-plus-human-impact diagnosis a techno-social scale-up decision requires before any budget or workflow commitment is made."
+      },
+      "error": null,
+      "file": "engagement_lead.md",
+      "process_flags": [
+        "Escalated to the human: Is there a commercial or external commitment fixing a go-live date? That would explain pressure to scale all three at once despite two unnamed behind-schedule workstreams and no process owners \u2014 only the sponsor knows.",
+        "Escalated to the human: Does leadership want to state now, explicitly, whether headcount reduction is part of this scale-up, or is that genuinely undecided?",
+        "Escalated to the human: Sequencing turns on a fact nobody here has: confirmed completion dates from the Claims Data Lead (remediation) and Member Services Lead (task spec) \u2014 get both before locking which function opens first.",
+        "Escalated to the human: Sponsor decides function sequencing and pause status for the other two within one week.",
+        "Escalated to the human: Legal issues written Annex III classification memo before any further design commitment.",
+        "Escalated to the human: Change Lead runs frontline readiness interviews (claims and member services) this week to test the resistance-as-ownership-gap hypothesis directly.",
+        "Escalated to the human: Data Readiness, Process Excellence, and Enterprise Architect each confirm in writing whether their gate is open or closed before go-live is scheduled."
+      ],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": true,
+      "role": "engagement_lead",
+      "sha256": "b41427a5551ed900ba7731cfaae7169c67d0cc8feb6edd9c37cbd56c176f4250"
+    }
+  ],
+  "created_at": "2026-09-02T04:46:55+00:00",
+  "decision": {
+    "at": "2026-09-02T05:27:40+00:00",
+    "by": "Tony Bleything",
+    "flagged_roles": [
+      "engagement_lead"
+    ],
+    "forced": true,
+    "note": "Reviewed: 2 genuine disagreements (member services vs claims first; hold-all vs staged-rollout), 6 decisions, 7 escalations. Voice matches v0.11.0 standard. Approved as first example run with a decision key.",
+    "state": "approved"
+  },
+  "plan": {
+    "matched_rules": [
+      "domain_ownership",
+      "value_realization",
+      "change_adoption",
+      "process_design",
+      "data_readiness",
+      "architecture",
+      "program_delivery",
+      "ai_governance"
+    ],
+    "roles": [
+      "domain_owner",
+      "value_realization_lead",
+      "change_management_lead",
+      "process_excellence_lead",
+      "data_readiness_lead",
+      "enterprise_architect",
+      "program_management_lead",
+      "governance_advisor"
+    ]
+  },
+  "provider": "openrouter",
+  "run_id": "20260902_044655_a29747",
+  "status": "approved",
+  "synthesis": {
+    "decisions": 6,
+    "disagreements": 2,
+    "escalations": 7,
+    "role": "engagement_lead"
+  },
+  "task": "Our 2,000-person healthcare operations team has finished the claims copilot pilot and the steering committee wants to scale it across claims, member services and compliance. Line managers are resisting and nobody has mapped where a human stays in the loop end-to-end. Two workstreams are behind. Legal is asking whether this falls under the EU AI Act, the claims data quality is poor, and we have not settled model selection or the integration blueprint. What do we need to decide before go-live?",
+  "version": "0.11.0"
+}
