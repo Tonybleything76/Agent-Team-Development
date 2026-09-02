@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.13.1 — 2026-09-02
+
+The healthcare example run's task happened to end in a clean short question, so the headline
+split looked settled. The next real task didn't — a dense scenario brief with no sentence under
+30 words and no trailing "?" — and `split_headline` dutifully forced that whole sentence into
+the 22ch display-type column anyway, wrapping ten lines of giant serif type. The exact
+"scrunched" failure the split was built to fix, just from a different cause.
+
+- **`split_headline` now refuses to fake pithiness.** Past `PITHY_MAX_CHARS` (90), no candidate
+  sentence counts as a real headline — the caller falls back to a `"The task"` quote block
+  holding the task verbatim, at prose size, rather than force-fitting the wrong sentence into
+  display type. Still never paraphrases: the fallback is a rendering choice, not new text.
+
 ## 0.13.0 — 2026-09-02
 
 Milestone 2: the run renderer. `DESIGN.md` and the approved reference implementation existed

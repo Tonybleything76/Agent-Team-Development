@@ -52,6 +52,20 @@ def test_split_headline_one_sentence_has_no_context():
     assert context == ""
 
 
+def test_split_headline_falls_back_when_no_sentence_is_pithy():
+    """A dense scenario brief with no short sentence and no trailing question — real shape,
+    not synthetic: nothing here should be forced into 22ch display type."""
+    task = (
+        "A global hospitality company's enterprise AI assistant platform has grown from about "
+        "1,200 to over 3,000 active users in under a year, run by a central AI enablement team "
+        "doing broad training. Leadership now wants a 16-week engagement to embed AI into six "
+        "business units. We need tactical recommendations on who should lead each piece."
+    )
+    headline, context = split_headline(task)
+    assert headline == ""
+    assert context == task  # the whole task, verbatim, becomes the fallback quote
+
+
 def test_split_headline_never_invents_or_drops_words():
     """The split must be a pure partition of the task's own sentences — nothing paraphrased,
     nothing lost — since an audit record must not show text the run never actually said."""
@@ -136,6 +150,26 @@ def test_render_a_real_approved_run_end_to_end(workdir, fake_llm):
     assert '<section id="routing">' in page
     assert '<section id="decision"' in page
     assert "Tony" in page
+
+
+def test_render_falls_back_to_a_quote_block_for_a_dense_task(workdir, fake_llm):
+    """A task with no pithy sentence must render as the 'The task' quote block, not a giant
+    serif headline wrapping a 30-word sentence across ten lines."""
+    dense_task = (
+        "A global hospitality company's enterprise AI assistant platform has grown from about "
+        "1,200 to over 3,000 active users in under a year, run by a central AI enablement team "
+        "doing broad training. Leadership now wants a 16-week engagement to embed AI into six "
+        "business units, not just teach people to use a chat interface. We need tactical "
+        "recommendations on who should lead each piece of this unresolved work."
+    )
+    rec = orchestrator.run(dense_task, llm=fake_llm)
+    gate.approve(rec.run_id, by="Tony", force=True, note="looks right")
+    d = artifact_root() / "approved" / rec.run_id
+    manifest = json.loads((d / "manifest.json").read_text())
+    page = render_run(manifest, d)
+    assert '<h1 class="task">' not in page
+    assert '<div class="lbl">The task</div>' in page
+    assert "tactical recommendations" in page
 
 
 def test_render_shows_an_errored_specialist_as_absent_not_missing(workdir):

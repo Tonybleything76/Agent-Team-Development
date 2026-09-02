@@ -331,18 +331,32 @@ def _slug(role: str) -> str:
     return role.replace("_", "-")
 
 
+# A headline this long stops being "pithy" no matter which sentence supplies it — DESIGN.md's
+# 22ch display-type column reads as an intentional magazine-style headline only when the text
+# is actually short; forcing a 30-word sentence into it just wraps ten lines of giant serif type,
+# the same "scrunched" failure a short headline never has. Past this length there is no genuinely
+# pithy candidate in the task, so the caller falls back to a plain quote block instead of a
+# headline — never inventing a shorter paraphrase to force the display treatment to fit.
+PITHY_MAX_CHARS = 90
+
+
 def split_headline(task: str) -> tuple[str, str]:
     """A pithy h1 plus supporting detail, built from the task's own sentences — never a
     paraphrase. Prefers a trailing question (usually the actual ask); falls back to the leading
     sentence when the task doesn't end that way, or to the whole task when it is one sentence.
+    Returns an empty headline when no candidate is actually short — see PITHY_MAX_CHARS.
     """
     task = (task or "").strip()
     sentences = [s.strip() for s in _SENTENCE_RE.split(task) if s.strip()]
     if len(sentences) > 1 and sentences[-1].endswith("?"):
-        return sentences[-1], " ".join(sentences[:-1])
-    if len(sentences) > 1:
-        return sentences[0], " ".join(sentences[1:])
-    return task, ""
+        headline, context = sentences[-1], " ".join(sentences[:-1])
+    elif len(sentences) > 1:
+        headline, context = sentences[0], " ".join(sentences[1:])
+    else:
+        headline, context = task, ""
+    if len(headline) > PITHY_MAX_CHARS:
+        return "", task
+    return headline, context
 
 
 def _split_decision(line: str) -> tuple[str, str | None]:
@@ -700,7 +714,17 @@ def render_run(manifest: dict, run_dir: Path) -> str:
 
     sections_html.append(_decision_bar(manifest, closing=True))
 
-    context_html = f'<p class="task-context">{esc(context)}</p>' if context else ""
+    if headline:
+        task_html = f'<h1 class="task">{esc(headline)}</h1>\n'
+        if context:
+            task_html += f'<p class="task-context">{esc(context)}</p>'
+    else:
+        # No sentence in the task was actually pithy (see PITHY_MAX_CHARS) — the honest fallback
+        # is to stop pretending display type fits it, not to invent a shorter paraphrase.
+        task_html = (
+            '<div class="quote"><div class="lbl">The task</div>'
+            f"<p>{esc(context)}</p></div>"
+        )
 
     return f"""<!doctype html>
 <html>
@@ -723,8 +747,7 @@ def render_run(manifest: dict, run_dir: Path) -> str:
 critic pushes back on the record, and the Engagement Lead reads every artifact in full before
 reporting what it recommends. Nothing goes out until a person reads it and puts their name on
 it.</p>
-<h1 class="task">{esc(headline)}</h1>
-{context_html}
+{task_html}
 {_flow_strip(manifest)}
 {_decision_bar(manifest, closing=False)}
 </header>
