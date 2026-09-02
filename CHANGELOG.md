@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.12.0 — 2026-09-02
+
+The first real proof run's Engagement Lead came back empty. Not truncated — empty:
+`finish_reason=length` with zero visible text. Eight advisors had already succeeded, ~$0.80
+spent, and the one deliverable the client acts on was gone.
+
+The cause was a shared assumption: every call, specialist or supervisor, budgeted the same
+6000 tokens. That's enough for a single 700-word memo. It is not enough for a call that reads
+eight of those memos in full — up to 40KB of context on a loaded task — and integrates them
+into four registers. The model was spending the whole budget before any answer reached the
+response.
+
+- **Token budgets are now tier-aware.** `resolve_max_tokens(role)` gives a supervisor role
+  (today, only the Engagement Lead reaches the model) 16,000 tokens by default instead of a
+  specialist's 6000 — `LLM_MAX_TOKENS_<ROLE>` or `LLM_MAX_TOKENS` still overrides either.
+- **An empty completion now says why.** "openrouter returned an empty completion" told a
+  reviewer nothing about whether the cause was the token cap or something else entirely. It now
+  names the budget that was spent and which finish/stop reason triggered it, only when that's
+  actually what happened — a content-filtered empty response still gets the plain message,
+  because there's no cap to blame there.
+- **`huminloop resynthesize <run_id>`** retries only the Engagement Lead against a pending run's
+  artifacts already on disk. A failed synthesis after twenty-four paid specialist calls used to
+  mean paying for all twenty-four again to get a second attempt at the one call that failed.
+  Refuses to touch a run that isn't pending, is still owned by a live process, or already has a
+  successful synthesis — this is a retry, not a way to overwrite a finished one.
+
+Resynthesizing the actual proof run cost about $0.12 and worked: two genuine disagreements
+among the eight advisors, six decisions, seven escalations. The advisors did not agree on
+everything, which is what "read the Disagreements register before you trust it" was for.
+
 ## 0.11.0 — 2026-09-02
 
 The team sounds like a team now. This is a voice change, and it is a correctness change.

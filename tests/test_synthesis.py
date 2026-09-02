@@ -8,13 +8,15 @@ it. Tests that claim otherwise would be theatre.
 """
 
 import json
+import os
 
 import pytest
 
-from huminloop import orchestrator
+from huminloop import gate, orchestrator
 from huminloop.orchestrator import ArtifactRecord, parse_registers, synthesize
 from huminloop.roles import ROLES, SPECIALISTS
-from huminloop.storage import artifact_root
+from huminloop.storage import StorageError, artifact_root
+from tests.conftest import RecordingLLM
 
 # --------------------------------------------------------------------------- registers
 
@@ -201,3 +203,76 @@ def test_produce_still_refuses_every_supervisor(fake_llm):
             continue
         with pytest.raises(ValueError):
             orchestrator.produce(key, "task", fake_llm, "")
+
+
+# --------------------------------------------------------------------------- resynthesize
+
+
+def test_resynthesize_recovers_a_failed_synthesis_without_rerunning_specialists(
+    workdir, fake_llm
+):
+    """The failure this exists for: every specialist succeeded, the lead's call came back
+    empty. Resynthesize must retry only the lead against what's already on disk."""
+    failing = RecordingLLM(fail_roles=("engagement_lead",))
+    rec = orchestrator.run("Draft an RFP response and SOW", llm=failing)
+    lead = next(a for a in rec.artifacts if a.role == "engagement_lead")
+    assert lead.error is not None
+    assert rec.synthesis is None
+    specialist_calls_before = len(failing.calls)
+
+    retried = orchestrator.resynthesize(rec.run_id, llm=fake_llm)
+    assert retried.synthesis is not None
+    lead_artifacts = [a for a in retried.artifacts if a.role == "engagement_lead"]
+    assert len(lead_artifacts) == 1  # the failed placeholder was replaced, not appended alongside
+    assert lead_artifacts[0].error is None
+    assert len(failing.calls) == specialist_calls_before  # no specialist was re-run
+    # Only the lead and its critic ran, not the eight specialists.
+    assert fake_llm.roles == ["engagement_lead", "qa_qc"]
+
+    d = artifact_root() / "pending" / rec.run_id
+    manifest = json.loads((d / "manifest.json").read_text())
+    assert manifest["synthesis"]["role"] == "engagement_lead"
+    assert sum(1 for a in manifest["artifacts"] if a["role"] == "engagement_lead") == 1
+
+
+def test_resynthesize_can_itself_fail_and_leaves_the_run_pending(workdir):
+    """A second bad synthesis attempt must not lose the run or crash the caller — same rule
+    as the first attempt inside run()."""
+    failing = RecordingLLM(fail_roles=("engagement_lead",))
+    rec = orchestrator.run("Draft an RFP response and SOW", llm=failing)
+    also_failing = RecordingLLM(fail_roles=("engagement_lead",))
+    retried = orchestrator.resynthesize(rec.run_id, llm=also_failing)
+    assert retried.synthesis is None
+    lead = next(a for a in retried.artifacts if a.role == "engagement_lead")
+    assert lead.error is not None
+    d = artifact_root() / "pending" / rec.run_id
+    assert not (d / "run.lock").exists()  # the lock is always released, success or failure
+
+
+def test_resynthesize_refuses_a_run_that_already_succeeded(workdir, fake_llm):
+    rec = orchestrator.run("Draft an RFP response and SOW", llm=fake_llm)
+    assert rec.synthesis is not None
+    with pytest.raises(StorageError, match="already has a successful"):
+        orchestrator.resynthesize(rec.run_id, llm=fake_llm)
+
+
+def test_resynthesize_refuses_an_unknown_run(workdir, fake_llm):
+    with pytest.raises(StorageError, match="not found"):
+        orchestrator.resynthesize("20260101_000000_ffffff", llm=fake_llm)
+
+
+def test_resynthesize_refuses_a_live_run(workdir, fake_llm):
+    failing = RecordingLLM(fail_roles=("engagement_lead",))
+    rec = orchestrator.run("Draft an RFP response and SOW", llm=failing)
+    d = artifact_root() / "pending" / rec.run_id
+    (d / "run.lock").write_text(str(os.getpid()), encoding="utf-8")  # simulate a live process
+    with pytest.raises(StorageError, match="still running"):
+        orchestrator.resynthesize(rec.run_id, llm=fake_llm)
+
+
+def test_resynthesize_refuses_a_decided_run(workdir, fake_llm):
+    failing = RecordingLLM(fail_roles=("engagement_lead",))
+    rec = orchestrator.run("Draft an RFP response and SOW", llm=failing)
+    gate.reject(rec.run_id, "Tony Bleything", "testing resynthesize's decided-run guard")
+    with pytest.raises(StorageError, match="rejected, not pending"):
+        orchestrator.resynthesize(rec.run_id, llm=fake_llm)

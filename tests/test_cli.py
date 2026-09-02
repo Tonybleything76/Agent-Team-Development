@@ -210,3 +210,48 @@ def test_show_strips_terminal_escapes_from_artifacts(workdir, capsys, monkeypatc
     assert main(["show", run_id]) == 0
     shown = capsys.readouterr().out
     assert "\x1b" not in shown and "GOVERNANCE: APPROVE" in shown
+
+
+def test_resynthesize_cli_recovers_a_failed_run(workdir, capsys, monkeypatch):
+    import huminloop.cli as cli
+    from tests.conftest import RecordingLLM
+
+    monkeypatch.setattr(
+        cli, "get_llm", lambda provider=None: RecordingLLM(fail_roles=("engagement_lead",))
+    )
+    assert main(["run", "Draft an RFP response and SOW"]) == 0
+    out = capsys.readouterr().out
+    run_id = out.split("run_id: ")[1].split()[0]
+    assert "engagement_lead" in out and "ERROR" in out
+
+    monkeypatch.setattr(cli, "get_llm", lambda provider=None: RecordingLLM())
+    assert main(["resynthesize", run_id]) == 0
+    out = capsys.readouterr().out
+    assert "synthesis" in out and "disagreement" in out
+
+    assert main(["show", run_id]) == 0
+    assert "===== pending/engagement_lead.md" in capsys.readouterr().out
+
+
+def test_resynthesize_cli_reports_a_second_failure_without_crashing(workdir, capsys, monkeypatch):
+    import huminloop.cli as cli
+    from tests.conftest import RecordingLLM
+
+    monkeypatch.setattr(
+        cli, "get_llm", lambda provider=None: RecordingLLM(fail_roles=("engagement_lead",))
+    )
+    assert main(["run", "Draft an RFP response and SOW"]) == 0
+    run_id = capsys.readouterr().out.split("run_id: ")[1].split()[0]
+
+    monkeypatch.setattr(
+        cli, "get_llm", lambda provider=None: RecordingLLM(fail_roles=("engagement_lead",))
+    )
+    assert main(["resynthesize", run_id]) == 1
+    err = capsys.readouterr().err
+    assert "ERROR" in err and "still pending" in err
+
+
+def test_resynthesize_cli_refuses_an_unknown_run_id(workdir, capsys):
+    assert main(["resynthesize", "20260101_000000_ffffff"]) == 2
+    err = capsys.readouterr().err
+    assert err.startswith("error: ") and "not found" in err and "Traceback" not in err

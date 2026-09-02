@@ -22,13 +22,18 @@ from .llm import (
 from .roles import SPECIALISTS, get_role
 from .router import Plan, Router
 from .storage import (
+    StorageError,
     append_log,
     artifact_root,
     clear_lock,
+    find_run,
+    lock_holder_alive,
     new_run_id,
     now_iso,
+    read_manifest,
     run_dir,
     sha256_text,
+    validate_run_id,
     write_lock,
     write_manifest,
 )
@@ -221,6 +226,83 @@ def synthesize(
     return completion.text, review_text(completion.text), flags
 
 
+def _do_synthesis(
+    record: RunRecord,
+    task: str,
+    llm: LLMClient,
+    out: Path,
+    run_id: str,
+    log_file: Path | None,
+    critique: bool,
+) -> None:
+    """Attempt the Engagement Lead and record the outcome on `record`, success or failure.
+
+    Shared by run() (first attempt, right after the specialist loop) and resynthesize()
+    (a retry against artifacts already on disk). Never raises: a failed synthesis is recorded
+    as an errored ArtifactRecord, exactly like a failed specialist, so it never costs the
+    advisors' work that already succeeded.
+    """
+    if not any(not a.error for a in record.artifacts):
+        append_log(
+            {
+                "event": "synthesis_skipped",
+                "run_id": run_id,
+                "reason": "no specialist produced an artifact to integrate",
+            },
+            log_file,
+        )
+        return
+    try:
+        s_text, s_review, s_flags = synthesize(task, record.artifacts, llm, out)
+    except Exception as exc:  # a failed synthesis must not lose the advisors' artifacts
+        log.exception("synthesis failed")
+        record.artifacts.append(ArtifactRecord(SYNTHESIS_ROLE, None, None, error=repr(exc)))
+        append_log({"event": "synthesis_error", "run_id": run_id, "error": repr(exc)}, log_file)
+        return
+    s_crit = None
+    s_revised = False
+    if critique:
+        try:
+            new_text, s_review, s_crit, c_flags = critique_and_revise(
+                SYNTHESIS_ROLE, task, "", s_text, llm
+            )
+            s_revised = new_text != s_text
+            s_text = new_text
+            s_flags = s_flags + c_flags
+        except Exception as exc:  # same rule as the specialists
+            log.exception("critique of synthesis failed")
+            append_log(
+                {
+                    "event": "critique_error",
+                    "run_id": run_id,
+                    "role": SYNTHESIS_ROLE,
+                    "error": repr(exc),
+                },
+                log_file,
+            )
+    s_path = out / f"{SYNTHESIS_ROLE}.md"
+    s_path.write_text(s_text, encoding="utf-8")
+    regs = parse_registers(s_text)
+    record.artifacts.append(
+        ArtifactRecord(
+            SYNTHESIS_ROLE,
+            s_path.name,
+            asdict(s_review) | {"verdict": s_review.verdict},
+            sha256=sha256_text(s_text),
+            critique=s_crit.as_dict() if s_crit else None,
+            revised=s_revised,
+            process_flags=s_flags,
+        )
+    )
+    record.synthesis = {
+        "role": SYNTHESIS_ROLE,
+        "decisions": len(regs["decisions"]),
+        "disagreements": len(regs["disagreements"]),
+        "escalations": len(regs["escalations"]),
+    }
+    append_log({"event": "synthesis", "run_id": run_id, **record.synthesis}, log_file)
+
+
 def run(
     task: str,
     *,
@@ -355,70 +437,8 @@ def run(
     # ---- Engagement Lead: the one deliverable the client acts on -------------------------
     # Runs after every specialist, reads their artifacts in full, and integrates. A failure
     # here must never cost the specialist work that already succeeded.
-    if any(not a.error for a in record.artifacts):
-        try:
-            s_text, s_review, s_flags = synthesize(task, record.artifacts, llm, out)
-        except Exception as exc:  # a failed synthesis must not lose the advisors' artifacts
-            log.exception("synthesis failed")
-            record.artifacts.append(ArtifactRecord(SYNTHESIS_ROLE, None, None, error=repr(exc)))
-            append_log(
-                {"event": "synthesis_error", "run_id": run_id, "error": repr(exc)}, log_file
-            )
-        else:
-            s_crit = None
-            s_revised = False
-            if critique:
-                try:
-                    new_text, s_review, s_crit, c_flags = critique_and_revise(
-                        SYNTHESIS_ROLE, task, "", s_text, llm
-                    )
-                    s_revised = new_text != s_text
-                    s_text = new_text
-                    s_flags = s_flags + c_flags
-                except Exception as exc:  # same rule as the specialists
-                    log.exception("critique of synthesis failed")
-                    append_log(
-                        {
-                            "event": "critique_error",
-                            "run_id": run_id,
-                            "role": SYNTHESIS_ROLE,
-                            "error": repr(exc),
-                        },
-                        log_file,
-                    )
-            s_path = out / f"{SYNTHESIS_ROLE}.md"
-            s_path.write_text(s_text, encoding="utf-8")
-            regs = parse_registers(s_text)
-            record.artifacts.append(
-                ArtifactRecord(
-                    SYNTHESIS_ROLE,
-                    s_path.name,
-                    asdict(s_review) | {"verdict": s_review.verdict},
-                    sha256=sha256_text(s_text),
-                    critique=s_crit.as_dict() if s_crit else None,
-                    revised=s_revised,
-                    process_flags=s_flags,
-                )
-            )
-            record.synthesis = {
-                "role": SYNTHESIS_ROLE,
-                "decisions": len(regs["decisions"]),
-                "disagreements": len(regs["disagreements"]),
-                "escalations": len(regs["escalations"]),
-            }
-            append_log(
-                {"event": "synthesis", "run_id": run_id, **record.synthesis}, log_file
-            )
-        write_manifest(out, asdict(record))
-    else:
-        append_log(
-            {
-                "event": "synthesis_skipped",
-                "run_id": run_id,
-                "reason": "no specialist produced an artifact to integrate",
-            },
-            log_file,
-        )
+    _do_synthesis(record, task, llm, out, run_id, log_file, critique)
+    write_manifest(out, asdict(record))
 
     record.status = "pending"
     write_manifest(out, asdict(record))
@@ -431,5 +451,67 @@ def run(
             "errors": sum(1 for a in record.artifacts if a.error),
         },
         log_file,
+    )
+    return record
+
+
+def resynthesize(
+    run_id: str,
+    *,
+    llm: LLMClient | None = None,
+    root: Path | None = None,
+    log_file: Path | None = None,
+    critique: bool = True,
+) -> RunRecord:
+    """Retry the Engagement Lead against a pending run's specialist artifacts already on disk.
+
+    A failed synthesis (an empty completion, a provider outage, a token cap that needed
+    raising) must not force paying for every specialist again: this reads the artifacts a
+    prior `run()` already wrote and re-runs only the one call that failed. Refuses to touch a
+    run that isn't pending, is still owned by a live process, or already has a successful
+    engagement_lead artifact — resynthesizing is a retry, not a way to overwrite a finished
+    synthesis.
+    """
+    validate_run_id(run_id)
+    root_path = artifact_root(root)
+    found = find_run(root_path, run_id)
+    if not found:
+        raise StorageError(f"run '{run_id}' not found under {root_path}")
+    state, out = found
+    if state != "pending":
+        raise StorageError(f"run '{run_id}' is {state}, not pending; nothing to resynthesize")
+    if lock_holder_alive(out):
+        raise StorageError(f"run '{run_id}' is still running (live orchestrator); wait for it")
+    manifest = read_manifest(out)
+    artifacts = [ArtifactRecord(**a) for a in manifest.get("artifacts", [])]
+    if any(a.role == SYNTHESIS_ROLE and a.error is None for a in artifacts):
+        raise StorageError(
+            f"run '{run_id}' already has a successful engagement_lead artifact; "
+            "reject it and start a new run instead of overwriting a finished synthesis"
+        )
+    # Drop any failed placeholder(s) from a prior attempt; _do_synthesis appends a fresh one.
+    artifacts = [a for a in artifacts if a.role != SYNTHESIS_ROLE]
+    if not any(not a.error for a in artifacts):
+        raise StorageError(f"run '{run_id}' has no successful specialist artifact to synthesize")
+
+    llm = llm or get_llm()
+    record = RunRecord(
+        run_id=manifest["run_id"],
+        task=manifest["task"],
+        provider=manifest.get("provider", llm.name),
+        plan=manifest.get("plan", {}),
+        artifacts=artifacts,
+        status=manifest.get("status", "pending"),
+        created_at=manifest.get("created_at", ""),
+        version=manifest.get("version", __version__),
+    )
+    write_lock(out)
+    try:
+        _do_synthesis(record, record.task, llm, out, run_id, log_file, critique)
+    finally:
+        write_manifest(out, asdict(record))
+        clear_lock(out)
+    append_log(
+        {"event": "resynthesis", "run_id": run_id, "synthesis": record.synthesis}, log_file
     )
     return record

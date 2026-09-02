@@ -113,6 +113,24 @@ def _cmd_run(args) -> int:
     return 0
 
 
+def _cmd_resynthesize(args) -> int:
+    llm = get_llm(args.provider)
+    rec = orchestrator.resynthesize(args.run_id, llm=llm)
+    lead = next((a for a in rec.artifacts if a.role == "engagement_lead"), None)
+    if lead and lead.error:
+        print(f"  engagement_lead    ERROR   {lead.error}", file=sys.stderr)
+        print(f"status: resynthesis failed; run '{rec.run_id}' is still pending.", file=sys.stderr)
+        return 1
+    if rec.synthesis:
+        n = rec.synthesis
+        print(
+            f"  {'engagement lead':<18} synthesis  {n['decisions']} decision(s) open"
+            f"  {n['disagreements']} disagreement(s)  {n['escalations']} escalated to you"
+        )
+    print(f"status: pending -> review with `huminloop show {rec.run_id}`, then approve or reject.")
+    return 0
+
+
 def _cmd_roles(args) -> int:
     for r in ROLES.values():
         print(f"{r.key:<18} {r.tier.value:<14} {r.title}")
@@ -181,6 +199,14 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("task")
     s.add_argument("--provider", choices=PROVIDERS)
     s.set_defaults(fn=_cmd_run)
+
+    s = sub.add_parser(
+        "resynthesize",
+        help="retry the Engagement Lead against a pending run's existing artifacts",
+    )
+    s.add_argument("run_id")
+    s.add_argument("--provider", choices=PROVIDERS)
+    s.set_defaults(fn=_cmd_resynthesize)
 
     sub.add_parser("roles", help="list the team").set_defaults(fn=_cmd_roles)
 

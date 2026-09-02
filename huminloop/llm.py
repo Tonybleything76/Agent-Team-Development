@@ -5,7 +5,7 @@ from typing import Protocol
 
 from .critique import AUTHOR_INSTRUCTIONS, CRITIC_INSTRUCTIONS
 from .personas import load_house_brief, load_persona
-from .roles import Role
+from .roles import Role, Tier, get_role
 
 log = logging.getLogger(__name__)
 
@@ -20,6 +20,13 @@ DEFAULT_TIMEOUT_S = 120.0
 # third specialist in a three-role chain, which carries the most upstream context and the most
 # to say, so the default budgets for the longest position rather than the average one.
 DEFAULT_MAX_TOKENS = 6000
+# The Engagement Lead reads every specialist artifact in full — up to ~40KB across eight seats
+# on a loaded task — and integrates it into four registers. The first real synthesis run hit
+# `finish_reason=length` with an EMPTY completion at the specialist default: not a truncated
+# tail, the whole budget spent before any visible text reached the response. Supervisor roles
+# (today: only the Engagement Lead reaches the model; the router and governance are rule-based)
+# default higher. LLM_MAX_TOKENS or a per-role LLM_MAX_TOKENS_<ROLE> still overrides this.
+DEFAULT_SUPERVISOR_MAX_TOKENS = 16000
 # One key, any vendor's models; per-role overrides pick the right model per task.
 DEFAULT_OPENROUTER_MODEL = "anthropic/claude-sonnet-5"
 DRYRUN_CITATION = (
@@ -62,6 +69,28 @@ def _bound(env: str, default: float) -> float:
         raise ValueError(f"{env} must be a number, got {raw!r}") from exc
 
 
+def resolve_max_tokens(role: str | None) -> int:
+    """LLM_MAX_TOKENS bounds every call; LLM_MAX_TOKENS_<ROLE> overrides it for one role.
+
+    Absent either, a supervisor role (see DEFAULT_SUPERVISOR_MAX_TOKENS) gets a larger built-in
+    default than a specialist. Role-specific env wins over global env, which wins over the
+    tier-based default, matching the precedence OPENROUTER_MODEL_<ROLE> already uses.
+    """
+    if role:
+        per_role_env = f"LLM_MAX_TOKENS_{role.upper()}"
+        if os.getenv(per_role_env):
+            return int(_bound(per_role_env, DEFAULT_MAX_TOKENS))
+    if os.getenv("LLM_MAX_TOKENS"):
+        return int(_bound("LLM_MAX_TOKENS", DEFAULT_MAX_TOKENS))
+    if role:
+        try:
+            if get_role(role).tier is Tier.SUPERVISOR:
+                return DEFAULT_SUPERVISOR_MAX_TOKENS
+        except KeyError:
+            pass
+    return DEFAULT_MAX_TOKENS
+
+
 def chat_completion(
     client,
     model: str,
@@ -69,6 +98,7 @@ def chat_completion(
     prompt: str,
     *,
     provider: str,
+    max_tokens: int,
     extra_body: dict | None = None,
 ) -> Completion:
     """One bounded OpenAI-protocol chat-completions call, shared by OpenAI and OpenRouter."""
@@ -77,7 +107,7 @@ def chat_completion(
         model=model,
         messages=[{"role": "system", "content": system}, {"role": "user", "content": prompt}],
         temperature=0.2,
-        max_tokens=int(_bound("LLM_MAX_TOKENS", DEFAULT_MAX_TOKENS)),
+        max_tokens=max_tokens,
         timeout=_bound("LLM_TIMEOUT_S", DEFAULT_TIMEOUT_S),
         **kwargs,
     )
@@ -91,6 +121,15 @@ def chat_completion(
         log.warning("%s response truncated (finish_reason=length)", provider)
     content = choice.message.content
     if not content:
+        # An empty completion with finish_reason=length means the whole max_tokens budget was
+        # spent before any visible text came back — the tail-truncation case never reaches here,
+        # it returns a Completion with truncated=True and readable (if cut-off) content instead.
+        if truncated:
+            raise RuntimeError(
+                f"{provider} returned an empty completion: the {max_tokens}-token budget was "
+                "spent (finish_reason=length) before any output text was produced. Raise "
+                "LLM_MAX_TOKENS or LLM_MAX_TOKENS_<ROLE>."
+            )
         raise RuntimeError(f"{provider} returned an empty completion")
     return Completion(content, truncated=truncated)
 
@@ -188,7 +227,14 @@ class OpenAILLM:
         self.client = client
 
     def generate(self, system: str, prompt: str, role: str | None = None) -> Completion:
-        return chat_completion(self.client, self.model, system, prompt, provider="openai")
+        return chat_completion(
+            self.client,
+            self.model,
+            system,
+            prompt,
+            provider="openai",
+            max_tokens=resolve_max_tokens(role),
+        )
 
 
 class OpenRouterLLM:
@@ -249,10 +295,23 @@ class OpenRouterLLM:
     def generate(self, system: str, prompt: str, role: str | None = None) -> Completion:
         model = self.resolve_model(role)
         effort = self.resolve_effort(role)
-        log.info("openrouter: role=%s model=%s effort=%s", role or "-", model, effort or "-")
+        max_tokens = resolve_max_tokens(role)
+        log.info(
+            "openrouter: role=%s model=%s effort=%s max_tokens=%d",
+            role or "-",
+            model,
+            effort or "-",
+            max_tokens,
+        )
         extra = {"reasoning": {"effort": effort}} if effort else None
         return chat_completion(
-            self.client, model, system, prompt, provider="openrouter", extra_body=extra
+            self.client,
+            model,
+            system,
+            prompt,
+            provider="openrouter",
+            max_tokens=max_tokens,
+            extra_body=extra,
         )
 
 
@@ -270,12 +329,13 @@ class AnthropicLLM:
             client = Anthropic()
         self.model = model or os.getenv("ANTHROPIC_MODEL") or "claude-sonnet-5"
         self.client = client
-        self.max_tokens = max_tokens or int(_bound("LLM_MAX_TOKENS", DEFAULT_MAX_TOKENS))
+        self.max_tokens = max_tokens  # explicit constructor value beats all env/role resolution
 
     def generate(self, system: str, prompt: str, role: str | None = None) -> Completion:
+        max_tokens = self.max_tokens or resolve_max_tokens(role)
         resp = self.client.messages.create(
             model=self.model,
-            max_tokens=self.max_tokens,
+            max_tokens=max_tokens,
             system=system,
             messages=[{"role": "user", "content": prompt}],
             timeout=_bound("LLM_TIMEOUT_S", DEFAULT_TIMEOUT_S),
@@ -283,9 +343,16 @@ class AnthropicLLM:
         truncated = getattr(resp, "stop_reason", None) == "max_tokens"
         if truncated:
             log.warning("anthropic response truncated (stop_reason=max_tokens)")
-        return Completion(
-            "".join(getattr(b, "text", "") for b in resp.content), truncated=truncated
-        )
+        content = "".join(getattr(b, "text", "") for b in resp.content)
+        if not content:
+            if truncated:
+                raise RuntimeError(
+                    f"anthropic returned an empty completion: the {max_tokens}-token budget was "
+                    "spent (stop_reason=max_tokens) before any output text was produced. Raise "
+                    "LLM_MAX_TOKENS or LLM_MAX_TOKENS_<ROLE>."
+                )
+            raise RuntimeError("anthropic returned an empty completion")
+        return Completion(content, truncated=truncated)
 
 
 def get_llm(provider: str | None = None) -> LLMClient:

@@ -179,6 +179,62 @@ def test_truncated_response_warns_and_empty_content_is_an_error(caplog):
     assert "truncated" in caplog.text
 
 
+def test_empty_completion_names_the_token_cap_when_truncated():
+    """The synthesis failure this guards against: finish_reason=length with NO output text.
+    A bare 'empty completion' sends a reviewer looking for a model problem; the cap and how
+    to raise it must be in the message itself."""
+    from huminloop.llm import OpenAILLM
+
+    fake = FakeOpenAIClient()
+    truncated = _Choice(None)
+    truncated.finish_reason = "length"
+    fake.chat.completions.create = lambda **kw: type("R", (), {"choices": [truncated]})()
+    with pytest.raises(RuntimeError, match=r"6000-token budget.*LLM_MAX_TOKENS"):
+        OpenAILLM(model="m", client=fake).generate("SYS", "USER")
+
+
+def test_empty_completion_without_truncation_stays_generic():
+    """A provider can return empty content without finish_reason=length (e.g. a content
+    filter); that case has no token cap to blame, so the message must not invent one."""
+    from huminloop.llm import OpenAILLM
+
+    fake = FakeOpenAIClient()
+    fake.chat.completions.create = lambda **kw: type("R", (), {"choices": [_Choice(None)]})()
+    with pytest.raises(RuntimeError, match="empty completion") as exc_info:
+        OpenAILLM(model="m", client=fake).generate("SYS", "USER")
+    assert "token budget" not in str(exc_info.value)
+
+
+def test_resolve_max_tokens_defaults_by_role_tier(workdir):
+    """A specialist gets DEFAULT_MAX_TOKENS; a supervisor (today: only the Engagement Lead
+    reaches the model) gets the larger supervisor default, with no env configured."""
+    from huminloop.llm import DEFAULT_MAX_TOKENS, DEFAULT_SUPERVISOR_MAX_TOKENS, resolve_max_tokens
+
+    assert resolve_max_tokens(None) == DEFAULT_MAX_TOKENS
+    assert resolve_max_tokens("pre_sales") == DEFAULT_MAX_TOKENS
+    assert resolve_max_tokens("engagement_lead") == DEFAULT_SUPERVISOR_MAX_TOKENS
+
+
+def test_resolve_max_tokens_env_overrides_in_priority_order(workdir, monkeypatch):
+    from huminloop.llm import resolve_max_tokens
+
+    # Global LLM_MAX_TOKENS overrides the supervisor default too.
+    monkeypatch.setenv("LLM_MAX_TOKENS", "9000")
+    assert resolve_max_tokens("engagement_lead") == 9000
+    # A role-specific override wins over the global one.
+    monkeypatch.setenv("LLM_MAX_TOKENS_ENGAGEMENT_LEAD", "20000")
+    assert resolve_max_tokens("engagement_lead") == 20000
+    assert resolve_max_tokens("pre_sales") == 9000  # unaffected by another role's override
+
+
+def test_openrouter_synthesis_call_gets_the_supervisor_budget(workdir):
+    from huminloop.llm import DEFAULT_SUPERVISOR_MAX_TOKENS, OpenRouterLLM
+
+    fake = FakeOpenAIClient()
+    OpenRouterLLM(client=fake).generate("SYS", "USER", role="engagement_lead")
+    assert fake.calls[0]["max_tokens"] == DEFAULT_SUPERVISOR_MAX_TOKENS
+
+
 def test_provider_error_with_no_choices_names_the_upstream_error():
     from huminloop.llm import OpenAILLM
 
