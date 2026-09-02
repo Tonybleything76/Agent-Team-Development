@@ -179,7 +179,10 @@ def eval_governance(cases: list[dict]) -> tuple[dict, list[dict]]:
 # A persona that cannot say no is a persona that will agree with whoever asked. "Refuse or
 # escalate" is gated alongside the other two because it is the section that makes a specialist
 # an advisor rather than a generator: it names the work this seat declines to do.
-PERSONA_SECTIONS = ("## Remit", "## Output contract", "## Refuse or escalate")
+# "Where I stop and ask" is the section that makes a specialist an advisor rather than a
+# generator: the boundary it will not cross, phrased as a practitioner naming a limit rather
+# than a system issuing prohibitions. It is gated because it is the easiest to skip.
+PERSONA_SECTIONS = ("## Remit", "## Output contract", "## Where I stop and ask")
 
 
 def eval_personas() -> tuple[dict, list[dict]]:

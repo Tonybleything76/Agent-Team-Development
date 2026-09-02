@@ -4,7 +4,7 @@ from huminloop.roles import ROLES, SPECIALISTS, get_role
 
 # Mirrors evals.run.PERSONA_SECTIONS. A persona that cannot say no will agree with whoever
 # asked, so the refusal section is structural, not decorative.
-REQUIRED_SECTIONS = ("## Remit", "## Output contract", "## Refuse or escalate")
+REQUIRED_SECTIONS = ("## Remit", "## Output contract", "## Where I stop and ask")
 
 
 def _persona_files():

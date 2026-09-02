@@ -276,7 +276,7 @@ details.artifact .doc h4{
       <span>2026-08-22</span>
     </div>
 
-    <p class="orient">A governed agent team. Specialists draft, a critic challenges every draft on the record, rule-based governance checks each artifact, and the run waits in <code>pending</code> until a named human releases it. This is one complete run.</p>
+    <p class="orient">A team of AI advisors that argues with itself on purpose. Each one drafts, a critic pushes back on the record, and nothing goes out until a person reads it and puts their name on it. This is one whole conversation, start to finish.</p>
 
     <h1 class="task">Build an AI transformation roadmap and ROI model for a mid-size manufacturer</h1>
 
@@ -316,20 +316,20 @@ details.artifact .doc h4{
 
       <section id="routing">
         <h2>Routing</h2>
-        <p class="sub">Keyword rule <strong>strategy</strong> matched the task. Deterministic plan, no model call.</p>
+        <p class="sub">The word <strong>strategy</strong> in the question is what pulled these two in. Plain keyword matching, so you can see exactly why each one is here.</p>
       </section>
 
       <section id="c-strategist">
         <h2>Strategist <span class="kind">Critique</span></h2>
-        <p class="sub">Challenged by QA/QC · 3 findings · all accepted · artifact reissued</p>
+        <p class="sub">Someone pushed back on this draft three times. All three landed, and it got rewritten.</p>
 
         <div class="quote">
-          <div class="lbl">Steelman</div>
+          <div class="lbl">The strongest case for it</div>
           <p>The draft correctly treats AI transformation as an evidence-gated sequencing problem rather than a technology rollout: it refuses to assume client data, forces a go/no-go audit before spend, ties every phase's expansion to measured results from the prior one, and keeps override authority with humans while logging those overrides as information rather than resistance.</p>
         </div>
 
         <div class="quote">
-          <div class="lbl">Pre-mortem</div>
+          <div class="lbl">How this could go wrong</div>
           <p>Twelve months later the pilot technically succeeds — downtime drops, the override log looks clean — but the program stalls in Phase 2 because a sensor-to-cloud integration built during Phase 0 got flagged by the client's OT security team after the fact, forcing a costly network re-architecture and a trust breach with plant IT.</p>
         </div>
 
@@ -343,7 +343,7 @@ details.artifact .doc h4{
           </div>
           <p class="claim">The Risks section lists sponsorship, data quality, adoption, accountability and headcount, but never OT/cybersecurity exposure from connecting machine-level sensors to a predictive model — a material risk given Phase 0 explicitly scopes sensor integration on live production equipment.</p>
           <div class="answer">
-            <div class="lbl">Author</div>
+            <div class="lbl">They answered</div>
             <p>Added a risk line naming the OT/security lead sign-off gate before any live sensor connectivity in Phase 1, since Phase 0 scopes integration with production equipment.</p>
           </div>
         </article>
@@ -358,7 +358,7 @@ details.artifact .doc h4{
           </div>
           <p class="claim">Phase 2 specifies quality inspector training precisely — two days classroom plus two weeks shadow-use — but Phase 1 gives maintenance technicians no equivalent. No stated who-teaches-what-how-long for interpreting risk scores before the 90-day pilot starts, despite this being the first and highest-stakes human/AI interaction in the plan.</p>
           <div class="answer">
-            <div class="lbl">Author</div>
+            <div class="lbl">They answered</div>
             <p>Added a who-teaches-what-how-long spec for maintenance technicians in Phase 1, mirroring the Phase 2 inspector training detail.</p>
           </div>
         </article>
@@ -373,7 +373,7 @@ details.artifact .doc h4{
           </div>
           <p class="claim">The McKinsey 20–35% benchmark is correctly labelled as an industry range rather than a client prediction, but it is not qualified as process- versus discrete-manufacturing-specific. Since the client is named as discrete manufacturing, a one-line caveat on applicability would strengthen the evidentiary chain.</p>
           <div class="answer">
-            <div class="lbl">Author</div>
+            <div class="lbl">They answered</div>
             <p>Added a one-line caveat that the benchmark spans process and discrete manufacturing and should be treated as directional for this client until Phase 1 data exists.</p>
           </div>
         </article>
@@ -391,20 +391,20 @@ details.artifact .doc h4{
             <p>Phase 1 is a single-line 90-day pilot with maintenance technicians retaining override authority on every model-generated work order. Overrides are logged and reviewed weekly as information about the model, not as resistance to be managed.</p>
           </div>
         </details>
-        <p class="gov">Governance <b>APPROVE</b> · all five sections present · citation verified · no PII detected</p>
+        <p class="gov">Automated checks: <b>passed</b>. Every section present, sources cited, nothing personal left in it.</p>
       </section>
 
       <section id="c-data">
         <h2>Data Scientist <span class="kind">Critique</span></h2>
-        <p class="sub">Challenged by QA/QC · 3 findings · all accepted · artifact reissued</p>
+        <p class="sub">Someone pushed back on this draft three times. All three landed, and it got rewritten.</p>
 
         <div class="quote">
-          <div class="lbl">Steelman</div>
+          <div class="lbl">The strongest case for it</div>
           <p>The draft's core contribution is refusing to let the Strategist's roadmap be treated as measurable when it isn't — it forces a proxy versus outcome distinction, a hard data-quality gate before any modeling spend, a statistical floor before results can be claimed, and explicit labelling of the Deloitte benchmark as external rather than a client target.</p>
         </div>
 
         <div class="quote">
-          <div class="lbl">Pre-mortem</div>
+          <div class="lbl">How this could go wrong</div>
           <p>Twelve months later the Phase 1 pilot clears its statistical floor and Phase 2 scales, but adoption stalls: technicians, seeing the model call false alarms, start quietly overriding or ignoring work orders because no one ever told them who has final say when their diagnosis disagrees with the model's.</p>
         </div>
 
@@ -418,7 +418,7 @@ details.artifact .doc h4{
           </div>
           <p class="claim">Treating “override rate” as a leading indicator of technician distrust makes a metric do a control's job. The brief requires a named human checkpoint — who reviews overrides, on what evidence, with what authority, how recorded — before Phase 1 puts model-generated work orders in front of technicians.</p>
           <div class="answer">
-            <div class="lbl">Author</div>
+            <div class="lbl">They answered</div>
             <p>Added a named human checkpoint (who reviews overrides, on what evidence, with what authority, how recorded) before Phase 1 goes live, not just a metric.</p>
           </div>
         </article>
@@ -433,7 +433,7 @@ details.artifact .doc h4{
           </div>
           <p class="claim">The ROI formula nets out false-positive work orders times technician-hours as a cost, but is silent on whether the business case implicitly assumes reduced maintenance headcount once downtime-driven reactive labour falls. If that is the real trade-off, the house brief requires it stated plainly rather than left implicit in a savings formula.</p>
           <div class="answer">
-            <div class="lbl">Author</div>
+            <div class="lbl">They answered</div>
             <p>Added explicit language stating the ROI formula does not assume headcount reduction, and that if leadership intends one it must be named and modelled separately with its own human-impact analysis.</p>
           </div>
         </article>
@@ -448,7 +448,7 @@ details.artifact .doc h4{
           </div>
           <p class="claim">Decision gates — Phase 0 coverage threshold, Phase 1 statistical floor, Phase 2 net-positive test — specify technical pass/fail conditions but not who is accountable for the go/no-go call when a gate is missed by a small margin.</p>
           <div class="answer">
-            <div class="lbl">Author</div>
+            <div class="lbl">They answered</div>
             <p>Named the accountable decision-maker for each gate, including who can authorize proceeding on a marginal miss and what they must document.</p>
           </div>
         </article>
@@ -465,12 +465,12 @@ details.artifact .doc h4{
             <p>Phase 0 gates on data coverage, not on enthusiasm. Below the coverage threshold there is no model to build, and the correct output of Phase 0 is a written recommendation not to proceed. Override rate is instrumented from day one, but as a signal for a named human to review, never as an automated control.</p>
           </div>
         </details>
-        <p class="gov">Governance <b>APPROVE</b> · all five sections present · citation verified · no PII detected</p>
+        <p class="gov">Automated checks: <b>passed</b>. Every section present, sources cited, nothing personal left in it.</p>
       </section>
 
       <section id="decision" class="decision">
         <h2>Human decision</h2>
-        <p class="sub">This run sat in <code>out/pending/</code> until a named person released it. The gate re-read every artifact and re-derived its governance verdict from the bytes before recording this.</p>
+        <p class="sub">Nothing here went anywhere until a person read it and said yes. Before recording that, the system re-read every document to check nothing had changed since they looked.</p>
         <div class="verdict">APPROVED</div>
         <div class="who">Tony Bleything</div>
         <div class="when">2026-08-22 15:07</div>

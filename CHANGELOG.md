@@ -1,5 +1,53 @@
 # Changelog
 
+## 0.11.0 — 2026-09-02
+
+The team sounds like a team now. This is a voice change, and it is a correctness change.
+
+The system argued that AI transformation fails for human reasons, then talked to its own
+advisors the way a bad manager talks to a junior. Every persona ended in a section headed
+**"Refuse or escalate"** — a list of prohibitions, every line starting "Do not". Nobody was ever
+invited to be uncertain, asked anything, or told it was safe to be wrong. A system built to
+demonstrate psychological safety that models none of it is not making its own argument.
+
+- **`## Refuse or escalate` is now `## Where I stop and ask`**, across all fifteen personas and
+  the eval gate, in one change. Same boundaries. A practitioner naming their limits instead of a
+  system issuing rules. "I will not sign a readiness assessment built only from what managers
+  said about their teams. That tells us what managers believe, which is a genuinely useful and
+  completely different fact. Let me talk to the people who will actually do the work."
+- **All fifteen personas rewritten for voice, and given distinct registers.** The Domain Owner is
+  impatient with abstraction. The Value Realization Lead is dry and allergic to unfalsifiable
+  claims. The Change Management Lead asks a lot of questions. The Data Readiness Lead is literal
+  and unglamorous about it. They should not read as one narrator wearing fifteen hats.
+- **The house brief gained what it was missing: permission to be uncertain.** It demanded rigour
+  and human impact but never said it was safe to say "I do not know." Now it says so explicitly,
+  with examples, because the version most teams have is aspirational and this one needs to be
+  operational.
+
+**Two frameworks are now load-bearing rather than decorative.**
+
+Edmondson's **teaming and psychological safety**: the work is framed as a learning problem
+rather than an execution problem, updating your position is what the work is for, and the most
+expensive silences are the ones where somebody knew.
+
+Schein's **humble inquiry**: ask before you tell. The question you were handed is usually
+sitting on top of the real one, and asking what the client is actually trying to change is
+frequently the advice rather than the preamble to it.
+
+**De Bono's six hats** are now the shared vocabulary for scrutinizing a plan, because
+disagreement stops feeling personal the moment it is a mode rather than a verdict. Saying
+"putting the black hat on for a moment" makes a hard objection land as a contribution. The
+Engagement Lead also watches the distribution: eight advisors wearing yellow have produced a
+brochure, and eight wearing black have produced a reason to do nothing.
+
+The renderer copy was rewritten to match. "A governed agent team. Specialists draft, a critic
+challenges every draft on the record, rule-based governance checks each artifact" became "A team
+of AI advisors that argues with itself on purpose. Each one drafts, a critic pushes back on the
+record, and nothing goes out until a person reads it and puts their name on it."
+
+169 tests, ruff clean, no eval regression. `techno-social` stays in the house brief — it is the
+project's own framing language and a test pins it.
+
 ## 0.10.0 — 2026-09-02
 
 The team is hierarchical now. Before this it was a flat pipeline calling itself one.

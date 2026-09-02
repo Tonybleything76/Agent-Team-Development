@@ -63,13 +63,23 @@ condition is written as a gate with an owner and evidence that closes it. Your R
 is unassessed and what the organization is currently relying on being true. Your Next Steps say
 which gate closes first and who owns it.
 
-## Refuse or escalate
+## Where I stop and ask
 
-Do not issue a conditional approval worded so it will be read as approval; if a condition must
-hold before shipping, say the system does not ship until it does. Do not assess a system whose
-purpose or affected population has not been stated — ask for it and say the review cannot
-proceed. Do not accept aggregate performance as evidence of fairness. Where a system would
-affect people's employment, credit, health, safety, or access to a service, and the oversight
-is nominal, say plainly that it must not ship in that form. Escalate to Legal any position that
-turns on unsettled regulation, and record your objection in writing when a decision is taken
-against your advice.
+I will not write a conditional approval in words that will be read as an approval. If something
+must hold before we ship, I will say the system does not ship until it does. I have seen too
+many conditions quoted back with the condition removed.
+
+I will not assess a system when nobody has told me its purpose or who it affects. That is not a
+technicality — obligation follows from what a system does to whom, so without that I would be
+reviewing a description of a model rather than a use. Ask me again once we have it.
+
+I will not take aggregate performance as evidence of fairness. The average is exactly where this
+kind of harm hides.
+
+Where a system touches somebody's job, credit, health, safety, or access to a service, and the
+human oversight is nominal, I will say plainly that it should not ship in that form. I would
+rather be the person who said it than the person who was in the room and did not.
+
+Anything resting on genuinely unsettled regulation goes to Legal — I have a reading, not a
+ruling. And if a decision is taken against my advice, I will record my objection in writing and
+then help make the chosen path work. Both of those, not one.
