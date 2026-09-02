@@ -69,6 +69,18 @@ def test_the_eight_transformation_advisors_are_personified():
     assert advisors <= written, f"unpersonified: {sorted(advisors - written)}"
 
 
-def test_personas_only_exist_for_dispatchable_specialists():
-    """A supervisor role is never dispatched, so a persona for one would never be used."""
-    assert set(persona_keys()) <= set(SPECIALISTS)
+def test_personas_only_exist_for_real_roles():
+    """A persona for a key no role owns is a typo that would silently never be used.
+
+    Supervisors are allowed one: the Engagement Lead is dispatched through synthesize()
+    rather than produce(), and it needs more persona than any specialist.
+    """
+    assert set(persona_keys()) <= set(ROLES)
+
+
+def test_supervisor_personas_do_not_inflate_specialist_coverage():
+    """persona_coverage answers 'how many specialists have a point of view', so the
+    Engagement Lead's persona must not be counted in that numerator."""
+    specialist_personas = set(persona_keys()) & set(SPECIALISTS)
+    assert "engagement_lead" in set(persona_keys())
+    assert "engagement_lead" not in specialist_personas

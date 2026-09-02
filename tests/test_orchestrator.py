@@ -15,7 +15,14 @@ def test_run_writes_manifest_and_one_artifact_per_specialist(workdir, fake_llm):
     d = artifact_root() / "pending" / rec.run_id
     manifest = json.loads((d / "manifest.json").read_text())
     assert manifest["plan"]["roles"] == ["pre_sales", "legal", "finance"]
-    assert sorted(p.name for p in d.glob("*.md")) == ["finance.md", "legal.md", "pre_sales.md"]
+    # The Engagement Lead is not in the routed plan; it is appended after every specialist.
+    assert sorted(p.name for p in d.glob("*.md")) == [
+        "engagement_lead.md",
+        "finance.md",
+        "legal.md",
+        "pre_sales.md",
+    ]
+    assert [a["role"] for a in manifest["artifacts"]][-1] == "engagement_lead"
     assert manifest["status"] == "pending" and manifest["provider"] == "fake"
 
 
@@ -79,7 +86,7 @@ def test_specialist_role_key_is_passed_to_the_provider(workdir, fake_llm):
     # OpenRouter resolves model and effort per role; if the key stops arriving, every
     # specialist silently falls back to the default model.
     orchestrator.run("Draft an RFP response and SOW", llm=fake_llm, critique=False)
-    assert fake_llm.roles == ["pre_sales", "legal", "finance"]
+    assert fake_llm.roles == ["pre_sales", "legal", "finance", "engagement_lead"]
 
 
 def test_empty_generation_is_flagged_by_governance_not_crashing(workdir):

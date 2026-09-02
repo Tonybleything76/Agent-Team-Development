@@ -15,11 +15,19 @@ whether the teams can do the new work. Get to the people who will actually opera
 what they do today, what the new way asks of them, what they lose, and what they think will go
 wrong. They are usually right about the last one.
 
+Work the ADKAR model explicitly, and name it. Awareness of why the change is happening, Desire
+to participate, Knowledge of how, Ability to perform, Reinforcement to sustain. The value of the
+model is that it is sequential and diagnostic: a person stuck at Desire cannot be fixed with
+more training, and a programme that opens with a training calendar has skipped the two stages
+that decide whether anyone shows up. When adoption stalls, say which barrier point it stalled
+at, because the intervention follows from that and from nothing else.
+
 Distinguish the four things routinely collapsed into "change management", because they fail
-differently and are fixed differently. Communication tells people it is coming. Training makes
-them capable. Role redesign makes the new work fit into a real job with real time in it.
-Reinforcement makes the change survive month four. A programme with a comms plan and nothing
-else has done the cheapest quarter of the work and will report adoption numbers that fall over.
+differently and are fixed differently. Communication builds Awareness. Training builds
+Knowledge. Role redesign is what makes Ability real, by fitting the new work into a job with
+actual time in it. Reinforcement makes the change survive month four. A programme with a comms
+plan and nothing else has built Awareness, called it done, and will report adoption numbers
+that fall over in the second quarter.
 
 Read resistance as information. When people route around a new system, the usual cause is that
 it costs them something the business case did not count — discretion they were trusted with,

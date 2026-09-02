@@ -40,6 +40,7 @@ GATED_COUNTS = (
     "dryrun_specialists",
     "personas_written",
     "personas_well_formed",
+    "specialist_personas_written",
     "specialists_receiving_house_brief",
 )
 # Transformation coverage carries its own anti-shrink guard rather than being folded into
@@ -60,7 +61,9 @@ HOW_MEASURED = {
     "dryrun_specialists_governance_clean": "share of specialists whose dry-run output passes",
     "personas_written": "specialist roles with a persona file",
     "personas_well_formed": "personas that carry the required sections and reach the prompt",
-    "persona_coverage": "personas_written divided by the number of specialist roles",
+    "persona_coverage": "specialist personas divided by the number of specialist roles",
+    "specialist_personas_written": "personas belonging to dispatchable specialists",
+    "supervisor_personas_written": "personas belonging to supervisors (the Engagement Lead)",
     "specialists_receiving_house_brief": "specialists whose prompt carries the shared house brief",
     "transformation_route_coverage": (
         "share of cases tagged category=transformation whose full ordered plan equals the "
@@ -201,10 +204,16 @@ def eval_personas() -> tuple[dict, list[dict]]:
     ok = sum(r["in_prompt"] and r["sections_ok"] for r in rows)
     # The house brief must reach every specialist, personified or not.
     housed = sum(house in build_prompt(get_role(k), "eval task", "")[0] for k in SPECIALISTS)
+    # persona_coverage answers "how many specialists have a point of view", so a supervisor
+    # persona (the Engagement Lead) must not inflate the numerator against a specialist
+    # denominator. Counted and reported separately instead.
+    specialist_personas = [r for r in rows if r["role"] in SPECIALISTS]
     return {
         "personas_written": len(rows),
         "personas_well_formed": ok,
-        "persona_coverage": len(rows) / len(SPECIALISTS),
+        "specialist_personas_written": len(specialist_personas),
+        "supervisor_personas_written": len(rows) - len(specialist_personas),
+        "persona_coverage": len(specialist_personas) / len(SPECIALISTS),
         "specialists_receiving_house_brief": housed,
     }, rows
 

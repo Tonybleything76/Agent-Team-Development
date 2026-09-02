@@ -25,6 +25,14 @@ _ROLE_LIST = [
         "Classify intent, plan, assign agents, schedule governance review, escalate blockers.",
     ),
     Role(
+        "engagement_lead",
+        "Engagement Lead",
+        Tier.SUPERVISOR,
+        "Read every specialist artifact in full and produce the one deliverable the client acts "
+        "on: the recommendation, the decisions that must be made and who owns each, the places "
+        "the advisors disagreed, and the questions only the human can answer.",
+    ),
+    Role(
         "governance",
         "Governance Evaluator",
         Tier.SUPERVISOR,

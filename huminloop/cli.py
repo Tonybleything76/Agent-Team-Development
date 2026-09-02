@@ -86,6 +86,8 @@ def _cmd_run(args) -> int:
     print(f"run_id: {rec.run_id}  provider: {rec.provider}")
     print(f"plan:   {rec.plan['roles']}  (rules: {rec.plan['matched_rules'] or 'default'})")
     for a in rec.artifacts:
+        if a.role == "engagement_lead" and not a.error:
+            continue  # printed on its own line below, with its register counts
         if a.error:
             print(f"  {a.role:<18} ERROR   {a.error}")
         else:
@@ -96,6 +98,12 @@ def _cmd_run(args) -> int:
                 notes.insert(0, f"critique: {len(pts)} point(s), {kept} accepted")
             flag = "" if not a.process_flags else "*"
             print(f"  {a.role:<18} {a.review['verdict'] + flag:<9} {a.file}  {'; '.join(notes)}")
+    if rec.synthesis:
+        n = rec.synthesis
+        print(
+            f"  {'engagement lead':<18} synthesis  {n['decisions']} decision(s) open"
+            f"  {n['disagreements']} disagreement(s)  {n['escalations']} escalated to you"
+        )
     print(f"status: pending -> review with `huminloop show {rec.run_id}`, then approve or reject.")
     if rec.artifacts and all(a.error for a in rec.artifacts):
         # A run where nothing succeeded is a failure for anything scripting this command,

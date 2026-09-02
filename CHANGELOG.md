@@ -1,5 +1,60 @@
 # Changelog
 
+## 0.10.0 — 2026-09-02
+
+The team is hierarchical now. Before this it was a flat pipeline calling itself one.
+
+`orchestrator.run()` dispatched N specialists in sequence, each seeing 600 characters of its
+predecessors, and stopped. The two SUPERVISOR-tier roles were not agents: `router` is a keyword
+function and `governance` is a rule-based checker. Ask the team a real question and six advisors
+produced six disconnected memos and nobody answered it. The operator did the integration in his
+own head, which is the work the team exists to do.
+
+- **`engagement_lead`** — a SUPERVISOR-tier role dispatched after every specialist through a new
+  `synthesize()`. It reads every artifact **in full**, not the 600-character window specialists
+  get, plus each artifact's governance verdict and any unresolved blocking critique. It produces
+  the one document the client acts on.
+- **It does not call `produce()`.** That function raises on any role outside `SPECIALISTS`, and
+  the guard keeps holding so the router and the governance evaluator can never be dispatched as
+  peers. A test asserts it still raises for every supervisor, the lead included.
+- **Four registers, parseable from the bytes.** Recommendation, Decisions (each ending `-> role`),
+  Disagreements, Escalations. `parse_registers()` is regex over headings, so the counts the CLI
+  and the gate rely on never require a model call. An empty register must say "None." — absence
+  and emptiness must not look the same to a reader.
+- **Escalations reach the gate.** Each becomes a `process_flag` on the synthesis artifact, so
+  `flagged_roles()` picks it up and releasing the run needs `--force` plus a written note. A
+  question only the human can answer now costs a human their signature.
+- **The lead is governed and critiqued like everything else.** No exemptions for the supervisor.
+
+**The failure this was built to prevent** is a synthesis agent that reads six advisors, finds
+real conflict, and writes "the team recommends a phased approach." The persona refuses
+manufactured consensus in those words, and `tests/test_synthesis.py` asserts the pipeline gives
+the lead everything needed to see a conflict: both artifacts in full, unresolved blocking
+critique, and the names of seats that produced nothing. What those tests deliberately do **not**
+claim is that a real model names a conflict it was shown — that is a property of the model, and
+the committed example run is the evidence. Tests claiming otherwise would be theatre.
+
+**Personas now carry the operator's actual practice, not generic competence.**
+
+- `change_management_lead` works **ADKAR** explicitly and names it. Awareness, Desire, Knowledge,
+  Ability, Reinforcement — sequential and diagnostic, so a person stuck at Desire is not fixed
+  with more training. It previously used the word "reinforcement" without ever naming the model
+  it comes from.
+- `ld` is **new** and works **Jane Vella's 4-I model**: Inductive, Input, Implementation,
+  Integration, with Structure, Support and Challenge in balance. It was a dispatchable specialist
+  with no persona at all.
+
+`persona_coverage` 0.591 → 0.636 (14/22). The metric now counts **specialist** personas only:
+the lead's persona is reported as `supervisor_personas_written` rather than inflating a numerator
+against a specialist denominator.
+
+**Edge cases, all handled and none silent.** Zero successful specialists means no synthesis and a
+logged `synthesis_skipped`. A single artifact still synthesizes, because one voice still needs a
+decision register. Errored seats are named to the lead as an absence it must declare. A failed
+synthesis is recorded like a specialist error and never costs the advisors' completed work.
+
+169 tests, ruff clean, eval re-baselined with no regression.
+
 ## 0.9.0 — 2026-09-01
 
 The eight transformation advisors have personas. They were reachable in v0.8.0 but still ran on a

@@ -1,6 +1,6 @@
 {
   "version": "0.9.0",
-  "ran_at": "2026-09-01T14:50:00+00:00",
+  "ran_at": "2026-09-02T03:57:56+00:00",
   "how_measured": {
     "router_exact_plan_rate": "share of router cases whose full ordered plan equals the expected",
     "router_easy_exact_rate": "same, over cases that contain a rule keyword (regression guard)",
@@ -11,13 +11,15 @@
     "dryrun_specialists_governance_clean": "share of specialists whose dry-run output passes",
     "personas_written": "specialist roles with a persona file",
     "personas_well_formed": "personas that carry the required sections and reach the prompt",
-    "persona_coverage": "personas_written divided by the number of specialist roles",
+    "persona_coverage": "specialist personas divided by the number of specialist roles",
+    "specialist_personas_written": "personas belonging to dispatchable specialists",
+    "supervisor_personas_written": "personas belonging to supervisors (the Engagement Lead)",
     "specialists_receiving_house_brief": "specialists whose prompt carries the shared house brief",
     "transformation_route_coverage": "share of cases tagged category=transformation whose full ordered plan equals the expected one; per-case, not 'contains an advisor'",
     "transformation_route_coverage_derived": "same, over the extraction subset the routing vocabulary was written from. Expected to be high by construction and therefore NOT evidence the router generalises",
     "transformation_route_coverage_holdout": "same, over the holdout subset that was not read while deriving vocabulary. This is the only gated rate: below 0.80 the run fails"
   },
-  "gated": "per-case pass->fail transitions, transformation_route_coverage_holdout >= 0.80, plus router_cases, router_easy_cases, governance_cases, dryrun_specialists, personas_written, personas_well_formed, specialists_receiving_house_brief, transformation_cases, transformation_holdout_cases",
+  "gated": "per-case pass->fail transitions, transformation_route_coverage_holdout >= 0.80, plus router_cases, router_easy_cases, governance_cases, dryrun_specialists, personas_written, personas_well_formed, specialist_personas_written, specialists_receiving_house_brief, transformation_cases, transformation_holdout_cases",
   "metrics": {
     "router_exact_plan_rate": 0.9574468085106383,
     "router_first_role_rate": 0.9574468085106383,
@@ -35,9 +37,11 @@
     "governance_verdict_rate": 1.0,
     "governance_issue_recall": 1.0,
     "governance_cases": 18,
-    "personas_written": 13,
-    "personas_well_formed": 13,
-    "persona_coverage": 0.5909090909090909,
+    "personas_written": 15,
+    "personas_well_formed": 15,
+    "specialist_personas_written": 14,
+    "supervisor_personas_written": 1,
+    "persona_coverage": 0.6363636363636364,
     "specialists_receiving_house_brief": 22,
     "dryrun_specialists_governance_clean": 1.0,
     "dryrun_specialists": 22

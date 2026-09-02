@@ -1,4 +1,5 @@
 import logging
+import re
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
@@ -62,6 +63,8 @@ class RunRecord:
     artifacts: list[ArtifactRecord] = field(default_factory=list)
     status: str = "running"
     created_at: str = ""
+    # Counts derived from the synthesis artifact's registers; None when no synthesis ran.
+    synthesis: dict | None = None
     version: str = __version__
 
     @property
@@ -139,6 +142,82 @@ def produce(
     if completion.truncated:
         # Say what actually went wrong; the missing tail sections are a symptom of the cap.
         flags.append("Output truncated at the token budget (raise LLM_MAX_TOKENS)")
+    return completion.text, review_text(completion.text), flags
+
+
+SYNTHESIS_ROLE = "engagement_lead"
+# The registers the Engagement Lead must carry inside Body. Absence and emptiness must never
+# look the same, so an empty register is required to say "None." rather than be omitted.
+SYNTHESIS_REGISTERS = ("Recommendation", "Decisions", "Disagreements", "Escalations")
+_REGISTER_RE = re.compile(
+    r"^[ \t]*#{1,6}[ \t]*(?P<name>" + "|".join(SYNTHESIS_REGISTERS) + r")[ \t]*$"
+    r"(?P<body>.*?)(?=^[ \t]*#{1,6}[ \t]*\S|\Z)",
+    re.IGNORECASE | re.MULTILINE | re.DOTALL,
+)
+
+
+def parse_registers(text: str) -> dict[str, list[str]]:
+    """Numbered entries under each register heading. An explicit 'None.' yields an empty list.
+
+    Byte-derived and regex-only on purpose: the counts the CLI and the gate rely on must not
+    require a model call to obtain, and must be reproducible from the artifact alone.
+    """
+    out: dict[str, list[str]] = {r.lower(): [] for r in SYNTHESIS_REGISTERS}
+    for m in _REGISTER_RE.finditer(text):
+        body = m.group("body")
+        if re.search(r"^\s*none\.?\s*$", body, re.IGNORECASE | re.MULTILINE):
+            continue
+        out[m.group("name").lower()] = [
+            line.strip()
+            for line in re.findall(r"^[ \t]*\d+[.)][ \t]*(.+)$", body, re.MULTILINE)
+        ]
+    return out
+
+
+def synthesize(
+    task: str, artifacts: list[ArtifactRecord], llm: LLMClient, run_out: Path | None = None
+) -> tuple[str, Review, list[str]]:
+    """The Engagement Lead reads every successful artifact in full and integrates them.
+
+    Deliberately does NOT call produce(): that function raises on any role outside SPECIALISTS,
+    and the guard must keep holding so the router and the governance evaluator can never be
+    dispatched as peers. The lead is a supervisor and reaches the model through its own path.
+    """
+    role = get_role(SYNTHESIS_ROLE)
+    parts: list[str] = []
+    for a in artifacts:
+        if a.error or not a.file or run_out is None:
+            continue
+        body = (run_out / a.file).read_text(encoding="utf-8")
+        head = f"[{get_role(a.role).title}] governance: {(a.review or {}).get('verdict', '?')}"
+        if a.process_flags:
+            head += f" | flags: {'; '.join(a.process_flags)}"
+        unresolved = [
+            p["claim"]
+            for p in ((a.critique or {}).get("points") or [])
+            if p.get("severity") == "blocking" and p.get("disposition") != "accepted"
+        ]
+        if unresolved:
+            head += f" | UNRESOLVED BLOCKING CRITIQUE: {' / '.join(unresolved)}"
+        parts.append(f"{head}\n{body}")
+
+    missing = [a.role for a in artifacts if a.error]
+    context = "\n\n---\n\n".join(parts)
+    if missing:
+        context += (
+            "\n\n---\n\nSEATS THAT PRODUCED NOTHING (name this absence in your artifact): "
+            + ", ".join(missing)
+        )
+    system, prompt = build_prompt(role, task, context)
+    completion = llm.generate(system, prompt, role=SYNTHESIS_ROLE)
+    flags = []
+    if completion.truncated:
+        flags.append("Output truncated at the token budget (raise LLM_MAX_TOKENS)")
+    regs = parse_registers(completion.text)
+    # An escalation is a question only the human can answer, so it must cost a human their
+    # signature: it rides process_flags to flagged_roles() and forces --force plus a note.
+    for esc in regs["escalations"]:
+        flags.append(f"Escalated to the human: {esc}")
     return completion.text, review_text(completion.text), flags
 
 
@@ -272,6 +351,74 @@ def run(
                 log_file,
             )
         write_manifest(out, asdict(record))
+
+    # ---- Engagement Lead: the one deliverable the client acts on -------------------------
+    # Runs after every specialist, reads their artifacts in full, and integrates. A failure
+    # here must never cost the specialist work that already succeeded.
+    if any(not a.error for a in record.artifacts):
+        try:
+            s_text, s_review, s_flags = synthesize(task, record.artifacts, llm, out)
+        except Exception as exc:  # a failed synthesis must not lose the advisors' artifacts
+            log.exception("synthesis failed")
+            record.artifacts.append(ArtifactRecord(SYNTHESIS_ROLE, None, None, error=repr(exc)))
+            append_log(
+                {"event": "synthesis_error", "run_id": run_id, "error": repr(exc)}, log_file
+            )
+        else:
+            s_crit = None
+            s_revised = False
+            if critique:
+                try:
+                    new_text, s_review, s_crit, c_flags = critique_and_revise(
+                        SYNTHESIS_ROLE, task, "", s_text, llm
+                    )
+                    s_revised = new_text != s_text
+                    s_text = new_text
+                    s_flags = s_flags + c_flags
+                except Exception as exc:  # same rule as the specialists
+                    log.exception("critique of synthesis failed")
+                    append_log(
+                        {
+                            "event": "critique_error",
+                            "run_id": run_id,
+                            "role": SYNTHESIS_ROLE,
+                            "error": repr(exc),
+                        },
+                        log_file,
+                    )
+            s_path = out / f"{SYNTHESIS_ROLE}.md"
+            s_path.write_text(s_text, encoding="utf-8")
+            regs = parse_registers(s_text)
+            record.artifacts.append(
+                ArtifactRecord(
+                    SYNTHESIS_ROLE,
+                    s_path.name,
+                    asdict(s_review) | {"verdict": s_review.verdict},
+                    sha256=sha256_text(s_text),
+                    critique=s_crit.as_dict() if s_crit else None,
+                    revised=s_revised,
+                    process_flags=s_flags,
+                )
+            )
+            record.synthesis = {
+                "role": SYNTHESIS_ROLE,
+                "decisions": len(regs["decisions"]),
+                "disagreements": len(regs["disagreements"]),
+                "escalations": len(regs["escalations"]),
+            }
+            append_log(
+                {"event": "synthesis", "run_id": run_id, **record.synthesis}, log_file
+            )
+        write_manifest(out, asdict(record))
+    else:
+        append_log(
+            {
+                "event": "synthesis_skipped",
+                "run_id": run_id,
+                "reason": "no specialist produced an artifact to integrate",
+            },
+            log_file,
+        )
 
     record.status = "pending"
     write_manifest(out, asdict(record))
