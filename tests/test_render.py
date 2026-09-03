@@ -126,7 +126,8 @@ def test_render_a_pending_run_shows_the_review_surface(workdir, fake_llm):
     manifest = json.loads((d / "manifest.json").read_text())
     page = render_run(manifest, d)
     assert page.startswith("<!doctype html>")
-    assert "AWAITING YOUR DECISION" in page
+    assert "awaiting your decision" in page
+    assert "NOT YET DECIDED" in page
     assert f"huminloop approve {rec.run_id}" in page
     assert f"huminloop reject {rec.run_id}" in page
     assert "Human decision" not in page  # no record exists yet to report
@@ -175,34 +176,35 @@ def test_render_a_real_approved_run_end_to_end(workdir, fake_llm):
     manifest = json.loads((d / "manifest.json").read_text())
     page = render_run(manifest, d)
     assert page.startswith("<!doctype html>")
-    assert '<section id="routing">' in page
+    assert "Matched by rule" in page or "routed to the default specialist" in page
     assert '<section id="decision"' in page
     assert "Tony" in page
 
 
-def test_stat_tiles_report_real_run_numbers(workdir, fake_llm):
-    """The dashboard's headline numbers must come from this run, not be decorative — even at
-    zero (the dryrun-backed fake provider's critique never parses, so findings read 0)."""
+def test_summary_line_reports_real_run_numbers(workdir, fake_llm):
+    """The orienting sentence must carry real numbers from this run, not be decorative — even
+    at zero (the dryrun-backed fake provider's critique never parses, so findings read 0)."""
     rec = orchestrator.run("Draft an RFP response and SOW", llm=fake_llm)
     d = artifact_root() / "pending" / rec.run_id
     manifest = json.loads((d / "manifest.json").read_text())
     n_roles = len((manifest.get("plan") or {}).get("roles") or [])
     page = render_run(manifest, d)
-    assert f'<div class="stat-value">{n_roles}</div>' in page
-    assert "Advisors dispatched" in page
-    assert "Findings challenged" in page
-    assert "Escalations to you" in page
+    assert f"<b>{n_roles}</b>" in page
+    assert "were dispatched" in page or "was dispatched" in page
+    assert "only you can answer" in page
+    assert "awaiting your decision" in page
 
 
-def test_team_roster_has_visual_identity(workdir, fake_llm):
-    """Every roster card gets a colored initials avatar and the role's real name — the fix
-    for "I don't know who they are," not just a link in a list."""
+def test_toc_has_visual_identity(workdir, fake_llm):
+    """Every table-of-contents row gets a colored initials avatar and the role's real name —
+    the fix for "I don't know who they are," not just a link in a persistent sidebar."""
     rec = orchestrator.run("Draft an RFP response and SOW", llm=fake_llm)
     d = artifact_root() / "pending" / rec.run_id
     manifest = json.loads((d / "manifest.json").read_text())
     page = render_run(manifest, d)
     assert 'class="avatar"' in page
-    assert 'class="member-name"' in page
+    assert 'class="toc-name"' in page
+    assert '<nav' not in page  # no persistent sidebar to scan against every section
 
 
 def test_render_falls_back_to_a_quote_block_for_a_dense_task(workdir, fake_llm):
@@ -262,7 +264,7 @@ def test_render_via_cli_pending(workdir, fake_llm, monkeypatch, capsys):
     assert "wrote" in out
     written = artifact_root() / "pending" / run_id / "run.html"
     assert written.exists()
-    assert "AWAITING YOUR DECISION" in written.read_text(encoding="utf-8")
+    assert "awaiting your decision" in written.read_text(encoding="utf-8")
 
 
 def test_render_via_cli_refuses_rejected(workdir, fake_llm, monkeypatch, capsys):
@@ -289,20 +291,32 @@ def test_render_the_committed_synthesis_example(tmp_path):
     shutil.copytree(FIXTURE_DIR, d)
     page = render_run(manifest, d)
 
-    assert page.count("<section") == 20  # team + routing + 8×(critique+artifact) + plan + decision
+    # team + plan + decision are the only <section>s left — each advisor's account is a
+    # <details class="story">, not a <section>, since the page is a narrative, not a scanned
+    # dashboard.
+    assert page.count("<section") == 3
+    assert '<section id="team">' in page
     assert '<section id="plan">' in page
-    assert page.index('id="plan"') < page.index('id="routing"')  # the plan leads, not buried
+    assert page.index('id="team"') < page.index('id="plan"')  # who's involved, before the plan
+    assert page.index('id="plan"') < page.index('id="decision"')  # the plan before the gate
+    assert "<nav" not in page  # no persistent sidebar
+    assert '<div id="a-domain-owner"' not in page  # errors aside, advisors are <details>, not <div>
+    assert '<details class="story" id="a-domain-owner"' in page
     assert '<span class="register-count">6</span>' in page  # Decisions
     assert '<span class="register-count">2</span>' in page  # Disagreements
     assert '<span class="register-count">3' in page  # Escalations, "3 — forces this approval"
-    assert "Implementation &amp; Timeline" in page  # the Lead's Next Steps, previously dropped
-    assert 'class="avatar"' in page  # team roster visual identity
-    assert "chip-neutral" in page  # a specialist's "N challenged · M resolved" chip
+    assert "Milestones" in page  # the Lead's Next Steps, broken into a checklist
+    assert "Owner: <b>" not in page  # no bold chip presenting a guess as a confirmed assignment
+    assert "A likely owner, not a confirmed one" in page
+    assert 'class="avatar"' in page  # table-of-contents visual identity
+    assert "chip-neutral" not in page  # the old per-card chip markup is gone
+    assert "resolved" in page  # the challenged/resolved count still reaches the page, inline
     # The Engagement Lead's own synthesis is critiqued too (orchestrator._do_synthesis) — the
     # old renderer never surfaced that debate at all.
     assert "The plan itself was challenged" in page
     assert "What Could Go Wrong" in page  # the Lead's Risks, previously dropped
-    assert "gate forced" in page
+    assert 'class="decision forced"' in page
+    assert "FORCED" in page
     assert "decision forced" in page
     assert "What do we need to decide before go-live?" in page
     assert "healthcare operations team" in page  # the context paragraph, not lost

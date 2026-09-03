@@ -1,17 +1,18 @@
 """Render a run's manifest and artifacts into the DESIGN.md HTML report.
 
-v0.17.0 replaced the "Institutional Briefing" audit-record system with a dashboard: Tony's own
-reaction to the first version ("I don't know who they are," "I would never show anybody this")
-was correct and specific, and it named a different brief than the one the CSS below was built
-to. See DESIGN.md's "The pivot" for the full account. This is now the source of truth for the
-visual system — the old reference file is historical, not authoritative.
+Two pivots landed the same day (2026-09-03): "Institutional Briefing" (a quiet audit record) to
+a dashboard (stat tiles, a card-grid roster, color), then the dashboard to a narrative — a page
+read start to finish, not scanned, once it turned out a dashboard was still the wrong shape.
+See DESIGN.md's "Two pivots, in order" for the full account, including the exact feedback that
+drove each one. This module is the source of truth for the visual system — the old reference
+file is historical, not authoritative.
 
 Approved and pending runs are both supported. Pending is the review surface: the consulting
-lead reads the same page — the debate, every advisor's contribution, the Team's Plan — and acts
-from the exact CLI commands the decision section prints, rather than reading a terminal
-`show` dump first. Rejected and errored-run states remain visually undecided (see DESIGN.md
-"Not yet decided") and rendering one would be inventing a design this project has not actually
-settled on.
+lead reads the same page — every advisor's account of their own reasoning, the pushback they
+took and why they revised, where they disagreed, the plan — and acts from the exact CLI commands
+the decision section prints, rather than reading a terminal `show` dump first. Rejected and
+errored-run states remain visually undecided (see DESIGN.md "Not yet decided") and rendering one
+would be inventing a design this project has not actually settled on.
 """
 
 import html
@@ -29,8 +30,8 @@ CSS = """
   --surface:#fcfcfb;
   --surface-2:#f2f2ef;
   --ink:#0b0b0b;
-  --ink-2:#52514e;
-  --muted:#898781;
+  --ink-2:#40403c;
+  --muted:#787670;
   --rule:#e1e0d9;
   --rule-soft:#ececea;
   --accent:#2a78d6;
@@ -44,6 +45,7 @@ CSS = """
   --critical:#c23333;
   --critical-wash:#fbe9e8;
   --avatar-ink:#ffffff;
+  --story-wash:#f4f2ec;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
@@ -51,8 +53,8 @@ CSS = """
     --surface:#1a1a19;
     --surface-2:#212120;
     --ink:#ffffff;
-    --ink-2:#c3c2b7;
-    --muted:#9a9890;
+    --ink-2:#d2d0c8;
+    --muted:#a4a29a;
     --rule:#2c2c2a;
     --rule-soft:#242422;
     --accent:#5b9fed;
@@ -65,6 +67,7 @@ CSS = """
     --warning-wash:#332708;
     --critical:#f0837f;
     --critical-wash:#341918;
+    --story-wash:#221f1a;
   }
 }
 :root[data-theme="dark"]{
@@ -72,8 +75,8 @@ CSS = """
   --surface:#1a1a19;
   --surface-2:#212120;
   --ink:#ffffff;
-  --ink-2:#c3c2b7;
-  --muted:#9a9890;
+  --ink-2:#d2d0c8;
+  --muted:#a4a29a;
   --rule:#2c2c2a;
   --rule-soft:#242422;
   --accent:#5b9fed;
@@ -86,6 +89,7 @@ CSS = """
   --warning-wash:#332708;
   --critical:#f0837f;
   --critical-wash:#341918;
+  --story-wash:#221f1a;
 }
 *{box-sizing:border-box}
 body{
@@ -93,8 +97,8 @@ body{
   background:var(--page);
   color:var(--ink);
   font-family:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  font-size:16px;
-  line-height:1.6;
+  font-size:17px;
+  line-height:1.65;
   -webkit-font-smoothing:antialiased;
 }
 a{color:var(--accent-ink);text-decoration:none}
@@ -102,9 +106,9 @@ a:hover{color:var(--accent);text-decoration:underline}
 :focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
 code{
   font-family:ui-monospace,"SF Mono",Menlo,monospace;
-  background:var(--surface-2);padding:2px 6px;font-size:.88em;border-radius:4px;
+  background:var(--surface-2);padding:2px 6px;font-size:.85em;border-radius:4px;
 }
-.wrap{max-width:1180px;margin:0 auto;padding:clamp(24px,4vw,56px) clamp(20px,4vw,56px) 120px}
+.wrap{max-width:760px;margin:0 auto;padding:clamp(24px,4vw,56px) clamp(20px,4vw,32px) 140px}
 
 /* ---- header ---- */
 .topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
@@ -119,138 +123,134 @@ code{
 .theme-toggle{
   appearance:none;border:1px solid var(--rule);background:var(--surface);color:var(--ink-2);
   font:inherit;font-size:13px;font-weight:600;padding:8px 14px;border-radius:8px;cursor:pointer;
-  min-height:44px;
+  min-height:44px;flex-shrink:0;
 }
 .theme-toggle:hover{border-color:var(--accent);color:var(--ink)}
 .orient{
-  margin:20px 0 0;max-width:70ch;
-  font-size:16px;line-height:1.6;color:var(--ink-2);
+  margin:22px 0 0;max-width:68ch;
+  font-size:17px;line-height:1.6;color:var(--ink-2);
 }
 h1.task{
   font-family:inherit;
   font-weight:700;
-  font-size:clamp(26px,4vw,38px);
-  line-height:1.18;
+  font-size:clamp(24px,4vw,34px);
+  line-height:1.2;
   letter-spacing:-.01em;
-  margin:20px 0 6px;
-  max-width:26ch;
+  margin:24px 0 6px;
   color:var(--ink);
   text-wrap:balance;
 }
 .task-context{
-  margin:0 0 8px;max-width:72ch;
+  margin:0 0 4px;max-width:68ch;
   font-size:15px;line-height:1.6;color:var(--ink-2);
 }
-
-/* ---- stat tiles ---- */
-.stat-row{
-  display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:2px;
-  margin:26px 0 0;background:var(--rule);border:1px solid var(--rule);border-radius:12px;
-  overflow:hidden;
+.summary-line{
+  margin:22px 0 0;padding:16px 20px;background:var(--surface-2);border-radius:10px;
+  font-size:16px;line-height:1.6;color:var(--ink-2);max-width:68ch;
 }
-.stat{
-  background:var(--surface);padding:18px 20px;display:flex;flex-direction:column;gap:4px;
-  min-height:88px;justify-content:center;
-}
-.stat-value{
-  font-size:30px;font-weight:700;line-height:1;color:var(--ink);
-  font-variant-numeric:tabular-nums;
-}
-.stat-value.warn{color:var(--warning-ink)}
-.stat-value.crit{color:var(--critical)}
-.stat-label{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.02em}
-.stat-gate{justify-content:center}
+.summary-line b{color:var(--ink);font-variant-numeric:tabular-nums}
+.summary-line b.warn{color:var(--warning-ink)}
+.summary-line b.crit{color:var(--critical)}
 .chip{
-  display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;
-  font-size:13px;font-weight:700;letter-spacing:.01em;width:fit-content;
+  display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;
+  font-size:13px;font-weight:700;letter-spacing:.01em;
 }
-.chip-pending{background:var(--surface-2);color:var(--ink-2);border:1px solid var(--rule)}
+.chip-pending{background:var(--accent-wash);color:var(--accent-ink)}
 .chip-good{background:var(--good-wash);color:var(--good)}
 .chip-warning{background:var(--warning-wash);color:var(--warning-ink)}
-.chip-neutral{
-  background:var(--surface-2);color:var(--ink-2);font-size:12px;font-weight:600;
-  padding:4px 10px;margin-top:6px;
-}
 
-/* ---- layout ---- */
-.body{
-  display:grid;grid-template-columns:200px minmax(0,1fr);
-  gap:44px;margin-top:40px;align-items:start;
+/* ---- table of contents ---- */
+#team{margin-top:36px}
+#team h2{margin-bottom:2px}
+.toc-list{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:2px}
+.toc-list li{border-top:1px solid var(--rule-soft)}
+.toc-list li:first-child{border-top:none}
+.toc-list a{
+  display:flex;align-items:center;gap:12px;padding:11px 4px;color:inherit;text-decoration:none;
 }
-nav.index{
-  position:sticky;top:24px;display:flex;flex-direction:column;font-size:14px;
-  max-height:calc(100vh - 48px);overflow-y:auto;
+.toc-list a:hover{color:var(--accent)}
+.toc-list a:hover .toc-name{color:var(--accent)}
+.avatar{
+  flex-shrink:0;width:32px;height:32px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:var(--avatar-ink);
 }
-nav.index .grp{
-  font-size:11px;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--muted);font-weight:700;margin:20px 0 4px;padding-left:15px;
+.toc-name{font-weight:700;font-size:16px;color:var(--ink)}
+.toc-remit{font-size:13px;color:var(--muted);margin-left:auto;text-align:right;max-width:38ch}
+@media (max-width:640px){.toc-remit{display:none}}
+
+/* ---- generic section rhythm ---- */
+section{margin:0 0 12px}
+.act{margin:56px 0 0;padding-top:32px;border-top:1px solid var(--rule)}
+.act:first-of-type{margin-top:44px}
+.act-label{
+  font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-ink);
+  margin:0 0 6px;
 }
-nav.index .grp:first-child{margin-top:0}
-nav.index a{
-  display:flex;align-items:center;min-height:40px;
-  padding:2px 0 2px 15px;
-  border-left:2px solid var(--rule);
-  color:var(--ink-2);text-decoration:none;font-weight:500;
-}
-nav.index a:hover{border-left-color:var(--accent);color:var(--ink)}
-nav.index a[aria-current="true"]{
-  border-left-color:var(--accent);color:var(--ink);font-weight:700;
-}
-nav.index a.lead{font-weight:700;color:var(--ink)}
-section{margin:0 0 44px;scroll-margin-top:24px}
 h2{
   font-family:inherit;font-weight:700;
-  font-size:22px;letter-spacing:-.005em;margin:0 0 4px;
-  display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;color:var(--ink);
+  font-size:24px;letter-spacing:-.005em;margin:0 0 8px;color:var(--ink);
 }
-h2 .kind{
-  font-size:11px;font-weight:700;
-  letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
-}
-.sub{font-size:14px;color:var(--muted);margin:0 0 22px;max-width:70ch}
-.section-divider{
-  font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
-  color:var(--muted);border-top:1px solid var(--rule);padding-top:18px;margin:0 0 36px;
-}
+.sub{font-size:15px;color:var(--muted);margin:0 0 20px;max-width:68ch;line-height:1.55}
 
-/* ---- team roster ---- */
-.roster{
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
-  gap:14px;margin:8px 0 0;padding:0;list-style:none;
+/* ---- advisor story ---- */
+details.story{margin:0 0 8px}
+details.story > summary{
+  list-style:none;cursor:pointer;
+  display:flex;align-items:center;gap:12px;
+  padding:14px 4px;border-top:1px solid var(--rule);
 }
-.roster li{border:1px solid var(--rule);border-radius:12px;background:var(--surface)}
-.roster a{
-  display:flex;gap:14px;padding:16px;text-decoration:none;color:inherit;align-items:flex-start;
-  border-radius:12px;
+details.story:first-of-type > summary{border-top:none}
+details.story > summary::-webkit-details-marker{display:none}
+details.story > summary::after{
+  content:"\\25be";margin-left:auto;color:var(--muted);font-size:13px;flex-shrink:0;
 }
-.roster a:hover{background:var(--surface-2)}
-.avatar{
-  flex-shrink:0;width:40px;height:40px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:14px;font-weight:700;color:var(--avatar-ink);
+details.story[open] > summary::after{content:"\\25b4"}
+.story-name{font-weight:700;font-size:19px;color:var(--ink)}
+.story-remit{font-size:13px;color:var(--muted)}
+.story-body{padding:4px 4px 28px;max-width:68ch}
+.story-body h4{
+  font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+  margin:22px 0 8px;font-weight:700;
 }
-.member-body{display:flex;flex-direction:column;gap:3px;min-width:0}
-.member-name{font-weight:700;font-size:15px;color:var(--ink)}
-.member-remit{font-size:13px;color:var(--muted);line-height:1.45}
+.story-body h4:first-child{margin-top:2px}
+.story-body p{margin:0 0 12px;color:var(--ink-2);line-height:1.65}
+.story-body ul,.story-body ol{margin:0 0 12px;padding-left:1.3em;color:var(--ink-2)}
+.story-body li{margin:0 0 6px}
+.voice{padding:16px 18px;border-radius:10px;margin:0 0 14px}
+.voice > .lbl{
+  font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:8px;
+  display:block;
+}
+.voice p{margin:0;line-height:1.6}
+.voice.position{background:var(--surface-2)}
+.voice.position .lbl{color:var(--muted)}
+.voice.pushback{background:var(--story-wash);border-left:3px solid var(--warning)}
+.voice.pushback .lbl{color:var(--warning-ink)}
+.voice.pushback .sev{
+  display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.05em;padding:2px 8px;border-radius:999px;margin-right:8px;
+  background:var(--warning-wash);color:var(--warning-ink);
+}
+.voice.pushback .sev.crit{background:var(--critical-wash);color:var(--critical)}
+.voice.pushback .sev.info{background:var(--surface-2);color:var(--ink-2)}
+.voice.revision{background:var(--good-wash);border-left:3px solid var(--good)}
+.voice.revision .lbl{color:var(--good)}
+.exchange{margin:0 0 22px}
+.exchange:last-child{margin-bottom:0}
+.cite-list{font-size:13px;color:var(--muted);margin:14px 0 0}
+.cite-list a{color:var(--accent-ink)}
 
 /* ---- plan / registers ---- */
-#plan{
-  border:1px solid var(--rule);border-radius:14px;padding:28px 28px 8px;
-  margin-bottom:36px;background:var(--surface);
-}
-#plan h2{font-size:26px}
 .quote{
   background:var(--surface-2);padding:18px 20px;margin:0 0 16px;
-  max-width:76ch;border-radius:10px;
+  max-width:68ch;border-radius:10px;
 }
 .quote .lbl{
   font-size:11px;letter-spacing:.1em;text-transform:uppercase;
   color:var(--muted);font-weight:700;margin-bottom:8px;
 }
-.quote p{margin:0;font-size:15px;line-height:1.65;color:var(--ink-2)}
-.quote ol{margin:0;padding-left:1.2em}
-.quote li{font-size:15px;line-height:1.65;color:var(--ink-2);margin:0 0 8px}
-.quote li:last-child{margin-bottom:0}
+.quote p{margin:0;font-size:16px;line-height:1.6;color:var(--ink-2)}
 .register{margin:0 0 28px}
 .register:last-child{margin-bottom:8px}
 .register-head{display:flex;align-items:baseline;gap:10px;margin:0 0 4px}
@@ -264,174 +264,71 @@ h2 .kind{
 }
 .register-disagreements .register-count{background:var(--warning-wash);color:var(--warning-ink)}
 .register-escalations .register-count{background:var(--critical-wash);color:var(--critical)}
-.register-note{font-size:13px;color:var(--muted);margin:2px 0 10px;max-width:68ch}
+.register-note{font-size:13px;color:var(--muted);margin:2px 0 10px;max-width:65ch}
 .reg-item{
   padding:12px 0;border-top:1px solid var(--rule-soft);display:flex;
   gap:14px;align-items:flex-start;
 }
 .reg-item .n{
   flex-shrink:0;display:flex;align-items:center;justify-content:center;
-  min-width:26px;height:26px;border-radius:50%;
-  font-weight:700;font-size:13px;background:var(--surface-2);color:var(--ink-2);
+  min-width:24px;height:24px;border-radius:50%;
+  font-weight:700;font-size:12px;background:var(--surface-2);color:var(--ink-2);
 }
 .register-disagreements .reg-item .n{background:var(--warning-wash);color:var(--warning-ink)}
 .register-escalations .reg-item .n{background:var(--critical-wash);color:var(--critical)}
-.reg-item p{margin:0 0 2px;max-width:68ch;color:var(--ink);font-size:15px;line-height:1.55}
-.reg-item .owner{
-  display:inline-flex;align-items:baseline;gap:6px;margin-top:4px;
-  font-size:12px;color:var(--muted);
-}
-.reg-item .owner b{color:var(--accent-ink);font-weight:700}
+.reg-item p{margin:0;max-width:65ch;color:var(--ink);font-size:16px;line-height:1.55}
+.reg-item .owner-note{font-size:13px;color:var(--muted);margin-top:4px}
 
-/* ---- critique & artifact ---- */
-details.critique-detail,details.artifact{
-  border:1px solid var(--rule);border-radius:10px;background:var(--surface);
-  margin-bottom:2px;
+/* ---- milestones ---- */
+.milestones{list-style:none;margin:8px 0 0;padding:0;counter-reset:milestone}
+.milestone{
+  display:flex;gap:16px;padding:16px 0;border-top:1px solid var(--rule-soft);align-items:flex-start;
 }
-details.critique-detail summary,details.artifact summary{
-  list-style:none;cursor:pointer;
-  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
-  min-height:48px;padding:12px 16px;font-weight:600;font-size:14px;
+.milestone:first-child{border-top:none}
+.milestone .num{
+  flex-shrink:0;width:28px;height:28px;border-radius:50%;background:var(--accent-wash);
+  color:var(--accent-ink);font-weight:700;font-size:13px;display:flex;align-items:center;
+  justify-content:center;
 }
-details.critique-detail summary::-webkit-details-marker,
-details.artifact summary::-webkit-details-marker{display:none}
-details.critique-detail summary::before,details.artifact summary::before{
-  content:"\\25b8";color:var(--muted);font-size:13px;
+.milestone p{margin:0;color:var(--ink);font-size:16px;line-height:1.55;max-width:62ch}
+.risks-box{
+  background:var(--critical-wash);padding:18px 20px;border-radius:10px;
+  margin:8px 0 0;max-width:68ch;
 }
-details.critique-detail[open] summary::before,details.artifact[open] summary::before{
-  content:"\\25be";
-}
-details.critique-detail summary .meta,details.artifact summary .meta{
-  margin-left:auto;font-weight:500;font-size:13px;color:var(--muted);
-  font-variant-numeric:tabular-nums;
-}
-.critique-body{padding:0 16px 16px}
-details.artifact .doc{
-  padding:4px 0 8px;max-width:72ch;
-  font-size:15px;line-height:1.65;
-  color:var(--ink-2);
-}
-details.artifact .doc h4{
-  font-size:11px;letter-spacing:.1em;
-  text-transform:uppercase;color:var(--muted);margin:20px 0 6px;font-weight:700;
-}
-details.artifact .doc ol,details.artifact .doc ul{margin:0;padding-left:1.3em}
-details.artifact .doc li{margin:0 0 8px}
-.quote-inline{background:var(--surface-2);padding:14px 16px;margin:0 0 10px;border-radius:8px}
-.quote-inline .lbl{
-  font-size:10px;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--muted);font-weight:700;margin-bottom:6px;
-}
-.quote-inline p{margin:0;font-size:14px;line-height:1.6;color:var(--ink-2)}
-.finding{padding:14px 0;border-top:1px solid var(--rule-soft)}
-.finding:first-child{border-top:none}
-.fhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px}
-.n{font-weight:700;color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
-.sev-badge{
-  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
-  padding:3px 9px;border-radius:999px;
-}
-.sev-crit{background:var(--critical-wash);color:var(--critical)}
-.sev-warn{background:var(--warning-wash);color:var(--warning-ink)}
-.sev-info{background:var(--surface-2);color:var(--ink-2)}
-.dim{
-  color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;
-  font-size:11px;
-}
-.disp{margin-left:auto;font-size:12px;font-weight:700}
-.disp-resolved{color:var(--good)}
-.disp-open{color:var(--muted)}
-.claim{margin:10px 0 0;max-width:72ch;color:var(--ink);font-size:15px;line-height:1.55}
-.answer{
-  margin-top:12px;padding:10px 14px;background:var(--good-wash);
-  border-radius:8px;max-width:70ch;
-}
-.answer .lbl{
-  font-size:10px;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--good);font-weight:700;
-}
-.answer p{margin:6px 0 0;color:var(--ink-2);font-size:14px}
-.gov{font-size:13px;color:var(--muted);margin:10px 16px 0}
-.gov b{color:var(--ink)}
+.risks-box p{margin:0;color:var(--ink-2);font-size:15px;line-height:1.6}
+
+/* ---- errored / absent ---- */
 .absent{
-  padding:18px 20px;background:var(--warning-wash);max-width:76ch;
-  font-size:14px;color:var(--ink);border-radius:10px;
+  padding:18px 20px;background:var(--warning-wash);max-width:68ch;
+  font-size:15px;color:var(--ink);border-radius:10px;
 }
 
 /* ---- decision ---- */
-.gate{
-  margin-top:22px;
-  background:var(--surface-2);
-  border:1px solid var(--rule);border-radius:12px;
-  padding:16px 20px;
-  display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;
-}
-.gate .verdict{
-  font-size:13px;font-weight:700;letter-spacing:.06em;
-  color:var(--ink);
-}
-.gate .who{font-size:15px;font-weight:600;color:var(--ink-2)}
-.gate .when{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
-.gate .note{
-  flex-basis:100%;margin:4px 0 0;
-  font-size:15px;
-  color:var(--ink-2);
-}
-.gate.forced{background:var(--warning-wash);border-color:var(--warning-ink)}
-.gate.forced .verdict{color:var(--warning-ink)}
-.gate .forced-tag{
-  font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
-  color:var(--warning-ink);border:1px solid var(--warning-ink);padding:2px 8px;border-radius:999px;
-}
-.gate.pending{background:var(--accent-wash);border-color:var(--accent)}
-.gate.pending .verdict{color:var(--accent-ink)}
 .decision{
   border:1px solid var(--rule);border-radius:14px;padding:26px 28px;background:var(--surface);
+  margin-top:44px;
 }
 .decision.forced{border-color:var(--warning-ink);background:var(--warning-wash)}
 .decision.pending{border-color:var(--accent);background:var(--accent-wash)}
 .decision .verdict{font-size:22px;font-weight:700;color:var(--ink)}
 .decision.forced .verdict{color:var(--warning-ink)}
 .decision.pending .verdict{color:var(--accent-ink)}
-.decision .cta{
-  font-size:15px;
-  margin:12px 0 0;max-width:66ch;color:var(--ink-2);
-}
+.decision .cta{font-size:15px;margin:12px 0 0;max-width:64ch;color:var(--ink-2)}
 .decision .cmd{
   margin-top:14px;display:flex;flex-direction:column;gap:8px;
   font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:13px;
 }
 .decision .cmd code{
-  background:var(--surface);padding:10px 14px;display:block;max-width:76ch;
+  background:var(--surface);padding:10px 14px;display:block;max-width:100%;
   overflow-x:auto;white-space:pre;border-radius:8px;border:1px solid var(--rule);
 }
-.decision .flag-list{
-  margin-top:14px;font-size:13px;color:var(--warning-ink);font-weight:700;max-width:66ch;
-}
-.decision .who{font-size:28px;font-weight:700;margin-top:8px;color:var(--ink)}
+.decision .flag-list{margin-top:14px;font-size:13px;color:var(--warning-ink);font-weight:700}
+.decision .who{font-size:26px;font-weight:700;margin-top:8px;color:var(--ink)}
 .decision .when{font-size:13px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
-.decision .note{
-  font-size:15px;
-  margin:14px 0 0;max-width:60ch;color:var(--ink-2);
-}
-.decision .force-note{
-  margin-top:12px;font-size:13px;color:var(--warning-ink);
-  font-weight:700;max-width:60ch;
-}
-.hash{font-family:ui-monospace,monospace;font-size:12px;color:var(--muted);margin-top:16px;word-break:break-all}
-@media (max-width:880px){
-  .body{grid-template-columns:1fr;gap:0}
-  nav.index{
-    position:static;flex-direction:row;gap:2px;max-height:none;
-    overflow-x:auto;overflow-y:visible;border-bottom:1px solid var(--rule);
-    margin-bottom:34px;padding-bottom:2px;
-  }
-  nav.index .grp{display:none}
-  nav.index a{
-    border-left:none;border-bottom:2px solid transparent;
-    padding:0 14px;white-space:nowrap;
-  }
-  nav.index a[aria-current="true"]{border-left:none;border-bottom-color:var(--accent)}
+.decision .note{font-size:15px;margin:14px 0 0;max-width:60ch;color:var(--ink-2)}
+.decision .force-note{margin-top:12px;font-size:13px;color:var(--warning-ink);font-weight:700}
+@media (max-width:640px){
+  .wrap{padding-left:16px;padding-right:16px}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 """
@@ -522,6 +419,17 @@ def _render_prose(body: str) -> str:
     return "".join(f"<p>{esc(p.strip())}</p>" for p in body.split("\n\n") if p.strip())
 
 
+def _parse_milestones(body: str) -> list[str]:
+    """The Lead's Next Steps as discrete milestones, not a paragraph blob — same numbered-line
+    detection as _render_next_steps, but returning plain strings so the caller can give each
+    one its own visually distinct block."""
+    lines = [ln.strip() for ln in body.splitlines() if ln.strip()]
+    numbered = [_NUMBERED_LINE_RE.match(ln) for ln in lines]
+    if lines and all(numbered):
+        return [m.group(1) for m in numbered]
+    return [p.strip() for p in body.split("\n\n") if p.strip()]
+
+
 def artifact_doc_html(text: str) -> str:
     """The five-section envelope (Objective/Body/Citations/Risks/Next Steps), escaped and
     given light structure. No markdown is interpreted — DESIGN.md settles escaping, not
@@ -558,11 +466,10 @@ def _plan_counts(lead_text: str | None) -> dict:
     }
 
 
-def _stat_tiles(manifest: dict, plan_counts: dict) -> str:
-    """The numbers a reader needs in the first five seconds: how many advisors worked this,
-    how much got challenged, where they disagreed, what needs a human. Severity gets color —
-    disagreements amber, escalations red — because that is the one thing worth seeing before
-    reading a word of prose."""
+def _summary_line(manifest: dict, plan_counts: dict) -> str:
+    """One orienting sentence, not a grid of tiles — this page is a story to read, not a
+    dashboard to scan. The numbers are still real and still colored by severity; they just
+    live in a sentence instead of a card."""
     plan = manifest.get("plan") or {}
     artifacts = manifest.get("artifacts") or []
     n_specialists = len(plan.get("roles") or [])
@@ -575,52 +482,41 @@ def _stat_tiles(manifest: dict, plan_counts: dict) -> str:
     decision = manifest.get("decision") or {}
     forced = bool(decision.get("forced"))
     if status == "pending":
-        gate_html = '<span class="chip chip-pending">Awaiting your decision</span>'
+        gate_html = '<span class="chip chip-pending">awaiting your decision</span>'
     elif forced:
-        gate_html = '<span class="chip chip-warning">Approved &mdash; forced</span>'
+        gate_html = '<span class="chip chip-warning">approved &mdash; forced</span>'
     else:
-        gate_html = '<span class="chip chip-good">Approved</span>'
+        gate_html = '<span class="chip chip-good">approved</span>'
 
     n_disagreements = plan_counts["disagreements"]
     n_escalations = plan_counts["escalations"]
-    tiles = [
-        ("Advisors dispatched", str(n_specialists), ""),
-        (
-            "Findings challenged",
-            str(n_findings),
-            "",
-        ),
-        ("Disagreements", str(n_disagreements), "warn" if n_disagreements else ""),
-        ("Escalations to you", str(n_escalations), "crit" if n_escalations else ""),
-    ]
-    cells = "".join(
-        f'<div class="stat"><div class="stat-value{" " + cls if cls else ""}">{esc(v)}</div>'
-        f'<div class="stat-label">{esc(label)}</div></div>'
-        for label, v, cls in tiles
+    disagree_cls = " warn" if n_disagreements else ""
+    escalate_cls = " crit" if n_escalations else ""
+    findings_word = "finding" if n_findings == 1 else "findings"
+    specialist_word = "specialist" if n_specialists == 1 else "specialists"
+    was_were = "was" if n_specialists == 1 else "were"
+    return (
+        '<p class="summary-line">'
+        f"<b>{n_specialists}</b> {specialist_word} {was_were} dispatched and challenged each "
+        f"other <b>{n_findings}</b> {findings_word} deep. They reached "
+        f'<b class="{disagree_cls.strip()}">'
+        f"{n_disagreements}</b> open disagreement{'s' if n_disagreements != 1 else ''} and "
+        f'<b class="{escalate_cls.strip()}">{n_escalations}</b> question'
+        f"{'s' if n_escalations != 1 else ''} only you can answer. This run is {gate_html}.</p>"
     )
-    cells += (
-        '<div class="stat stat-gate"><div class="stat-value">'
-        f"{gate_html}</div><div class=\"stat-label\">Gate</div></div>"
-    )
-    return f'<div class="stat-row" role="group" aria-label="This run at a glance">{cells}</div>'
 
 
-def _pending_decision_bar(manifest: dict, *, closing: bool) -> str:
+def _pending_decision_bar(manifest: dict) -> str:
     """The review surface for a run nobody has decided yet.
 
     Not a smaller version of the decided bar — a different purpose. It never claims a verdict
     (there is none), and instead of a record it prints the exact commands that would act on
     what the reader just read, including the --force and --note a flagged role actually requires
-    so the CTA never lies about how easy the decision in front of them is.
+    so the CTA never lies about how easy the decision in front of them is. Appears once, at the
+    close — the summary line up top already carries a compact "awaiting your decision" chip, so
+    the full record isn't duplicated before the story has even been told.
     """
     run_id = manifest.get("run_id", "")
-    if not closing:
-        return (
-            '<div class="gate pending">\n'
-            '<span class="verdict">AWAITING YOUR DECISION</span>\n'
-            f'<span class="who">Run {esc(run_id)}</span>\n'
-            "</div>"
-        )
     flagged = flagged_roles(manifest.get("artifacts") or [])
     if flagged:
         approve_cmd = (
@@ -652,80 +548,47 @@ def _pending_decision_bar(manifest: dict, *, closing: bool) -> str:
     )
 
 
-def _decision_bar(manifest: dict, *, closing: bool) -> str:
+def _decision_bar(manifest: dict) -> str:
+    """The record of what was decided, once — at the close, as the ending of the story rather
+    than a verdict spoiled at the top before any of it has been read."""
     if manifest.get("status") == "pending":
-        return _pending_decision_bar(manifest, closing=closing)
+        return _pending_decision_bar(manifest)
     decision = manifest.get("decision") or {}
     state = decision.get("state", "")
     forced = bool(decision.get("forced"))
     verdict = state.upper()
     if forced:
-        verdict += " &mdash; FORCED" if closing else ""
-    tag = "" if not (forced and not closing) else '<span class="forced-tag">Forced</span>'
+        verdict += " &mdash; FORCED"
     note = (
         f'<p class="note">&ldquo;{esc(decision.get("note", ""))}&rdquo;</p>'
         if decision.get("note")
         else ""
     )
-    cls = "gate forced" if forced else "gate"
-    if closing:
-        cls = "decision forced" if forced else "decision"
-        force_note = ""
-        if forced:
-            flagged = decision.get("flagged_roles") or []
-            force_note = (
-                f'<p class="force-note">Forced: {len(flagged)} role(s) carried findings a '
-                "human had to override in writing before this could be approved.</p>"
-            )
-        artifacts = manifest.get("artifacts") or []
-        clean = sum(1 for a in artifacts if a.get("sha256"))
-        return (
-            f'<section id="decision" class="{cls}">\n'
-            "<h2>Human decision</h2>\n"
-            '<p class="sub">Nothing here went anywhere until a person read it and said yes. '
-            "Before recording that, the system re-read every document to check nothing had "
-            "changed since they looked.</p>\n"
-            f'<div class="verdict">{verdict}</div>\n'
-            f'<div class="who">{esc(decision.get("by", ""))}</div>\n'
-            f'<div class="when">{esc(decision.get("at", ""))}</div>\n'
-            f"{note}\n{force_note}\n"
-            f'<p class="hash">Artifacts verified at decision time &middot; {clean} artifact(s), '
-            f'all sha256-checked &middot; forced: {str(forced).lower()} &middot; '
-            f'flagged roles: {esc(", ".join(decision.get("flagged_roles") or []) or "none")}</p>\n'
-            "</section>"
+    cls = "decision forced" if forced else "decision"
+    force_note = ""
+    if forced:
+        flagged = decision.get("flagged_roles") or []
+        force_note = (
+            f'<p class="force-note">Forced: {len(flagged)} role(s) carried findings a '
+            "human had to override in writing before this could be approved.</p>"
         )
+    artifacts = manifest.get("artifacts") or []
+    clean = sum(1 for a in artifacts if a.get("sha256"))
     return (
-        f'<div class="{cls}">\n'
-        f'<span class="verdict">{verdict}</span>\n{tag}\n'
-        f'<span class="who">{esc(decision.get("by", ""))}</span>\n'
-        f'<span class="when">{esc(decision.get("at", ""))}</span>\n'
-        f"{note}\n</div>"
+        f'<section id="decision" class="{cls}">\n'
+        "<h2>Human decision</h2>\n"
+        '<p class="sub">Nothing here went anywhere until a person read it and said yes. '
+        "Before recording that, the system re-read every document to check nothing had "
+        "changed since they looked.</p>\n"
+        f'<div class="verdict">{verdict}</div>\n'
+        f'<div class="who">{esc(decision.get("by", ""))}</div>\n'
+        f'<div class="when">{esc(decision.get("at", ""))}</div>\n'
+        f"{note}\n{force_note}\n"
+        f'<p class="hash">Artifacts verified at decision time &middot; {clean} artifact(s), '
+        f'all sha256-checked &middot; forced: {str(forced).lower()} &middot; '
+        f'flagged roles: {esc(", ".join(decision.get("flagged_roles") or []) or "none")}</p>\n'
+        "</section>"
     )
-
-
-def _nav(artifacts: list[dict]) -> str:
-    lead = next((a for a in artifacts if a["role"] == SYNTHESIS_ROLE and not a.get("error")), None)
-    rows = ['<div class="grp">Start here</div>', '<a href="#team" aria-current="true">Team</a>']
-    if lead:
-        rows.append('<a href="#plan" class="lead">The Team&#x27;s Plan</a>')
-    rows.append('<div class="grp">How the team got there</div>')
-    rows.append('<a href="#routing">Routing</a>')
-    for a in artifacts:
-        role = a["role"]
-        if role == SYNTHESIS_ROLE:
-            continue
-        title = esc(get_role(role).title)
-        rows.append(f'<div class="grp">{title}</div>')
-        if a.get("error"):
-            rows.append(f'<a href="#a-{_slug(role)}">Status</a>')
-            continue
-        if a.get("critique"):
-            n = len((a["critique"] or {}).get("points") or [])
-            rows.append(f'<a href="#c-{_slug(role)}">Critique ({n})</a>')
-        rows.append(f'<a href="#a-{_slug(role)}">Artifact</a>')
-    rows.append('<div class="grp">Gate</div>')
-    rows.append('<a href="#decision">Decision</a>')
-    return f'<nav class="index" aria-label="Sections of this run">{"".join(rows)}</nav>'
 
 
 # Fixed categorical order (never cycled/reassigned within a run) — a validated palette, not
@@ -750,41 +613,28 @@ def _initials(title: str) -> str:
     return letters or title[:2].upper()
 
 
-def _team_roster(artifacts: list[dict]) -> str:
-    """Who worked this engagement, at a glance, before the detail of what each one said.
-
-    This was the sharpest miss in the first version: a role title and a one-line remit in gray
-    text at the bottom of a wall of prose is not an answer to "who is on my team." A card per
-    specialist — a colored initial, the title, the remit, and how many challenges it took and
-    resolved — is the first thing on the page after the header, not something found by scrolling
-    past the plan.
-    """
+def _toc(artifacts: list[dict]) -> str:
+    """A table of contents, not a persistent sidebar to scan against every section: "here is
+    who was in the room," stated once, near the top, then the page moves on to the story of
+    what they actually said. Each row still links to that specialist's full account below."""
     items = []
     for i, a in enumerate(artifacts):
         role = a["role"]
         r = get_role(role)
         href = "#plan" if role == SYNTHESIS_ROLE else f"#a-{_slug(role)}"
         color = _TEAM_COLORS[i % len(_TEAM_COLORS)]
-        points = (a.get("critique") or {}).get("points") or []
-        chip = ""
-        if points:
-            accepted = sum(1 for p in points if p.get("disposition") == "accepted")
-            chip = (
-                f'<span class="chip chip-neutral">{len(points)} challenged '
-                f"&middot; {accepted} resolved</span>"
-            )
         items.append(
-            f'<li class="member"><a href="{href}">'
+            f'<li><a href="{href}">'
             f'<span class="avatar" style="background:{color}">{esc(_initials(r.title))}</span>'
-            '<span class="member-body">'
-            f'<span class="member-name">{esc(r.title)}</span>'
-            f'<span class="member-remit">{esc(r.instruction)}</span>'
-            f"{chip}</span></a></li>"
+            f'<span class="toc-name">{esc(r.title)}</span>'
+            f'<span class="toc-remit">{esc(r.instruction)}</span>'
+            "</a></li>"
         )
     return (
-        '<section id="team"><h2>Team on this engagement</h2>'
-        '<p class="sub">Every seat dispatched for this task, and what it owns.</p>'
-        f'<ul class="roster">{"".join(items)}</ul></section>'
+        '<section id="team"><h2>The team involved in this planning</h2>'
+        '<p class="sub">Every seat dispatched for this task. The rest of the page is the '
+        "story of what each one said, in the order they said it.</p>"
+        f'<ul class="toc-list">{"".join(items)}</ul></section>'
     )
 
 
@@ -800,91 +650,116 @@ def _critique_summary_line(critique: dict) -> str:
     return summary
 
 
-def _critique_body_html(critique: dict) -> str:
-    """The steelman, the pre-mortem, and every finding — shared between a specialist's own
-    Critique section and the Engagement Lead's own critique, which the plan gets too (see
-    orchestrator._do_synthesis) and which the old renderer never surfaced at all."""
+def _critique_exchanges_html(critique: dict) -> str:
+    """The pushback-and-response half of a story: steelman, pre-mortem, then each finding
+    paired immediately with the revision it produced (or the response given if it wasn't
+    accepted). Shared between a specialist's own account and the Engagement Lead's — the plan
+    gets challenged too (orchestrator._do_synthesis), and it deserves the same treatment."""
     parts = []
     if critique.get("steelman"):
         parts.append(
-            '<div class="quote-inline"><div class="lbl">The strongest case for it</div>'
+            '<div class="voice pushback"><div class="lbl">The strongest case for it</div>'
             f"<p>{esc(critique['steelman'])}</p></div>"
         )
     if critique.get("premortem"):
         parts.append(
-            '<div class="quote-inline"><div class="lbl">How this could go wrong</div>'
+            '<div class="voice pushback"><div class="lbl">How this could go wrong</div>'
             f"<p>{esc(critique['premortem'])}</p></div>"
         )
     for i, p in enumerate(critique.get("points") or [], 1):
         sev = (p.get("severity") or "minor").lower()
         status = _SEV_STATUS.get(sev, "info")
-        resolved = p.get("disposition") == "accepted"
-        disp_cls = "disp-resolved" if resolved else "disp-open"
-        disp_label = esc((p.get("disposition") or "pending").title())
+        dim = esc(p.get("dimension", ""))
+        parts.append('<div class="exchange">')
         parts.append(
-            '<article class="finding"><div class="fhead">'
-            f'<span class="n">{i}</span>'
-            f'<span class="sev-badge sev-{status}">{esc(sev.title())}</span>'
-            f'<span class="dim">{esc(p.get("dimension", ""))}</span>'
-            f'<span class="disp {disp_cls}">{disp_label}</span>'
-            "</div>"
-            f'<p class="claim">{esc(p.get("claim", ""))}</p>'
+            f'<div class="voice pushback"><div class="lbl">Pushback {i}'
+            f'{" &middot; " + dim if dim else ""}</div>'
+            f'<p><span class="sev {status}">{esc(sev.title())}</span>'
+            f"{esc(p.get('claim', ''))}</p></div>"
         )
         if p.get("response"):
+            resolved = p.get("disposition") == "accepted"
+            label = "Why they revised it" if resolved else "Their response"
             parts.append(
-                '<div class="answer"><div class="lbl">They answered</div>'
-                f'<p>{esc(p["response"])}</p></div>'
+                f'<div class="voice revision"><div class="lbl">{label}</div>'
+                f"<p>{esc(p['response'])}</p></div>"
             )
-        parts.append("</article>")
+        parts.append("</div>")  # .exchange
     return "\n".join(parts)
 
 
-def _critique_section(role: str, critique: dict) -> str:
-    """Collapsed by default, like the artifact below it — the summary line (count, resolved)
-    is the thing worth seeing while scanning the page; the steelman/pre-mortem/findings are one
-    click away, not a wall of text forced on every reader whether they asked for it or not."""
-    title = esc(get_role(role).title)
-    summary = _critique_summary_line(critique)
-    return (
-        f'<section id="c-{_slug(role)}">\n'
-        f'<h2>{title} <span class="kind">Critique</span></h2>\n'
-        '<details class="critique-detail">\n'
-        f'<summary><span class="meta">{summary}</span></summary>\n'
-        f'<div class="critique-body">{_critique_body_html(critique)}</div>\n'
-        "</details></section>"
+def _advisor_story(role: str, artifact: dict, text: str) -> str:
+    """One advisor's whole account, in the order it actually happened: what they were asked and
+    concluded, what they cited, the pushback the critic raised and why, and — paired right next
+    to each piece of pushback — why they revised (or didn't) in response. This replaces what
+    used to be two separate collapsed sections (Critique, then Artifact): a story reads as one
+    continuous account, not as two disclosures a reader has to open separately and reassemble
+    themselves. Open by default — this page is read start to finish, not scanned; the <details>
+    wrapper still lets a reader collapse an advisor they've already read.
+    """
+    r = get_role(role)
+    title = esc(r.title)
+    sections = split_sections(text)
+    critique = artifact.get("critique") or {}
+    points = critique.get("points") or []
+
+    remit_extra = ""
+    if points:
+        remit_extra = f" &mdash; {_critique_summary_line(critique)}"
+
+    parts = [
+        f'<details class="story" id="a-{_slug(role)}" open>',
+        "<summary>"
+        f'<span class="story-name">{title}</span>'
+        f'<span class="story-remit">{esc(r.instruction)}{remit_extra}</span>'
+        "</summary>",
+        '<div class="story-body">',
+    ]
+
+    position = "\n\n".join(
+        s for s in (sections.get("objective", ""), sections.get("body", "")) if s
     )
+    position_html = "".join(f"<p>{esc(p.strip())}</p>" for p in position.split("\n\n") if p.strip())
+    if position_html:
+        parts.append(
+            '<div class="voice position"><div class="lbl">Their position</div>'
+            f"{position_html}</div>"
+        )
+    citations = sections.get("citations", "")
+    cite_items = [ln.strip().lstrip("-").strip() for ln in citations.splitlines() if ln.strip()]
+    if cite_items:
+        linked = ", ".join(_linkify(esc(item)) for item in cite_items)
+        parts.append(f'<p class="cite-list"><b>Citing:</b> {linked}</p>')
 
+    parts.append(_critique_exchanges_html(critique))
 
-def _artifact_section(role: str, artifact: dict, text: str) -> str:
-    title = esc(get_role(role).title)
-    n_chars = f"{len(text):,} chars"
-    sha = artifact.get("sha256", "")
-    meta = f"{n_chars} &middot; sha256 {esc(sha[:9])}&hellip;"
-    if artifact.get("revised"):
-        meta += " &middot; revised"
+    risks = sections.get("risks", "")
+    if risks:
+        parts.append("<h4>What could go wrong</h4>")
+        parts.append(_render_prose(risks))
+    next_steps = sections.get("next steps", "")
+    if next_steps:
+        parts.append("<h4>What happens next</h4>")
+        parts.append(_render_next_steps(next_steps))
+
     verdict = ((artifact.get("review") or {}).get("verdict") or "").lower()
     issues = (artifact.get("review") or {}).get("issues") or []
     gov = "passed" if not issues else f"{len(issues)} issue(s)"
-    return (
-        f'<section id="a-{_slug(role)}">\n'
-        f'<h2>{title} <span class="kind">Artifact</span></h2>\n'
-        '<details class="artifact"><summary>Read the full artifact '
-        f'<span class="meta">{meta}</span></summary>\n'
-        f'<div class="doc">{artifact_doc_html(text)}</div>\n'
-        "</details>\n"
-        f'<p class="gov">Automated checks: <b>{esc(gov)}</b>'
-        f'{" (verdict: " + esc(verdict) + ")" if verdict else ""}.</p>\n'
-        "</section>"
+    parts.append(
+        f'<p class="sub">Automated checks: <b>{esc(gov)}</b>'
+        f'{" (verdict: " + esc(verdict) + ")" if verdict else ""}.</p>'
     )
+    parts.append("</div></details>")
+    return "\n".join(parts)
 
 
 def _absent_section(role: str, artifact: dict) -> str:
     title = esc(get_role(role).title)
     return (
-        f'<section id="a-{_slug(role)}">\n'
+        f'<div id="a-{_slug(role)}">\n'
         f'<h2>{title} <span class="kind">Status</span></h2>\n'
         f'<div class="absent">This seat produced nothing. {esc(artifact.get("error", ""))}</div>\n'
-        "</section>"
+        "</div>"
     )
 
 
@@ -896,8 +771,15 @@ def _register_group(name: str, entries: list[str], *, item_class: str = "", note
     for i, entry in enumerate(entries, 1):
         cls = f"reg-item {item_class}".strip()
         if name == "Decisions":
+            # A bold "Owner: X" chip read as a confident assignment the model never actually
+            # made — it's a role name the Lead guessed at, not someone who signed up for this.
+            # Say so plainly instead of dressing a guess as a decision.
             text, owner = _split_decision(entry)
-            owner_html = f'<div class="owner">Owner: <b>{esc(owner)}</b></div>' if owner else ""
+            owner_html = (
+                f'<p class="owner-note">A likely owner, not a confirmed one: {esc(owner)}</p>'
+                if owner
+                else ""
+            )
             items.append(
                 f'<div class="{cls}"><span class="n">{i}</span>'
                 f"<div><p>{esc(text)}</p>{owner_html}</div></div>"
@@ -966,16 +848,24 @@ def _synthesis_section(artifact: dict, text: str) -> str:
     )
     next_steps = sections.get("next steps", "")
     if next_steps:
+        milestones = _parse_milestones(next_steps)
+        items = "".join(
+            f'<li class="milestone"><span class="num">{i}</span><p>{esc(m)}</p></li>'
+            for i, m in enumerate(milestones, 1)
+        )
         parts.append(
             '<div class="register"><div class="register-head">'
-            "<h3>Implementation &amp; Timeline</h3></div>"
-            f'<div class="quote">{_render_next_steps(next_steps)}</div></div>'
+            "<h3>Milestones</h3>"
+            f'<span class="register-count">{len(milestones)}</span></div>'
+            '<p class="register-note">What has to happen, broken into steps you can track — '
+            "not a paragraph to reread, a checklist to build from.</p>"
+            f'<ol class="milestones">{items}</ol></div>'
         )
     risks = sections.get("risks", "")
     if risks:
         parts.append(
             '<div class="register"><div class="register-head"><h3>What Could Go Wrong</h3></div>'
-            f'<div class="quote"><p>{esc(risks)}</p></div></div>'
+            f'<div class="risks-box"><p>{esc(risks)}</p></div></div>'
         )
     lead_critique = artifact.get("critique")
     if lead_critique:
@@ -984,10 +874,12 @@ def _synthesis_section(artifact: dict, text: str) -> str:
         # never surfaced this at all; it's real debate, not a lesser or decorative addition.
         summary = _critique_summary_line(lead_critique)
         parts.append(
-            '<details class="critique-detail plan-critique">\n'
-            f'<summary><span class="meta">The plan itself was challenged &middot; {summary}'
-            "</span></summary>\n"
-            f'<div class="critique-body">{_critique_body_html(lead_critique)}</div>\n'
+            '<details class="story" open>\n'
+            "<summary>"
+            '<span class="story-name">The plan itself was challenged</span>'
+            f'<span class="story-remit">{summary}</span>'
+            "</summary>\n"
+            f'<div class="story-body">{_critique_exchanges_html(lead_critique)}</div>\n'
             "</details>"
         )
     parts.append("</section>")
@@ -1024,29 +916,29 @@ def render_run(manifest: dict, run_dir: Path) -> str:
     lead = next((a for a in artifacts if a["role"] == SYNTHESIS_ROLE and not a.get("error")), None)
     plan_counts = _plan_counts(texts.get(SYNTHESIS_ROLE))
 
-    # Team first: "who is on this" is the first question a reader has, not something found by
-    # scrolling past the plan. The plan follows immediately after — still the one deliverable
-    # to act on, just no longer the very first thing on the page.
-    sections_html = [_team_roster(artifacts)]
-    if lead:
-        sections_html.append(_synthesis_section(lead, texts[SYNTHESIS_ROLE]))
-
-    sections_html.append(
-        '<p class="section-divider">How the team got there &mdash; each advisor&#x27;s draft, '
-        "what got challenged, and what changed.</p>"
-    )
-    sections_html.append('<section id="routing"><h2>Routing</h2><p class="sub">')
+    n_advisors = len(plan.get("roles") or [])
     rules = plan.get("matched_rules") or []
     if rules:
-        sections_html.append(
+        route_note = (
             f"Matched by rule{'s' if len(rules) != 1 else ''}: "
-            + ", ".join(f"<code>{esc(r)}</code>" for r in rules)
-            + f", dispatching {len(plan.get('roles') or [])} advisor(s)."
+            + ", ".join(f"<code>{esc(r)}</code>" for r in rules) + "."
         )
     else:
-        sections_html.append("No rule matched; routed to the default specialist.")
-    sections_html.append("</p></section>")
+        route_note = "No rule matched; routed to the default specialist."
 
+    # Table of contents first — "who is on this" is the first question a reader has. Then the
+    # story, in the order it actually happened: each advisor reasoned it through alone and took
+    # real pushback, and only afterward did the Engagement Lead read everyone's finished work
+    # and bring it together. The plan comes last because it's the destination, not the opener —
+    # this page is meant to be read, not scanned for the verdict first.
+    sections_html = [_toc(artifacts)]
+
+    sections_html.append(
+        '<div class="act"><p class="act-label">How each advisor reasoned it through</p>'
+        f'<p class="sub">{route_note} Each one drafted independently, then a critic read that '
+        "one draft on its own and pushed back on it in writing &mdash; a real objection, not a "
+        "rubber stamp. Click an advisor to collapse it once you&#x27;ve read it.</p>"
+    )
     for a in artifacts:
         role = a["role"]
         if role == SYNTHESIS_ROLE:
@@ -1054,11 +946,21 @@ def render_run(manifest: dict, run_dir: Path) -> str:
         if a.get("error"):
             sections_html.append(_absent_section(role, a))
             continue
-        if a.get("critique"):
-            sections_html.append(_critique_section(role, a["critique"]))
-        sections_html.append(_artifact_section(role, a, texts[role]))
+        sections_html.append(_advisor_story(role, a, texts[role]))
+    sections_html.append("</div>")  # .act
 
-    sections_html.append(_decision_bar(manifest, closing=True))
+    if lead:
+        sections_html.append(
+            '<div class="act"><p class="act-label">Bringing it together</p>'
+            '<p class="sub">Once every advisor above had finished, the Engagement Lead read '
+            f"all {n_advisors} of their positions in full &mdash; this is where the "
+            "disagreements between them actually surface, and where one plan gets built from "
+            "what they each concluded.</p>"
+        )
+        sections_html.append(_synthesis_section(lead, texts[SYNTHESIS_ROLE]))
+        sections_html.append("</div>")  # .act
+
+    sections_html.append(_decision_bar(manifest))
 
     if headline:
         task_html = f'<h1 class="task">{esc(headline)}</h1>\n'
@@ -1100,21 +1002,17 @@ def render_run(manifest: dict, run_dir: Path) -> str:
 </div>
 <button type="button" id="theme-toggle" class="theme-toggle" aria-pressed="false">Dark mode</button>
 </div>
-<p class="orient">A team of AI advisors that argues with itself on purpose. Each one drafts, a
-critic pushes back on the record, and the Engagement Lead reads every artifact in full and
-reports back. Below: who&#x27;s on the team, then the Team&#x27;s Plan &mdash; what they recommend,
-decided, disagreed on, and need from you &mdash; then how each advisor got there. Nothing goes
-out until a person reads it and puts their name on it.</p>
+<p class="orient">This is the story of how this team reasoned through one task: who was
+dispatched, what each of them concluded on their own, the real pushback each one took, why they
+revised in response, where they disagreed with each other, and the plan the Engagement Lead
+built once everyone had finished. Nothing goes out until a person reads it and puts their name
+on it.</p>
 {task_html}
-{_stat_tiles(manifest, plan_counts)}
-{_decision_bar(manifest, closing=False)}
+{_summary_line(manifest, plan_counts)}
 </header>
-<div class="body">
-{_nav(artifacts)}
 <main>
 {"".join(sections_html)}
 </main>
-</div>
 </div>
 <script>
 (function(){{

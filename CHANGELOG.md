@@ -1,5 +1,49 @@
 # Changelog
 
+## 0.18.0 — 2026-09-03
+
+Shown the dashboard from v0.17.0, Tony's reaction was as specific as the one that motivated it:
+"I don't know what the fucking shit is on the left that I'm supposed to just scan through...
+This is supposed to read almost like a story of how they began their planning." The dashboard
+fixed visual identity and readability but was still built to be scanned — a persistent sidebar,
+stat tiles as the headline, critique reduced to badges. What was actually needed was a document:
+background, discussion, citations, pushback and why, revision and why, in the order it happened,
+ending in the plan.
+
+- **No persistent chrome.** The sidebar nav is gone entirely. The page is one column, read top to
+  bottom.
+- **A table of contents, not a dashboard.** "The team involved in this planning" is stated once,
+  near the top — every dispatched role, a colored initial, its remit — then the page moves on.
+- **Each advisor's critique and artifact are merged into one continuous account**, open by
+  default: their position (from Objective + Body, with citations woven in), the steelman, the
+  pre-mortem, then every pushback finding paired immediately with the revision it produced — an
+  actual exchange, not two disconnected lists a reader has to reassemble themselves.
+- **The stat-tile grid became one summary sentence** with inline, severity-colored numbers — "8
+  specialists were dispatched and challenged each other 34 findings deep..." — because this page
+  is a story to read, not a dashboard to scan.
+- **The human decision moved to the close only.** The dashboard duplicated the full decision
+  record in the header (a holdover from the old "90-second reader" design principle) — for an
+  approved run this meant the ending was spoiled before the story had been told. It now appears
+  once, at the end, as the story's conclusion. The orienting sentence up top keeps a compact
+  status chip; the full record does not.
+- **Decisions carry no "Owner" chip.** Tony: "You put owners in there, which I'm not really even
+  sure about" — right to doubt it, since the name is the Engagement Lead's guess, not a
+  confirmed assignment. Now a plain, de-emphasized note: "A likely owner, not a confirmed one: X."
+- **The Lead's Next Steps are a numbered Milestones checklist**, not a paragraph to reread.
+- Dead code from both changes removed: the `.gate`/`_nav`/`_stat_tiles`/`_critique_section`/
+  `_artifact_section` machinery the dashboard introduced, once the narrative superseded it.
+- Verified visually in a real browser against the committed synthesis fixture (light, dark,
+  the full advisor exchange, the milestone breakout, the decision at the close) before shipping.
+- Attempted a fresh live run against a new scenario Tony asked for (an AI adoption-enablement
+  engagement for a hospitality company, deliberately not reusing Tribe AI/Hyatt contract
+  material per that engagement's own IP-containment rule — an original scenario in the same
+  genre instead) — OpenRouter's account credits were exhausted partway through three attempts.
+  Confirmed via the API's own error (`This request requires more credits... but can only afford
+  3660`), not a bug in this change. Shipped verified against the existing, already-real committed
+  fixture instead; the new scenario is ready to run the moment the account has credits again.
+- 207 tests (same count; net rewrite, not net-new coverage — the removed dashboard tests were
+  replaced one-for-one with narrative-structure tests), ruff clean, no eval regression.
+
 ## 0.17.0 — 2026-09-03
 
 Tony's reaction to the first rendered dashboard, verbatim: "I don't know who they are... I would

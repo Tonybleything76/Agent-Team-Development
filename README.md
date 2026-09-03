@@ -168,12 +168,13 @@ including the per-artifact SHA-256. Nothing there is a mock.
   Escalations. Carries the repo's first `decision` key: approved with `--force` because three
   escalations means three questions only a human can answer.
 
-Any of the three approved runs can be turned into a dashboard with
+Any of the three approved runs can be turned into the rendered report with
 `uv run huminloop render <run_id>` (needs the run under `out/approved/`, not the `docs/` copy —
 run one yourself or point `--root` at a directory holding the example). The page is the system
-in `DESIGN.md`: a validated color palette, a team roster with visual identity per advisor, stat
-tiles at a glance, severity shown as colour plus word rather than colour alone, light by default
-with an in-page dark toggle.
+in `DESIGN.md`: a narrative, read start to finish rather than scanned — who was on the team, each
+advisor's own reasoning and citations, the real pushback each one took and why they revised, where
+they disagreed, then the plan — with a validated color palette, severity shown as colour plus
+word rather than colour alone, light by default with an in-page dark toggle.
 
 The same task run before the Strategist persona existed produced confident benchmark figures
 with no sourcing. With the persona it produces labelled assumptions:
@@ -199,7 +200,7 @@ uv run python -m evals.run   # scored eval; writes evals/results/latest.json (gi
                              # fails on regression against the committed evals/results/baseline.json
 ```
 
-At v0.17.0 that is 207 tests green and no eval regression. Router exact-plan 0.957 (1.000 on the
+At v0.18.0 that is 207 tests green and no eval regression. Router exact-plan 0.957 (1.000 on the
 easy regression cases, 0.913 on the deliberately ambiguous hard ones), governance verdict and issue
 recall both 1.000, persona coverage 22/22, and the house brief reaching 22/22 specialists.
 
