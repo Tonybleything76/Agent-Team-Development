@@ -94,9 +94,28 @@ pattern (colored left-border on cards). Kept knowingly: it is a single semantic 
 one element that matters most, not a decorative rail repeated across a card grid. If it ever
 appears on a second element, it has become decoration and should be removed.
 
+## Pending review state (decided 2026-09-03)
+
+Added when the goal became a page the consulting lead reviews to decide, not only a record of a
+decision already made. Same page, same debate, same Team's Plan — two things change:
+
+- **The decision bar reports "not yet decided," never a verdict.** `--faint` for the border and
+  `--ink-2` for the verdict text — deliberately neither the accent green (that is reserved for
+  an actual decision) nor the forced amber (that would misreport a state nobody has reached).
+  The closing section replaces the record (who, when, the hash-check note) with the exact CLI
+  commands that would act on what the reader just read, `--force`/`--note` included when
+  governance actually requires them — the CTA must never understate what a flagged run needs.
+- **A "Team on this engagement" section**, right after the section divider and before Routing:
+  every dispatched role's title and one-line remit, each linking to that specialist's own
+  section. Answers "who is on this" as its own question rather than leaving it implied by the
+  nav, on a page a reader may now open before knowing the team at all.
+
+Forced approval was already decided before this (amber `#8a5a12`, documented under Color above);
+listing it as undecided here was a stale carry-over from the original plan and is corrected.
+
 ## Not yet decided
 
-- Treatment for the four non-approved decision states (forced, rejected, pending, errored). The
-  states are specified in the plan; their visual treatment is not.
+- Treatment for rejected and errored-run states. Pending and forced are now both decided (this
+  file, and the "Pending review state" section above); rejected and errored remain unspecified.
 - Whether the artifact disclosure should render markdown or stay preformatted. The plan settles
   escaping (`html.escape` on everything); it does not settle rendering.

@@ -130,12 +130,18 @@ uv sync                      # creates .venv from the pinned uv.lock
 uv run huminloop roles         # the team
 uv run huminloop run "Build an AI transformation roadmap and ROI model for a manufacturer"
 uv run huminloop pending       # what is waiting for a human
-uv run huminloop show <run_id> # read the manifest and every artifact
+uv run huminloop show <run_id> # read the manifest and every artifact in the terminal
+uv run huminloop render <run_id>                  # the same run as a reviewable HTML report
 uv run huminloop approve <run_id> --by "Your Name"
 uv run huminloop reject  <run_id> --by "Your Name" --reason "placeholder content"
 uv run huminloop resynthesize <run_id>            # retry a failed Engagement Lead synthesis
-uv run huminloop render <run_id>                  # approved run -> self-contained HTML report
 ```
+
+`render` works on a **pending** run, not only an approved one: it is the page a consulting lead
+reads to decide, carrying the same debate and the same Team's Plan, with the decision section
+replaced by the exact `approve`/`reject` commands the run actually needs (`--force`/`--note`
+included when governance requires them). Render again after deciding and the same page becomes
+the record.
 
 To use a real model: `cp .env.example .env`, set `LLM_PROVIDER=openrouter` and
 `OPENROUTER_API_KEY`, then `uv sync --extra openai` (OpenRouter speaks the OpenAI

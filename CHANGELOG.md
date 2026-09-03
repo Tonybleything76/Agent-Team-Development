@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.16.0 — 2026-09-03
+
+The rendered report only ever showed a decision already made. That meant the consulting lead's
+actual review step — reading the debate and the Team's Plan to decide — happened in the
+terminal, via `huminloop show`'s manifest dump, and the rich page only existed as an
+after-the-fact record nobody used to decide anything. The one thing the page was built to make
+legible — the debate, each advisor's contribution, the plan — was invisible at exactly the
+moment it mattered most.
+
+- **`huminloop render` now works on a pending run, not only an approved one.** Same page, same
+  critique sections, same Team's Plan (Recommendation, Decisions, Disagreements, Escalations,
+  Implementation & Timeline) — the decision section is replaced by a plain "not yet decided"
+  state and the exact `approve`/`reject` commands the run needs, `--force`/`--note` included
+  whenever governance actually requires them, so the CTA can never understate what a flagged
+  run is asking for. `render_run`'s integrity check (`verify_artifacts`, re-deriving every
+  artifact's review from the bytes on disk) runs the same either side of the decision.
+- **New "Team on this engagement" section**: every dispatched specialist's title and one-line
+  remit, each linking to its own section — "who's on this" answered as its own question rather
+  than left implicit in the nav.
+- Rejected and errored runs remain genuinely undesigned, per `DESIGN.md`, and still refuse with
+  `RenderError`.
+- `DESIGN.md`: pending's visual treatment is now a decided part of the system, documented under
+  "Pending review state." Forced approval's amber treatment was already decided before this
+  change; the doc's own "not yet decided" list had gone stale on that point and is corrected.
+- 202 → 205 tests (two "refuses pending" tests became "renders the review surface" tests; new
+  coverage for a flagged pending run and for the still-refused rejected state), ruff clean, no
+  eval regression (render.py isn't eval-scored).
+- Demonstrated against a fresh live run — a predictive-maintenance-at-scale scenario dispatching
+  six advisors plus the Engagement Lead — reviewed through this page while still pending, not
+  after the fact.
+
 ## 0.15.0 — 2026-09-03
 
 Persona coverage sat at 14/22 since the roster rebuild: every transformation advisor and the two

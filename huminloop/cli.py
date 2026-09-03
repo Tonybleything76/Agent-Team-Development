@@ -233,7 +233,10 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("run_id")
     s.set_defaults(fn=_cmd_show)
 
-    s = sub.add_parser("render", help="render an approved run to a self-contained HTML report")
+    s = sub.add_parser(
+        "render",
+        help="render an approved or pending run to a self-contained HTML report",
+    )
     s.add_argument("run_id")
     s.add_argument("--out", help="output path (default: <run_dir>/run.html)")
     s.set_defaults(fn=_cmd_render)

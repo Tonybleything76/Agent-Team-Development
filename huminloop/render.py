@@ -1,12 +1,15 @@
-"""Render an approved run's manifest and artifacts into the DESIGN.md HTML report.
+"""Render a run's manifest and artifacts into the DESIGN.md HTML report.
 
 The CSS below is a direct copy of docs/design/run-renderer-reference.html — the approved
 "Institutional Briefing" system. If the two ever disagree, the reference file is the source of
 truth; this module's CSS constant should be updated to match it, never the other way round.
 
-Only approved runs are supported. Rejected, pending and errored-run states are visually
-undecided (see DESIGN.md "Not yet decided") and rendering one would be inventing a design this
-project has not actually settled on.
+Approved and pending runs are both supported. Pending is the review surface: the consulting
+lead reads the same page — the debate, every advisor's contribution, the Team's Plan — and acts
+from the exact CLI commands the decision section prints, rather than reading a terminal
+`show` dump first. Rejected and errored-run states remain visually undecided (see DESIGN.md
+"Not yet decided") and rendering one would be inventing a design this project has not actually
+settled on.
 """
 
 import html
@@ -161,6 +164,11 @@ h1.task{
   font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
   color:#8a5a12;border:1px solid #8a5a12;padding:2px 8px;
 }
+.gate.pending{
+  background:var(--panel);border-left-color:var(--faint);
+}
+.gate.pending .verdict{color:var(--ink-2)}
+.gate.pending code{background:var(--ground)}
 .body{
   display:grid;grid-template-columns:190px minmax(0,1fr);
   gap:56px;margin-top:52px;align-items:start;
@@ -287,10 +295,33 @@ details.artifact .doc li{margin:0 0 8px}
   padding:20px 24px;background:var(--panel);max-width:74ch;
   font-size:15px;color:var(--ink-2);
 }
+.roster{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+  gap:18px 28px;margin:8px 0 0;padding:0;list-style:none;
+}
+.roster li{border-top:1px solid var(--rule-soft);padding-top:12px}
+.roster a{font-weight:600;font-size:15px;color:var(--ink);text-decoration:none}
+.roster a:hover{color:var(--accent)}
+.roster p{margin:4px 0 0;font-size:13px;color:var(--muted);max-width:38ch}
 .decision{border-top:2px solid var(--accent);padding-top:26px}
 .decision.forced{border-top-color:#8a5a12}
+.decision.pending{border-top-color:var(--faint)}
 .decision .verdict{font-size:13px;font-weight:700;letter-spacing:.16em;color:var(--accent-ink)}
 .decision.forced .verdict{color:#8a5a12}
+.decision.pending .verdict{color:var(--ink-2)}
+.decision .cta{
+  font-family:"Spectral",Georgia,serif;font-weight:300;font-size:17px;
+  margin:14px 0 0;max-width:64ch;color:var(--ink-2);
+}
+.decision .cmd{
+  margin-top:16px;display:flex;flex-direction:column;gap:8px;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:13px;
+}
+.decision .cmd code{
+  background:var(--panel);padding:8px 12px;display:block;max-width:74ch;
+  overflow-x:auto;white-space:pre;
+}
+.decision .flag-list{margin-top:14px;font-size:13px;color:#8a5a12;font-weight:600;max-width:64ch}
 .decision .who{font-family:"Spectral",Georgia,serif;font-size:32px;font-weight:400;margin-top:10px}
 .decision .when{font-size:13px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
 .decision .note{
@@ -447,7 +478,10 @@ def _flow_strip(manifest: dict) -> str:
     has_synthesis = any(a.get("role") == SYNTHESIS_ROLE and not a.get("error") for a in artifacts)
     decision = manifest.get("decision") or {}
     forced = bool(decision.get("forced"))
-    gate_val = "Released &mdash; forced" if forced else "Released"
+    if manifest.get("status") == "pending":
+        gate_val = "Awaiting your decision"
+    else:
+        gate_val = "Released &mdash; forced" if forced else "Released"
 
     steps = [
         ("Route", route_val),
@@ -468,7 +502,56 @@ def _flow_strip(manifest: dict) -> str:
     return f'<ol class="flow" aria-label="What happened in this run">{lis}</ol>'
 
 
+def _pending_decision_bar(manifest: dict, *, closing: bool) -> str:
+    """The review surface for a run nobody has decided yet.
+
+    Not a smaller version of the decided bar — a different purpose. It never claims a verdict
+    (there is none), and instead of a record it prints the exact commands that would act on
+    what the reader just read, including the --force and --note a flagged role actually requires
+    so the CTA never lies about how easy the decision in front of them is.
+    """
+    run_id = manifest.get("run_id", "")
+    if not closing:
+        return (
+            '<div class="gate pending">\n'
+            '<span class="verdict">AWAITING YOUR DECISION</span>\n'
+            f'<span class="who">Run {esc(run_id)}</span>\n'
+            "</div>"
+        )
+    flagged = flagged_roles(manifest.get("artifacts") or [])
+    if flagged:
+        approve_cmd = (
+            f'huminloop approve {run_id} --by "Your Name" --force --note "..."'
+        )
+        flag_html = (
+            f'<p class="flag-list">{len(flagged)} role(s) carried findings that require '
+            f"<code>--force</code> and a <code>--note</code> to approve: "
+            f'{esc(", ".join(flagged))}.</p>'
+        )
+    else:
+        approve_cmd = f'huminloop approve {run_id} --by "Your Name"'
+        flag_html = ""
+    reject_cmd = f'huminloop reject {run_id} --by "Your Name" --reason "..."'
+    return (
+        '<section id="decision" class="decision pending">\n'
+        "<h2>Your decision</h2>\n"
+        '<p class="sub">Nothing here goes anywhere until you read it and say yes. The debate '
+        "is above &mdash; every advisor's draft, what got challenged, and the Team's Plan at "
+        "the top.</p>\n"
+        '<div class="verdict">NOT YET DECIDED</div>\n'
+        '<p class="cta">Act from here once you have read it:</p>\n'
+        '<div class="cmd">\n'
+        f"<code>{esc(approve_cmd)}</code>\n"
+        f"<code>{esc(reject_cmd)}</code>\n"
+        "</div>\n"
+        f"{flag_html}\n"
+        "</section>"
+    )
+
+
 def _decision_bar(manifest: dict, *, closing: bool) -> str:
+    if manifest.get("status") == "pending":
+        return _pending_decision_bar(manifest, closing=closing)
     decision = manifest.get("decision") or {}
     state = decision.get("state", "")
     forced = bool(decision.get("forced"))
@@ -525,6 +608,7 @@ def _nav(artifacts: list[dict]) -> str:
         rows.append('<a href="#plan" class="lead" aria-current="true">The Team&#x27;s Plan</a>')
     rows.append('<div class="grp">How the team got there</div>')
     routing_current = "" if lead else ' aria-current="true"'
+    rows.append('<a href="#team">Team</a>')
     rows.append(f'<a href="#routing"{routing_current}>Routing</a>')
     for a in artifacts:
         role = a["role"]
@@ -542,6 +626,28 @@ def _nav(artifacts: list[dict]) -> str:
     rows.append('<div class="grp">Gate</div>')
     rows.append('<a href="#decision">Decision</a>')
     return f'<nav class="index" aria-label="Sections of this run">{"".join(rows)}</nav>'
+
+
+def _team_roster(artifacts: list[dict]) -> str:
+    """Who worked this engagement, at a glance, before the detail of what each one said.
+
+    Answers "who's on my team" as its own question rather than leaving it implied by the nav —
+    title plus the one-line remit a human would recognize, each linking straight to that
+    specialist's own section.
+    """
+    items = []
+    for a in artifacts:
+        role = a["role"]
+        r = get_role(role)
+        href = "#plan" if role == SYNTHESIS_ROLE else f"#a-{_slug(role)}"
+        items.append(
+            f'<li><a href="{href}">{esc(r.title)}</a><p>{esc(r.instruction)}</p></li>'
+        )
+    return (
+        '<section id="team"><h2>Team on this engagement</h2>'
+        '<p class="sub">Every seat dispatched for this task, and what it owns.</p>'
+        f'<ul class="roster">{"".join(items)}</ul></section>'
+    )
 
 
 _SEV_GLYPH = {"blocking": "&#9632;&#9632;&#9632;", "serious": "&#9632;&#9632;", "minor": "&#9632;"}
@@ -714,13 +820,22 @@ def _synthesis_section(artifact: dict, text: str) -> str:
 
 
 def render_run(manifest: dict, run_dir: Path) -> str:
-    """Render one approved run to a self-contained HTML page matching DESIGN.md."""
-    if manifest.get("status") != "approved":
+    """Render one run to a self-contained HTML page matching DESIGN.md.
+
+    Approved and pending runs both render. Pending is not a lesser case: it is the page a
+    consulting lead reviews *before* deciding, so it carries the same debate and the same Team's
+    Plan, with the decision section replaced by a call to act rather than a record of one.
+    """
+    status = manifest.get("status")
+    if status not in ("approved", "pending"):
         raise RenderError(
-            f"run '{manifest.get('run_id')}' is {manifest.get('status')!r}, not approved; "
-            "only approved runs can be rendered"
+            f"run '{manifest.get('run_id')}' is {status!r}; only approved or pending runs can "
+            "be rendered"
         )
-    verify_artifacts(run_dir, manifest)  # refuse to render if bytes were tampered post-decision
+    # Same integrity check either side of the decision: verify_artifacts re-derives each
+    # artifact's review from the bytes on disk, so a pending render can't show a plan whose
+    # governance verdict no longer matches what's actually there any more than an approved one.
+    verify_artifacts(run_dir, manifest)
 
     artifacts = manifest.get("artifacts") or []
     texts = {
@@ -741,6 +856,7 @@ def render_run(manifest: dict, run_dir: Path) -> str:
         '<p class="section-divider">How the team got there &mdash; each advisor&#x27;s draft, '
         "what got challenged, and what changed.</p>"
     )
+    sections_html.append(_team_roster(artifacts))
     sections_html.append('<section id="routing"><h2>Routing</h2><p class="sub">')
     rules = plan.get("matched_rules") or []
     if rules:

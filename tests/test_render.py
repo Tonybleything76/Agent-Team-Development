@@ -118,11 +118,39 @@ def test_register_group_none_reads_as_none_not_a_bare_zero():
 # --------------------------------------------------------------------------- refusal rules
 
 
-def test_render_refuses_a_pending_run(workdir, fake_llm):
+def test_render_a_pending_run_shows_the_review_surface(workdir, fake_llm):
+    """Pending is the consulting lead's review page, not a refusal: it must carry the exact
+    commands that act on it, and must never claim a verdict nobody has actually reached."""
     rec = orchestrator.run("Draft an RFP response and SOW", llm=fake_llm)
     d = artifact_root() / "pending" / rec.run_id
     manifest = json.loads((d / "manifest.json").read_text())
-    with pytest.raises(RenderError, match="not approved"):
+    page = render_run(manifest, d)
+    assert page.startswith("<!doctype html>")
+    assert "AWAITING YOUR DECISION" in page
+    assert f"huminloop approve {rec.run_id}" in page
+    assert f"huminloop reject {rec.run_id}" in page
+    assert "Human decision" not in page  # no record exists yet to report
+    assert '<section id="team">' in page
+
+
+def test_render_a_pending_run_with_flagged_roles_shows_the_force_requirement(workdir):
+    failing = RecordingLLM(fail_roles=["legal"])
+    rec = orchestrator.run("Draft an RFP response and SOW", llm=failing)
+    d = artifact_root() / "pending" / rec.run_id
+    manifest = json.loads((d / "manifest.json").read_text())
+    page = render_run(manifest, d)
+    assert "--force" in page and "--note" in page
+    assert "legal" in page.split('<section id="decision"', 1)[1]
+
+
+def test_render_refuses_a_rejected_run(workdir, fake_llm):
+    """Rejected stays genuinely undesigned (DESIGN.md "Not yet decided") — only approved and
+    pending are supported."""
+    rec = orchestrator.run("Draft an RFP response and SOW", llm=fake_llm)
+    gate.reject(rec.run_id, by="Tony", reason="not this one")
+    d = artifact_root() / "rejected" / rec.run_id
+    manifest = json.loads((d / "manifest.json").read_text())
+    with pytest.raises(RenderError, match="approved or pending"):
         render_run(manifest, d)
 
 
@@ -198,15 +226,30 @@ def test_render_via_cli(workdir, fake_llm, monkeypatch, capsys):
     assert written.read_text(encoding="utf-8").startswith("<!doctype html>")
 
 
-def test_render_via_cli_refuses_pending(workdir, fake_llm, monkeypatch, capsys):
+def test_render_via_cli_pending(workdir, fake_llm, monkeypatch, capsys):
     import huminloop.cli as cli
 
     monkeypatch.setattr(cli, "get_llm", lambda provider=None: fake_llm)
     assert cli.main(["run", "Draft an RFP response and SOW"]) == 0
     run_id = capsys.readouterr().out.split("run_id: ")[1].split()[0]
+    assert cli.main(["render", run_id]) == 0
+    out = capsys.readouterr().out
+    assert "wrote" in out
+    written = artifact_root() / "pending" / run_id / "run.html"
+    assert written.exists()
+    assert "AWAITING YOUR DECISION" in written.read_text(encoding="utf-8")
+
+
+def test_render_via_cli_refuses_rejected(workdir, fake_llm, monkeypatch, capsys):
+    import huminloop.cli as cli
+
+    monkeypatch.setattr(cli, "get_llm", lambda provider=None: fake_llm)
+    assert cli.main(["run", "Draft an RFP response and SOW"]) == 0
+    run_id = capsys.readouterr().out.split("run_id: ")[1].split()[0]
+    assert cli.main(["reject", run_id, "--by", "Tony", "--reason", "not this one"]) == 0
     assert cli.main(["render", run_id]) == 2
     err = capsys.readouterr().err
-    assert "not approved" in err
+    assert "approved or pending" in err
 
 
 # --------------------------------------------------------------------------- the real example
@@ -221,7 +264,7 @@ def test_render_the_committed_synthesis_example(tmp_path):
     shutil.copytree(FIXTURE_DIR, d)
     page = render_run(manifest, d)
 
-    assert page.count("<section") == 19  # routing + 8×(critique+artifact) + plan + decision
+    assert page.count("<section") == 20  # team + routing + 8×(critique+artifact) + plan + decision
     assert '<section id="plan">' in page
     assert page.index('id="plan"') < page.index('id="routing"')  # the plan leads, not buried
     assert '<span class="register-count">6</span>' in page  # Decisions
