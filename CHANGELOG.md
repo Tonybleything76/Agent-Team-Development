@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.15.0 — 2026-09-03
+
+Persona coverage sat at 14/22 since the roster rebuild: every transformation advisor and the two
+oldest routes had a point of view, but eight real, routable specialists — `sales`,
+`product_manager`, `product_developer`, `cybersecurity`, `privacy`, `hr`, `operations`, `qa_qc` —
+were still falling back to a one-line remit. A team that argues transformation fails for human
+reasons and then lets a third of its own roster produce generic output on exactly the tasks
+where that matters (a role redesign, a data flow map, a POC's untested edge cases) has not
+earned the word "trustworthy" yet.
+
+- **All 22 specialists now have a persona.** Same house voice as the rest of the roster: first
+  person, a distinct register per seat, and a `## Where I stop and ask` section that names a
+  real refusal rather than a generic disclaimer — Sales won't quote a number it wasn't given
+  authority to quote, Product Developer won't ship a connector that swallows its own errors,
+  HR will use the words "headcount reduction" rather than laundering them into "efficiency,"
+  QA/QC holds its own deliverable to the identical bar it applies as the team's critic on
+  everyone else's.
+- `persona_coverage` 0.636 (14/22) → **1.000 (22/22)**. Baseline re-set; no other metric moved.
+- Two tests hardcoded `"hr"` as the example of "a role with no persona" — the same fragility
+  the router evals already learned to avoid (a hardcoded specialist name breaks the moment the
+  roster completes around it). Repointed at a synthetic role built in the test itself, so no
+  future persona can retire this coverage again.
+- README's Personas section and metrics still described 13 written personas and a
+  `## Refuse or escalate` heading — both stale since v0.11.0's voice rewrite and this coverage
+  jump. Corrected; the "13 of 22" limitation is removed from What This Is Not since it no
+  longer holds.
+- 183 → 202 tests, ruff clean, eval re-baselined with no regression (h05 and t12 remain the two
+  expected hard-case failures).
+
 ## 0.14.0 — 2026-09-02
 
 The rendered page buried the one thing a reader actually needs — what the team decided, and

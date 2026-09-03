@@ -283,27 +283,41 @@ def test_persona_is_appended_to_the_system_prompt_when_one_exists():
     assert "budget your length" in system  # the house contract still applies
 
 
-def test_roles_without_a_persona_still_work():
+def test_roles_without_a_persona_still_work(tmp_path, monkeypatch):
+    """Every real specialist now has a persona (coverage reached 1.0), so this proves the
+    no-persona fallback with a synthetic role rather than hardcoding a real one — the last
+    version of this test hardcoded "hr" as the example, which broke the moment hr got a
+    persona. A synthetic key can never be completed out from under the test."""
+    import huminloop.personas as personas
     from huminloop.llm import build_prompt
-    from huminloop.personas import has_persona
-    from huminloop.roles import get_role
+    from huminloop.roles import Role, Tier
 
-    assert not has_persona("hr")
-    system, _ = build_prompt(get_role("hr"), "task", "")
-    assert "Your working brief:" not in system and "HR" in system
+    monkeypatch.setattr(personas, "PERSONA_DIR", tmp_path)
+    fake_role = Role("no_persona_fixture", "NO PERSONA FIXTURE", Tier.SUPPORT, "test remit")
+    assert not personas.has_persona(fake_role.key)
+    system, _ = build_prompt(fake_role, "task", "")
+    assert "Your working brief:" not in system and "NO PERSONA FIXTURE" in system
 
 
-def test_house_brief_reaches_every_specialist_even_without_a_persona():
+def test_house_brief_reaches_every_specialist_even_without_a_persona(tmp_path, monkeypatch):
+    import huminloop.personas as personas
     from huminloop.llm import build_prompt
-    from huminloop.personas import has_persona, load_house_brief
-    from huminloop.roles import SPECIALISTS, get_role
+    from huminloop.personas import load_house_brief
+    from huminloop.roles import SPECIALISTS, Role, Tier, get_role
 
     house = load_house_brief()
     assert house and "techno-social" in house
     for key in SPECIALISTS:
         system, _ = build_prompt(get_role(key), "task", "")
         assert house in system, key
-    assert not has_persona("hr")  # a role with no persona still gets the house brief
+
+    # A role with no persona still gets the house brief — proved with a synthetic role since
+    # every real specialist now has one.
+    monkeypatch.setattr(personas, "PERSONA_DIR", tmp_path)
+    fake_role = Role("no_persona_fixture_2", "NO PERSONA FIXTURE 2", Tier.SUPPORT, "test remit")
+    assert not personas.has_persona(fake_role.key)
+    system, _ = build_prompt(fake_role, "task", "")
+    assert house in system
 
 
 def test_house_brief_is_not_mistaken_for_a_role_persona():

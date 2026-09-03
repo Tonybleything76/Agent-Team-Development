@@ -112,12 +112,12 @@ checkpoint where a system gains authority over safety, money or someone's job, a
 reduction" in those words rather than laundering it into "productivity". The eval gates that all
 22 specialists receive it.
 
-Thirteen personas are written, covering every transformation advisor and the `strategy` and
-`proposal` routes end to end. Each carries a `## Refuse or escalate` section, gated by the eval:
-the Value Realization Lead will not call a pilot successful on a proxy metric, the Governance
-Advisor never opines on whether something is legal, and `legal` routes anything needing counsel to
-a human. The refusal is what makes a persona an advisor rather than a generator. The eval gates
-that personas stay well-formed and reach the prompt; it does not grade the writing.
+All 22 specialists have a persona. Each carries a `## Where I stop and ask` section, gated by
+the eval: the Value Realization Lead will not call a pilot successful on a proxy metric, the
+Governance Advisor never opines on whether something is legal, and `legal` routes anything
+needing counsel to a human. The refusal is what makes a persona an advisor rather than a
+generator. The eval gates that personas stay well-formed and reach the prompt; it does not grade
+the writing.
 
 ## Run it
 
@@ -192,9 +192,9 @@ uv run python -m evals.run   # scored eval; writes evals/results/latest.json (gi
                              # fails on regression against the committed evals/results/baseline.json
 ```
 
-At v0.9.0 that is 158 tests green and no eval regression. Router exact-plan 0.957 (1.000 on the
+At v0.15.0 that is 202 tests green and no eval regression. Router exact-plan 0.957 (1.000 on the
 easy regression cases, 0.913 on the deliberately ambiguous hard ones), governance verdict and issue
-recall both 1.000, persona coverage 13/22, and the house brief reaching 22/22 specialists.
+recall both 1.000, persona coverage 22/22, and the house brief reaching 22/22 specialists.
 
 **Read the holdout number, not the derived one.** `transformation_route_coverage` is reported three
 ways. The routing keywords were extracted from ten transformation cases, so the derived set scores
@@ -208,7 +208,6 @@ gates on. The gap between them is the overfitting the holdout exists to expose.
 - Not connected to tools yet. MCP server wiring from the first sketch was removed because it never worked. It stays parked: the 2026-08 review found the team was staffed wrong, and tool access would only have made a mis-staffed team faster.
 - Not a claim about output quality. The dry-run provider exists to prove the control flow, not the content, and the eval is a regression harness over fixed cases — it measures that the rules do what they say, not that routing or governance is good in the wild. The eval's "hard" router cases are there to keep that honest; see the committed `evals/results/baseline.json` (and `latest.json` after you run the eval).
 - The critique loop is one round, and the critic is a single role (QA/QC). It proves that structured challenge changes the deliverable; it does not prove the challenge is always right, and 100% acceptance in the committed example run is a signal to watch rather than a score.
-- Only 13 of 22 specialists have a persona. The nine without one are support and delivery seats the roster inherited rather than transformation advisors, but they still fall back to a one-line remit and will produce generic output; that is visible in `persona_coverage` rather than hidden.
 - Two hard router cases fail and are meant to. They are reported, not hidden, and never tuned away — a hard case that always passes has stopped testing anything.
 - The unit tests exercise the providers with fake clients. Real-provider behaviour is evidenced by the committed example runs, not by the test suite.
 
