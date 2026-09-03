@@ -5,10 +5,14 @@
 > engagement, and what decision does each own. This document is the evidence base for the
 > role registry in `huminloop/roles.py`.
 >
-> **Caveat on links:** citation URLs below are Vertex AI Search redirects and may expire.
-> The underlying domains are named in each (bcg.com, mckinsey.com, deloitte.com,
-> accenture.com, ibm.com, kpmg.com, europa.eu). Re-resolve to canonical URLs before
-> treating any single link as a durable citation.
+> **On the links:** citations resolve to canonical publisher URLs (re-resolved 2026-09-02 from
+> the original Vertex AI Search redirects, each verified live). A few — bcg.com, mckinsey.com,
+> medium.com, researchgate.net — block automated fetching (403 or connection refused on a bare
+> request); those were confirmed live by other means (full-browser fetch, or content matching
+> the specific claim cited) rather than a plain HTTP check. Four accenture.com citations
+> [17, 18, 21, 26] resolved to generic careers-search landing pages rather than the specific
+> job posting originally grounded — the role and firm are still correctly attributed, but a
+> reader following the link will land on a search index, not one exact requisition.
 
 ---
 
@@ -164,50 +168,50 @@ To ensure the defensibility of this modeled engagement team, the sources utilize
 *   **Thin Evidence (Internal Leverage Models & Exact Pricing):** Claims regarding the exact internal hierarchical leverage (e.g., the exact ratio of Partners to Senior Managers to Associates on a specific AI project) or granular rate cards remain obscured. Aside from isolated public sector rate cards (e.g., Accenture's NASPO cloud infrastructure rates [cite: 9]), firms protect this financial data as proprietary trade secrets. Consequently, team sizing is modeled based on agile best practices (e.g., "two-pizza" squads [cite: 13]) rather than leaked firm-specific financial models. Academic literature strictly dissecting engagement team composition is sparse, though papers noting the relational governance between clients and AI suppliers corroborate the need for strict SLAs and ethical sign-offs [cite: 47].
 
 **Sources:**
-1. [boyden.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFDH1NWsLH2ZIUTpswy1IhQDRPbobhEnXNNB7xPqOLG8D4hx9TFJWneCfYSyq4l9p-UBdOdNN8nMYNBGC22wNkz5C5l07cHYu_gFFPeMojV7gckkWSYfAtygNw5hvLEPNzuxjgvJdI7RxagI1rgSQOMq4_N4rxD38y9uy8vraHX_0prAvCMqx9PzaeNjgxOsbcGH4KVKz_vw5JCWGE=)
-2. [bcg.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFRrQTy-VVZVuwbWUDTMVhV0CHFjas9bWVdy_O35II-R2Z2YbXSrqNrx-9WDzOn5jQo2GsQJNGcURiKYWa5EQfoctKCsFhD98SaLJboLRBwgs-ksbKRFbu6M4hX1qOHMtcV2jE1eYxk9uVXq2Rp3jCz0fpfEQ6ZV3FfhGB94Hbrh_O7aMXk)
-3. [mckinsey.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGzSAyF5-tIrEdFFcDbsWAXUxOUpg5wnsHURY0_lJKdQVJtYtD_jlqHXQk2CLDNPTho7X5TWHZvVP0iUInEkJunb1SS6wfC-S1PzNYA2A0ZsLXSMXeBblxGxIh8NFpnE3GuRGrEP_r0Bu_r6iM3nVmzdyVmPK9RxoCtDk_BGFz5gmhAFRJWcCi9LNKTuhR_b1UW4PxPVdUPW1d4jJh-6SmeRjb9cQ==)
-4. [wsj.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEgkbenVC2yZ9edA7lnSnbLilxiMToO-LDYIX4TyiGzNKPRuJPsb2hE42F1lyF2-FIlxj5gSJe3RAio6C5LLcbo7YEZEQyQivy4EQ_yz7m6bxsNgYGmoXNApLJ7eClA6U4VpDHroFPN_4Fn1HxeRMNjx3_dJzkil6payskJ55tXxvVvClN7HlGWzv1myep-DRaq7So=)
-5. [umbrex.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFCroQtjyE4UAvUj7eKhCaui8tJ-lqloKwmVWPrbAluZDpKTrKftTJwpv1fPKZlGpvfLdsqLOuNqm08TdgFmWc_MlbGVyoelUkOVxfMnGA9KIsKQ6CZJ488fHY8WpL8k8dmotYunJkoyzTd14t-zFnsxAZsOAj59jozGZjIl6ktRtLi9ywS_jp2NcmEIiAX)
-6. [alicelabs.ai](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFbSczycSrJ5nivKeM5qYXbF5T5XgtLsobba7b36Dp0dOwFM5Vli4D84LaODNR2I9glV_OQx7-P-hsWekR-FqMSWzMx-QsmDTAnzD2OWr7xolH5ruskdu1j2cL26w3D7mI3GduHz77IyLY=)
-7. [substack.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEOoSB3TGAweABXmdXlokFUhESK_fhr2SfQsiXIe3m7-LOqH_cnU6i2tvVZGz5GKlivIb1plQwxqSc00BBLoSsl3SVdSnLRV8hUkZJQxx7NSsbeKAAd0jYt3YM44YPeDqrUX50xajGrKX8Ycqp4rz_KkQegxqkLX9Y3xTpBUr6x)
-8. [github.io](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHT_KsSxg3C6ZWV8LGDruCaLzI16AqrbR4NRmks-LSb1kN9AAZpKkYRcABXRxb0vqKuVR4FV6ghNGsahMB_bCJz5PuGKxtz8OUwSAqyrEMcsDQshhrNNeD5lW8KLGoyQvSW1dRyJ91KNGSmYqPC5n73amF0Svqwj1XBgLEZ)
-9. [amazonaws.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGPjWVfn98l-zksq1Katrnmx7vE6eYRHTiUA2A9fLkYDXKIVHakphUvTmyS7Z1ehKXJMgVZjl560AEyyaBySmKF3Ju8VVxE9Rk3yBH4N5l5dDwrC1QxU_KKQaoFSpeIbqQw2JPfJMb1rUBIbt8TjH-gZTBVgTxfR_Dc8d3CvjCiP2uhcyEQ1W2DciLHB43YN0kf_DBbUJ7wnH2uRcr--caM-cpov_glwg4MmJqHcyh_pSB7)
-10. [myworkdayjobs.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFvJ4E20jTAA3bn6ySrwfp-x6eXtsn3RTBzm5x3WSgFhmPglZe7o9I0lvyQSsvAOh0OQPRoAsbQCpI9VO_aNR5FcPMN_fEfANyA_ypPsj7Fw3PEfGPv2wBMvX5YuN5g8kN1OtR4KrF9VlwPGsQO_lAAHz6bJMVNX-9v2cPNalO3McSeVI1JtxEcEYc4i6gJiSJ9Tt5SZAti1l3SQ7-qTtzO35imcr6DkTthLtCeA8_EDg==)
-11. [helium42.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFD3EiYou_10H07b2_k3RFRcCk8ha-SyfkwBDMyCiLa9jEdv3NjRs5OmZvY-aGtbmI4Up-Ih59Ov1JwnuBcwj6NMrrC0vpuKbPN5uPAPPEfsKihFMrVqA4Bgr-Ry2eYV8cCLxWasNHarAU=)
-12. [aitraining2u.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHJLZD2-BMEw7puSvO9GoNXvP_2pO09_drsD0_1bkQsRfDPH20n1yiJeXA_Sxe-JoaCFWlRiABgk8QDJZUL4tyGg9iBj6bQqbL5FUSAohOP3FICCMBUZ4NTfQYcHuPmu_CiMHBv_Mmo4OsAaOIgnRWL)
-13. [github.io](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEBsNnY-gKD-s-fJcF93G-L_R9tXamtBaDMCOJRMgbhbebVnIUmGVzOZPumTvf8VcjqiY1jKg9Pp9MLGdENcDix7Rkjy9TSyroHdXS5D2ky1jF_aaSkEMZddU4UVM6B1RsZbph-qC-5f5bxaZTP5mVll0doNM7coRye)
-14. [ishir.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHa4rkC0dLe4TjGYYPwLPpqsmvG_QWVgbtcIfzaf5XzrHdvbo8-K4ajJSbyhmwcK4qeLwQjYjx5sGwVRK0Eoc-WeFEy6AJO6tb6Tf9uFe5tip-mJPdPxyMdbaUg5GJwGOk8mJYSu3CUlONLYzdfyYtT4zrj09mh-98XLCBsVnXMbhxZ8AyWEbSuNcFmn9QFSbyr9jZI2jipwwleChAl2ATWVTRjBegSmney)
-15. [ibm.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGYuVttQIs-tqrniiBep0-FtnuTJuIKXF7eBoDEOih1uLUfHrI8HK0HpJ-wncb-r0ZGy-sV0qMAvciUDAz7BxlLFZO_kQWVhK2Z7jaAk0FNp3d1dmJdlUAoZDoNQg-A_3XPSsHc)
-16. [deloitte.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGnmr2y3OR7ALXzY5tXEKOnWzNv_qfazmhM1jkNqUj8h3mNxk8lappjjxMNyo4krFo0xUrw8MOZ1VdWD1iU6iBLLq8uf1SIujp6zTdGO9Z7pMtRFXc6ou8jtEzbHFF5m5i9t_OBgaRKGQuHVRcFne-Mn2VSl0Ehk89uUpgfXX9g_z8CjGc_)
-17. [accenture.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGd3O2bOqeAsjyxRI1rnWL_Y5ap3uKzlzRPj0CV0kNyGGz7_htF8vxaSJtzXbmTh4zjicwfxDrJszAAm2F8UPANHuLPRGqQfLSa_Sc1MEaRTx3wlbm1Dmr6BkiijzOlYdXkC6MpyGDl5BFnJqMdksFi3HGJFjTlkS8=)
-18. [accenture.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHYYfOgVXSSIaoNNlEJeZeIwdYZ8rrf95VqSYSJauRTrSJHoYf_wwgZ0EfRuwau0tUxoXCNHyCMHYmuf_MYNt9y9NX5Pp2VVPM9RJn44XPmlIwEVNwRNS_TVMyS9rTt_YBMa-3gZ594sVs-wdyBa9d7mEum7jrSfpEv6y0XujjttvKWOL8=)
-19. [ibm.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGgWy91JjBghq35FYIgyLj997YcBqrUvfT3t3UIHG6fLR8vl17PwI_iugtOBzmvNCHFB9XGCghCRo20RSXKnEgyabTxLPtFlFzLDwxlLuP0tQ==)
-20. [oraclecloud.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHuTptChSJe4oTR5F2cZSrfMIyiMfBZP5FKdA8a3jdFYCBUXHyh-ByPJnxY0GM6Tf8l7rddr3rROLTDBrtq19cYLHy4mbvsIHVbAF_UdlmtmFN1LdV6s3NoZeNXQo6XmBQUjVQL29rvnQBPoCp9z1kBf-75dPjedeHBX5sSHIfzYOhtdZq_VAQUmzD7)
-21. [accenture.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF1R6sIfhozp_fiwzdBZJpJ3_iuT6eKv2Xbg4nDxQTlq16b_OXZ4XGW3D9I8MKV3D2mzLbSkw8fx905ACjseLc6iCYOLyuerbaRJ8XF7iEzjWr88apF4VDkPjfDJc1bVjMxXaXf5t4o8P3hkTFW__tEwD39NH-OE9A=)
-22. [deloitte.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGO2vD12tKyy80QHpRqSx00oF8Z-dQAorCuYxkpUWiF8-4DsLwNRMJnTY0NTh_c93G7Uys46if7yQHGNUmSGkiV9CwBlLbolfkKA6yx2BS6lc8_DvDEhtJWf8_aai6XJITvagmhDhBeeLo0XFvLZXj6aMhs3FZA68BaP_RN6V20y-o6nVhbLgzQezhqUqeZt4l17JnYXEQ4YcwqWy54QnBT9mB8p9q1DfHwa7CQ0DDSWEqWNa54g1t_Qi91pflUX5k4AASGO-dneWJlfN93ooB4xbXO8NoLU8qavMY=)
-23. [europa.eu](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH7mks6JyQW5J8cyq3wNWVlN0grpRLJCDfo2_PNrqnd7mbmRXSlVf64ZRkTGhkRGGbH5ABj5f5WbwwlFPquJOHDZKTcHqqoEDBDsjaCC9YDoJOoVFEM7OqTt14sIckI4Y6X68d_dfEPbS0Qzecgrrk3xw38csULGwDkKVhyyR4RUU65nZIcr_A-JzVghZyf9PzZ)
-24. [deloitte.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFm1mJqJCg6BKctNlnVY7SxnCIlKjlTaeq_CR7AJWi4pu_lCkcbegoBLDP0YDj-9RuXZNuB1sBLdjB3qXe4MfD1D8G3h2t8VZ23u-DY7H_msd5wIO9-AOoo7JqdO2YNy6uMXE_eK3Xty7sQeaDu9fn3mnLE1i-BLPQVKd58mk6bNoBEGz5qGtyBi-kbpocMjUU6bqZOscn13sTQkL8Jncg_OXa_7sBxEZAMk6Us2g99cQ==)
-25. [themindfinders.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHZGa305dbIBNXPF6pD0d6tF-KiZUKuPVHtBTAlAlY_nK5RMumsJte86KxDDO-FPdMc0qvZ9qafAtoeMiDphYwpKuCAgVXEUD4_htCXJwRyqbsSsZ-M2rwmRPcMZ3uV9H6F_F6ptO3TQmUBH7pttbHddgLBT1DHt0gIxwubQZdwxwbVYMm291NQSkegelMPq18BfyYwh-rKYZ-pd6YgrdP2RZHdB2eg1kP8BlZ8T7syjb0=)
-26. [accenture.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHil3C8_7l7ZgY_vUr_-v94o0Nb5Fm72zem4NHz9vF-M5frjG1MMmd2RXzi07ZPEeudihJFNnOwl9QILaUJurkM17kG_NXmF7b3XK6f7VE1xQGgr5ybLo7zAquK0OwU6CeQIyWED6Tl_7pWXvcnaFupgrl5nQ==)
-27. [aiassemblylines.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHUWl1eg5hsgUPD2e7VTdtaFiIkgLiFGSw11LBErVY7PzZ2v9WHpLeLAFxYOKkQs4Yth6WiaXuEg7nGZA_E7JFSU-oAnxhzT3Xc7sIZN3XpyiVsL-hsY6GxEvKuy9aPEsNHacoU1NDfs8r2Zyr0x9RW5d44IdtCL-NbmCI99CRMtASIwPrdcA==)
-28. [deloitte.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGji1DgKqXQx0e3GDeLIlp_GIv7dKbIOddMKXd9I9clqbW7d-6yRJo3-G5Z9F6pDziONp3AmXLWpfuc1KEhWFtm9TZ3-NmEOjBQApR3fqDuZzN3zDahEhCFeJRFk6XfFVPm_inakRweCcLMaqMA375C88l-dqqAmCUvhXOPYQBaNlctovJU2G_l23x2eYlFBKscktYYUx4uNp-2bA2V81irRH921R67bS6mqnSi9UHRcyEqjdwJdMkyEHOS5JUXhINE)
-29. [stack-ai.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHTwA_N3ZQAWiWG-BZXRDnzKDu2S91vhHWKJiiERMSLkf_1QdL2gWqW5PpkxOEXQ-oCCNNyRF7T3W_kBHdtI4H-95XOVql-ax-jJ9W9kr-kXeDzc4FNHrQ8idY8X4UhHMzzi8Flcc45t-yFoy_Dmd7Vwr7UAL-Aw5Wjy2x6lPM-Kec5kihJyhFB0hRIbCC7b4u_czB6IIr1lKTZZiT9aNmpdVsyJnDbd361aw==)
-30. [agility-at-scale.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFHZxQqjl3ez3D0nvHSjCe8Ldil6d9ajKOQAerGXTJXDehAi2APGGyR3k8bcIN9I-hzOKYe6Id6N0l7scdkXXJFHJITjsCPZa0r1OtOXtAV144clQhpbGaDBNM9REW2PYVRxH2bh_LsuV5jRK36eBSCiCoQokDdkf3Psiim)
-31. [digit-ai.fr](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGdIkpyWjs8pyWwfGw3N629ues6og5HbHHJICL8ebABzIV2cztsy2eRYLqPFYoXjv3BTj4ksPwFtJwUjNwu5zG2rRZB9A3sMWEWwlNO7Q738cCsb2jxOmf3rtq7Gr3XVpptVAiwTTU2oXqCWhAN6x8pQ9cvgJoN7Q==)
-32. [exceeds.ai](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE6Ydn4w4LS1-I4PcokTWcsPKBBhspJBTwXP58WV5QhOqqzbkpNGeIXgtp-ub4t2rSDs9gsuXMQnW76AecBT20N6GsDS4zHN9FBTzRHVCKShoGcvfhFrRc-OPmmtEY-xg==)
-33. [businessplusai.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGkZYFHPYYIDg5IKaaG5HLdpeKFuHHZhVgXXsW-JKJHn4EC8m_ZTz0AmNaIObghvGJHLx-LI9IuOFulh4T9_LdfHWChUBTwxhmvMQ9R1Bi1ORajTxu3lE52D5q3OwiiJkaP_rhEgXnX8oBgX-xDvumr7d1J9ndS6Xc5JK9TfrwQAk-VEtza0Fnl4agOYmSNQpAlFXmr_O4Opg==)
-34. [mckinsey.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHrCbeRr3byApheOAwKsMG_UzOiagAP1Ib20dR0PjLH1BSlb0ypOVqEnxF8X3dU0AyMF6DCHViNwpwS55lXpCqXT5K-8OoNpBMwD8cyYVBWTnIEjMtjfBZRDgtKrV9rj7YxxyIwhPI0cDXxHZbidfWsaNaOq78RqwM5stLHkfeIxnRO3ZftbaUa8kVWJxJ3Xo0S0mm33XxkBtJPHxR1nbQNfbZ9hZ7ODEB1qiWheFymc6MxZf13WyOfsDBfxf0=)
-35. [automationanywhere.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEJYXOaz6P40RlAVW4UnE9Xx4xas_7rLvwVbQMa3Oz5PS66UP0gBOnHPsyGRQI2ZHJZ_xpNGOLS8qHaIAifcDp_prfeW3XfcEOnqrN7bSoN7OJ9gMKJSfNej1x3oTKR-bxlSWPKGD6EHq2Dv6oljZMTyB9HQ4HzhXuVJ4SCSUHLTed8Oh3T0hqdzRPW)
-36. [aiassemblylines.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGDmk6TsIsfpWea-aKrWpbMqRGUVm1zFHpxxCiEcfJzSbL1a2WoTLOzM_0AH7FiMYSdLYtGvN-os1JusFq8vxOtts1FQ5LeKwaLBiybq2gPo598PZdyP38gKjLOHsKk-ZBPsK0vQ_toPWLjFQXbHF5O404uIx4b7FtGC7Wn1VI9HetS82RTepVX0kvMBw==)
-37. [cio.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHL9YehvqdsOaQ_G5IJaeL1ZSqAIpzWJ9Mo73BUdThadFYFCKxrkdKrLBOj8WVk09kyixPTSOToeAKGkeya-wFnow_bzCQw7IEOO6htAbK0h4cg4zyh3SQbnbYP0NUkCp_IlFBWcRtHc7LNK9URoT-zxylozeNUKcjvvK1hF7_9Db7adhMqu_CIpWHuTSjmf5keEi8=)
-38. [medium.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEDGkJPYMJ_CdwLo9brlYUwyn7V_wanGzsEdl5ovBi7fKlLLR3o7pAhxSc0eFRuUQFH3WloCc0ULfX2sgFWj7T9Oj_ZfDsqa_TOZG9ScADYA5ZLpT4rXjuFfv2AotvOV_lVft9RrIsPGxXkU7Nr1pDDdG2IGqc8DSpEGTv43wkKzm8mitSFy22WyG5MMgIHBevbm-QFyEjAvWU3MTY=)
-39. [hiddedesmet.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFpvlriwS9nyFuRccAhhyb3iTNctxfUyE--PBh3OvyrP3fFDt0_zSylhwIXlP5VhQ2WLpZLgTWQjTllEvHWdxi7dJ1gJBbgX6w6bV-kR_qOmyS8gGxG87KKpkJ9xmYTN28xxw==)
-40. [nysac.org](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEBrE-KyP9DBXe09a4faKpn9AbNnoQcSqmHsG-T2AkOZZs8uT14ApcePF4h4X4AMn0aN_TV2cA1wu86reDGj2lRlOPmvpEfxBJBnFHVGY5qnGsW9_aBkajDaB2zF_GkzT6qmeI5YxR0iFrWqXYmytJJZExlqE6zgtriJZH0jFuA1iGC0nwim7XEHFFI2SMOdYdWWHo=)
-41. [kpmg.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEEy4bz4A_FHknniaOxPGDAvW6ejaivseB39Po6HpFo5iIR8FHb-BAEjZ69YKPtG-98nyo93gOeUQtnKjHqAbdBd_ZdJTJ7Am2Zg4Z88n_RY7eNWdrdxbDZFmCREtoyPXtD0FO-CFPRI93Ph5LvTPhpnYOjZuPk57HG2OhD8YFavWRfZXsoPQnIVo7TVofJx1whdoOCghiA7mEXghkQhvvcCRQFd0iOJETg3eK-eiSeVCt7jL0uINgah_KLYscXoK5hcjqaEV63-OqJfRTLHP3QMGm6yxjcaO07tiLvcQt4ZujPUisJkEqaO-U=)
-42. [trustinsights.ai](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGUbNHbexGYdJR6zF2IJmmN_RKSUZ-Ebl7mBVJC_dlX-5KBWpNqTn7FAtMJ87ZYrQF-or52MvX8EE6UzcfloaRd5lJdD7UN3KTuPM0u1mMMCOfBJFpJIsbSmI_1M3qT713ZJai1LLhSiuY6qgkiHGobfFc=)
-43. [medium.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFuhbWuULHIxOE6YjoAxmx02PgbNTbl4OrrRIxx1UeXKkD2_azyxFlEAif5AkIf2tRKATBzXmnUHkaKcZR3t0h6k__pxqjFvkYkhEz0Fkhfvad5oGJaL4T4gCuB6kGECc2bs4W66Pwkubj_c2c4_nsoCiSmtXoJ8xwPNcC6bFhQlRVweblZy-T4wFpjSikYFH6SQRg_XaKyY8UDChAjnzqL9dNV)
-44. [databricks.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGa65MGr5sn8_WYWA1viHFQQic7FdmuRn4ne5MyK8tLpowQqiaiM57GP1XWN7YQKvUCkNt66xsuQAhh1b0yUBGmDCrJUAAJFk1ZLxEpZK0agT_dLHPDrNNiDnWMfy1Gc96SyPtOCAli3rXUBEmLIOWza0h3USVCzq7W8jJQS7ezIEn_slFraaP2rYreDlovLOIS2g==)
-45. [unitedhealthgroup.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHfnMa90RDfHXEFd7LYw1ONr4_ljMGXiH4F0R3pffOha2N39jQlzavnEn_L_ib21To_oQRvIKCnKY0M3speUhnsgGQ5e-OWT__TynLQ0Aq2ZFex2hpOwCbxqmLlrcKwl0IYoPR0iaxfq_onh0lwaT181TDjrpV7-itIfBbQ13hcamfpX5A7u9xnPfxhRrw59a7Vg8E=)
-46. [bcg.com](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGFW4PHPB6Z3n-PRIG_73KJoBHsmEm6d4njottUaDiCdgTq9xB-5jpWoshASLNwGjU2MWcmXYtAOWYujOjXCOiK8WK6X_Zma9Y3c9ICnraJ3VW04R5Aft_YSpWnVpwqoqnGiN4yBdJJE9jK-OIIbA==)
-47. [researchgate.net](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFVftlz8NLQIdAcfWUdAqemgfavcKqQDRLb78Wi-qAx_ig5Ue5FQox3v3Tlx3mLVlCqJqiOsOEEMQZib9Sb8dgfbAeREVZtpH3fa9eZ23Cj5P6RRvp35z2UJGSdTvwU0zyOn9QFz__QcQjaLObG75c71h9SMhoFXtxx3ARiFRMxI2kSjJpPm3dKpvj410EaSI2Mf7LBRi6fhDexzdQut3wi8g605Okj-49XhBUMvULrHw==)
+1. [boyden.com](https://www.boyden.com/media/how-c-suite-leadership-and-new-operating-models-are-driving-the-51202958/)
+2. [bcg.com](https://www.bcg.com/featured-insights/the-leaders-guide-to-transforming-with-ai)
+3. [mckinsey.com](https://www.mckinsey.com/capabilities/tech-and-ai/our-insights/building-the-ai-muscle-of-your-business-leaders)
+4. [wsj.com](https://partners.wsj.com/mckinsey/leading-change/ai-wont-fix-your-business-here-is-what-will/)
+5. [umbrex.com](https://umbrex.com/resources/frameworks/project-management-frameworks/ibm-garage-method/)
+6. [alicelabs.ai](https://alicelabs.ai/en/insights/ai-operating-model)
+7. [substack.com](https://carlotorniai.substack.com/p/the-false-choice-in-ai-transformation)
+8. [github.io](https://leehanchung.github.io/blogs/2025/09/05/ai-transformation-sdlc/)
+9. [amazonaws.com](https://s3-us-west-2.amazonaws.com/naspovaluepoint/1681146554_Accenture%20-%20Price%20Catalog%20(updated%20April%202023).pdf)
+10. [myworkdayjobs.com](https://dynata.wd108.myworkdayjobs.com/careers/job/remote--usa/vice-president--ai-transformation---value-creation_req13757)
+11. [helium42.com](https://helium42.com/blog/ai-implementation-roadmap)
+12. [aitraining2u.com](https://www.aitraining2u.com/ai-shared-accountability.html)
+13. [github.io](https://ibm.github.io/data-science-best-practices/project_team.html)
+14. [ishir.com](https://www.ishir.com/blog/341480/why-forward-deployed-engineers-need-industry-context-to-de-risk-enterprise-ai.htm)
+15. [ibm.com](https://www.ibm.com/think/insights/ai-at-scale)
+16. [deloitte.com](https://apply.deloitte.com/en_US/careers/JobDetail/AI-Governance-Manager/364234)
+17. [accenture.com](https://www.accenture.com/ph-en/careers/jobsearch)
+18. [accenture.com](https://www.accenture.com/cr-en/careers/jobsearch)
+19. [ibm.com](https://www.ibm.com/garage)
+20. [oraclecloud.com](https://ejhp.fa.us6.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX/job/2618395)
+21. [accenture.com](https://www.accenture.com/us-en/careers/jobsearch)
+22. [deloitte.com](https://www.deloitte.com/us/en/insights/industry/government-public-sector-services/chief-data-officer-government-playbook/2026/chief-data-officer-ai-governance.html)
+23. [europa.eu](https://www.eulisa.europa.eu/sites/default/files/documents/ir-2024-11-lvdberg-hverdickt.pdf)
+24. [deloitte.com](https://www.deloitte.com/us/en/what-we-do/capabilities/applied-artificial-intelligence/articles/trusted-generative-ai.html)
+25. [themindfinders.com](https://www.themindfinders.com/2026/03/11/from-org-chart-to-ai-ready-how-to-redesign-roles-without-losing-your-best-people/)
+26. [accenture.com](https://www.accenture.com/my-en/careers/jobdetails?id=R00351588_en)
+27. [aiassemblylines.com](https://aiassemblylines.com/post/how-to-staff-ai-center-of-excellence-enterprise)
+28. [deloitte.com](https://www.deloitte.com/us/en/what-we-do/capabilities/applied-artificial-intelligence/articles/trustworthy-ai-governance-in-practice.html)
+29. [stack-ai.com](https://www.stackai.com/insights/how-to-build-an-internal-ai-center-of-excellence-(coe)-roles-processes-and-tooling)
+30. [agility-at-scale.com](https://agility-at-scale.com/ai/people-change/ai-center-of-excellence/)
+31. [digit-ai.fr](https://www.digit-ai.fr/en/blog/roles-responsabilites-pilotage-ia)
+32. [exceeds.ai](https://blog.exceeds.ai/10-20-70-rule-ai/)
+33. [businessplusai.com](https://www.businessplusai.com/blog/ai-workforce-transformation-for-saas-building-teams-that-scale)
+34. [mckinsey.com](https://www.mckinsey.com/industries/financial-services/our-insights/jpmorgan-chases-derek-waldron-on-building-an-ai-first-bank-culture)
+35. [automationanywhere.com](https://www.automationanywhere.com/company/blog/automation-ai/ai-center-of-excellence)
+36. [aiassemblylines.com](https://aiassemblylines.com/post/how-to-run-ai-scaling-gate-review-pilot-to-production)
+37. [cio.com](https://www.cio.com/article/4208076/what-successful-ai-centers-of-excellence-actually-do.html)
+38. [medium.com](https://melrefai.medium.com/ten-success-factors-to-establish-the-perfect-ibm-garage-squad-b6116d962a39)
+39. [hiddedesmet.com](https://hiddedesmet.com/creating-ccoe-for-ai)
+40. [nysac.org](https://www.nysac.org/media/nexcgyty/genai-discussion-for-nys-conference-may-2-2024-final.pdf)
+41. [kpmg.com](https://assets.kpmg.com/content/dam/kpmgsites/cn/pdf/en/2026/08/ignite-the-future-of-ai-transforming-industry-through-ai-integration-and-best-practices.pdf.coredownload.inline.pdf)
+42. [trustinsights.ai](https://www.trustinsights.ai/blog/2026/04/the-10-20-70-rule/)
+43. [medium.com](https://medium.com/@maruthis/ai-shiny-object-syndrome-why-enterprises-chase-hype-deliver-nothing-b0370d3e90ec)
+44. [databricks.com](https://www.databricks.com/company/careers/go-to-market-/ai-transformation-leader-7803651002)
+45. [unitedhealthgroup.com](https://careers.unitedhealthgroup.com/job/eden-prairie/vp-ai-transformation/34088/98520590320)
+46. [bcg.com](https://www.bcg.com/capabilities/artificial-intelligence)
+47. [researchgate.net](https://www.researchgate.net/publication/362938575_Formal_and_relational_governance_of_artificial_intelligence_outsourcing)
