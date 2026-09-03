@@ -1,121 +1,118 @@
 # DESIGN.md
 
-The visual system for HuminLoop Agents. Established 2026-08-31 in `/plan-design-review`,
-from the approved run-renderer direction ("Institutional Briefing"). Reference implementation:
-`.design-work/run-renderer-reference.html`, published at
-`https://claude.ai/code/artifact/e00eca97-74d0-4c1a-83d8-5b86ff458d13`.
+The visual system for HuminLoop Agents' rendered run page (`huminloop render`).
 
-This is the first visual standard in the project. Before it, the repo had no CSS, no HTML and no
-design decisions of any kind. Everything visual calibrates against this file.
+## The pivot (2026-09-03)
+
+The system below replaced an earlier one, "Institutional Briefing" — established 2026-08-31,
+reference at `.design-work/run-renderer-reference.html` — built on the premise that the rendered
+page was **an audit record, not a dashboard**: sober, one accent color reserved for the human
+decision, no cards, no border-radius, no shadows, dense Spectral-serif prose blocks.
+
+Tony's reaction to the first real run rendered in that system was immediate and specific: *"I
+don't know who they are. I don't know anything about them... I would never even show anybody
+this."* That wasn't a taste disagreement to negotiate — the brief had changed. The goal became a
+page to run live, show people, and use to actually review an engagement as its consulting lead,
+and a quiet audit record is a different artifact from a dashboard someone wants to show off. The
+premise itself was wrong for the job, not just its execution.
+
+**What carried over:** the underlying content model (Team's Plan leading, per-advisor Critique
+and Artifact sections, the decision/CTA at the close), WCAG 2.2 AA, `prefers-reduced-motion`,
+severity as color **plus** a visible word (never color alone), and the light/dark token
+structure's mechanics (bare `:root` = light, media query and `[data-theme]` override, `:not()`
+guard). **What didn't:** the no-radius/no-cards/one-accent/serif-prose rules, and the assumption
+that dark should ever be the *silent* default — it had been, via `prefers-color-scheme`, with no
+way to override it short of changing the OS setting. That is now an explicit, in-page toggle,
+defaulting to light regardless of OS preference.
 
 ## What this system is for
 
-One page type: the rendered run. A document that has to work for two readers at once — a hiring
-manager giving it ninety seconds who never scrolls past the fold, and the operator reading it end
-to end to consult the advisory team on live client work.
+Still one page type: the rendered run. Now explicitly a **dashboard the consulting lead runs
+and reviews**, before a decision as much as after one (see `huminloop/render.py`'s pending-state
+support) — not a document optimized for a single careful read, but a page optimized for orienting
+in five seconds, then drilling into whatever's relevant.
 
-It is an **audit record**, not a landing page and not a dashboard. Authority comes from sobriety.
-Nothing decorative earns its place; every visual device encodes something true about the run.
+## Color — a validated palette, not picked by eye
 
-## Color
-
-Neutrals carry a slight green bias so they read as chosen rather than inherited. One accent, used
-sparingly, reserved for the human decision — the thing the project exists to prove.
+Chosen and checked against the dataviz skill's palette validator (`scripts/validate_palette.js`),
+not eyeballed. Values below are the categorical/status slots actually in use in `render.py`'s
+`CSS` constant — that constant is the source of truth; this table documents it, not the reverse.
 
 | Token | Light | Dark | Use |
 |---|---|---|---|
-| `--ground` | `#fcfcfb` | `#131615` | Page background. Always set explicitly on `body`. |
-| `--panel` | `#f4f6f5` | `#1a1e1c` | Steelman and pre-mortem blocks. |
-| `--ink` | `#181a19` | `#e9ece9` | Primary text. |
-| `--ink-2` | `#3d443f` | `#c2c8c3` | Secondary prose, author responses. |
-| `--muted` | `#6e756f` | `#8d948e` | Labels, metadata. |
-| `--faint` | `#9aa19b` | `#6a716b` | Numerals, disclosure markers. |
-| `--rule` | `#dfe2e0` | `#2a302c` | Structural rules. |
-| `--rule-soft` | `#eaedeb` | `#212623` | Between findings. |
-| `--accent` | `#1d5240` | `#78c3a0` | The decision, and only the decision. |
-| `--accent-ink` | `#123528` | `#9fd8bb` | Accent text needing AA contrast. |
-| `--accent-wash` | `#eef3f0` | `#18231e` | Decision bar ground. |
+| `--page` | `#f9f9f7` | `#0d0d0d` | Page background outside cards. |
+| `--surface` | `#fcfcfb` | `#1a1a19` | Card/tile/details background. |
+| `--surface-2` | `#f2f2ef` | `#212120` | Nested surface (quote blocks, chips). |
+| `--ink` | `#0b0b0b` | `#ffffff` | Primary text. |
+| `--ink-2` | `#52514e` | `#c3c2b7` | Secondary prose. |
+| `--muted` | `#898781` | `#9a9890` | Labels, metadata. |
+| `--rule` | `#e1e0d9` | `#2c2c2a` | Borders. |
+| `--accent` | `#2a78d6` | `#5b9fed` | Team identity, links, the pending-review state. |
+| `--good` | `#0ca30c` | `#39c239` | Resolved findings, approved gate. |
+| `--warning` / `--warning-ink` | `#c98500` / `#8a5a12` | `#fab219` / `#fed07a` | Disagreements, forced approval. |
+| `--critical` | `#c23333` | `#f0837f` | Escalations, blocking findings. |
 
-**Theme structure is load-bearing.** The bare `:root` carries the complete light palette.
-`@media (prefers-color-scheme: dark)` guarded as `:root:not([data-theme="light"])` redefines
-**only tokens**. `:root[data-theme="dark"]` redefines them again. No color may be declared only
-inside a media or `[data-theme]` block — that is the classic unreadable-page bug.
+**Status color never carries meaning alone.** Every severity badge and disagreement/escalation
+marker pairs its color with a visible word (`Blocking`, `Serious`, `Minor`; the register's own
+name). This rule survived the pivot unchanged.
 
-**Semantic color is separate from the accent.** A forced approval uses `#8a5a12` (amber), never
-the green. Severity never uses color as its only signal.
+Team-member avatars use a fixed eight-color categorical order (`_TEAM_COLORS` in `render.py`),
+assigned by dispatch position within a run and never reassigned — identity, not rank.
+
+**Theme structure.** Bare `:root` carries light. `@media (prefers-color-scheme: dark)` guarded
+as `:root:not([data-theme="light"])` redefines tokens for OS-dark readers who haven't toggled.
+`:root[data-theme="dark"]` redefines them again for an explicit toggle choice. A small inline
+script stamps `data-theme="light"` on load unless `localStorage` says otherwise — **light is the
+default regardless of OS setting**; a reader gets dark only by asking for it, via the toggle in
+the header.
 
 ## Type
 
-Two faces, both from Google Fonts, with real fallback stacks.
-
-- **Spectral** (300/400) — the task headline, steelman and pre-mortem prose, author names,
-  decision notes. Anything meant to be read rather than scanned.
-- **Public Sans** (400/500/600/700) — structure, labels, metadata, findings, navigation.
-- **`ui-monospace`** — hashes, `out/pending/`, severity glyphs only.
-
-Scale: task headline `clamp(28px, 4.4vw, 42px)` at weight 300, `-.015em`, `text-wrap: balance`,
-max 22ch. Section heads 26px Spectral 400. Body 16px/1.7. Prose blocks 17px Spectral 300.
-Labels 10-11px, `.16em`-`.2em` tracking, uppercase, weight 700.
-
-Running text stays near 65-74ch. `font-variant-numeric: tabular-nums` on every column of digits.
+One face: Public Sans, from Google Fonts, with a real fallback stack
+(`-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`). Spectral (the audit-record serif)
+is gone — a dashboard scans in one voice, not two.
 
 ## Layout
 
-Sticky index left (190px), content right, 56px gap, collapsing to a horizontal scroller under
-880px. Prose holds a measured column rather than filling the viewport. Flex and grid with `gap`
-throughout — never per-element margins.
+Sticky index left (200px), content right, collapsing to a horizontal scroller under 880px.
 
-Header order, decided deliberately: product identity, orientation sentence, task headline, run-flow
-strip, decision bar. The decision appears **twice** — once in the header so a ninety-second reader
-sees it, once as the closing block so a full read ends on it.
+Header order: product identity + theme toggle, orientation sentence, task, **stat tiles**
+(advisors dispatched, findings challenged, disagreements, escalations, gate status — real
+numbers from the run, severity colored), decision bar. Below the header: **Team on this
+engagement** first (a card grid — colored initials avatar, title, remit, a "challenged ·
+resolved" chip), then the Team's Plan, then routing and each advisor's collapsed Critique and
+Artifact.
 
-**The run-flow strip** encodes real pipeline data: Route, Draft, Challenge, Reissue, Governance,
-Gate, each carrying its actual value. Chevrons are CSS borders, not glyphs. It is the one piece of
-visual structure on the page and it earns its place by being data.
+**Cards are back, deliberately.** The prior system banned them ("cards only when the card is the
+interaction — there are none on this page"). On a dashboard, the team roster and the stat row
+*are* the interaction: distinct, scannable units a reader compares at a glance. Border-radius
+(8–14px) is used the same way — softness signaling "this is a scannable module," not decoration
+for its own sake.
+
+**Density is collapsed by default.** Both the Critique and the Artifact section for every
+advisor are `<details>`, closed on load, showing only a one-line summary (challenge count,
+resolved count). The prior system opened Critique unconditionally, which is exactly the "wall of
+text" the goal called out. A reader now sees seven compact rows before choosing what to expand.
 
 ## Rules this system holds to
 
-- **Severity is symbol plus word.** `■■■ blocking`, `■■ serious`, `■ minor`. Never color alone,
-  never a colored dot. The glyphs carry `aria-hidden` since the word is the accessible label.
-- **WCAG 2.2 AA.** Body contrast ≥ 4.5:1, 44px minimum targets, reflow at 320px with no horizontal
-  scroll, visible focus (`2px solid var(--accent)`, 3px offset), semantic landmarks, one `h1`.
-- **No border-radius.** Anywhere, except 2px on focus rings.
-- **No shadows.** The page holds without them, which is the test.
-- **No icons and no emoji.** If a glyph is needed, it is drawn as CSS or inline SVG.
-- **Cards only when the card is the interaction.** There are none on this page.
-- **Numbering only where order is real.** Findings are numbered because they are an ordered set.
-  Nothing else is.
-- **`prefers-reduced-motion` respected.** There is no motion to suppress, and that is intentional.
-
-## Deliberate exception
-
-The decision bar uses `border-left: 4px solid var(--accent)`. This resembles a known AI-slop
-pattern (colored left-border on cards). Kept knowingly: it is a single semantic emphasis on the
-one element that matters most, not a decorative rail repeated across a card grid. If it ever
-appears on a second element, it has become decoration and should be removed.
-
-## Pending review state (decided 2026-09-03)
-
-Added when the goal became a page the consulting lead reviews to decide, not only a record of a
-decision already made. Same page, same debate, same Team's Plan — two things change:
-
-- **The decision bar reports "not yet decided," never a verdict.** `--faint` for the border and
-  `--ink-2` for the verdict text — deliberately neither the accent green (that is reserved for
-  an actual decision) nor the forced amber (that would misreport a state nobody has reached).
-  The closing section replaces the record (who, when, the hash-check note) with the exact CLI
-  commands that would act on what the reader just read, `--force`/`--note` included when
-  governance actually requires them — the CTA must never understate what a flagged run needs.
-- **A "Team on this engagement" section**, right after the section divider and before Routing:
-  every dispatched role's title and one-line remit, each linking to that specialist's own
-  section. Answers "who is on this" as its own question rather than leaving it implied by the
-  nav, on a page a reader may now open before knowing the team at all.
-
-Forced approval was already decided before this (amber `#8a5a12`, documented under Color above);
-listing it as undecided here was a stale carry-over from the original plan and is corrected.
+- **Severity is color plus a visible word**, never color alone (see Color above).
+- **WCAG 2.2 AA.** Body contrast ≥ 4.5:1, 44px minimum targets, reflow at 320px with no
+  horizontal scroll, visible focus (`2px solid var(--accent)`, 3px offset), semantic landmarks.
+- **No shadows.** Cards separate by border and surface-color contrast, not elevation.
+- **No icons and no emoji.** Team identity is a colored initials avatar (typographic), not a
+  pictogram.
+- **`prefers-reduced-motion` respected.**
+- **Light is the default, unconditionally.** Dark is opt-in via the toggle, remembered in
+  `localStorage`, never silently inherited from the OS.
 
 ## Not yet decided
 
-- Treatment for rejected and errored-run states. Pending and forced are now both decided (this
-  file, and the "Pending review state" section above); rejected and errored remain unspecified.
-- Whether the artifact disclosure should render markdown or stay preformatted. The plan settles
-  escaping (`html.escape` on everything); it does not settle rendering.
+- Treatment for rejected and errored-run states (unchanged from before the pivot — still
+  genuinely undesigned; `render_run` still refuses both with `RenderError`).
+- Whether the artifact disclosure should render markdown or stay preformatted. Escaping is
+  settled (`html.escape` on everything); rendering is not.
+- A true live view of a run in progress — this system covers the finished (or pending) report,
+  not a running one. Watching agents work in real time would need a running process pushing
+  updates, not a static file generated after the fact; that's a distinct, larger feature, not
+  attempted here.

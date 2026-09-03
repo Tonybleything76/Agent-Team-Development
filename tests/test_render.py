@@ -180,6 +180,31 @@ def test_render_a_real_approved_run_end_to_end(workdir, fake_llm):
     assert "Tony" in page
 
 
+def test_stat_tiles_report_real_run_numbers(workdir, fake_llm):
+    """The dashboard's headline numbers must come from this run, not be decorative — even at
+    zero (the dryrun-backed fake provider's critique never parses, so findings read 0)."""
+    rec = orchestrator.run("Draft an RFP response and SOW", llm=fake_llm)
+    d = artifact_root() / "pending" / rec.run_id
+    manifest = json.loads((d / "manifest.json").read_text())
+    n_roles = len((manifest.get("plan") or {}).get("roles") or [])
+    page = render_run(manifest, d)
+    assert f'<div class="stat-value">{n_roles}</div>' in page
+    assert "Advisors dispatched" in page
+    assert "Findings challenged" in page
+    assert "Escalations to you" in page
+
+
+def test_team_roster_has_visual_identity(workdir, fake_llm):
+    """Every roster card gets a colored initials avatar and the role's real name — the fix
+    for "I don't know who they are," not just a link in a list."""
+    rec = orchestrator.run("Draft an RFP response and SOW", llm=fake_llm)
+    d = artifact_root() / "pending" / rec.run_id
+    manifest = json.loads((d / "manifest.json").read_text())
+    page = render_run(manifest, d)
+    assert 'class="avatar"' in page
+    assert 'class="member-name"' in page
+
+
 def test_render_falls_back_to_a_quote_block_for_a_dense_task(workdir, fake_llm):
     """A task with no pithy sentence must render as the 'The task' quote block, not a giant
     serif headline wrapping a 30-word sentence across ten lines."""
@@ -271,6 +296,11 @@ def test_render_the_committed_synthesis_example(tmp_path):
     assert '<span class="register-count">2</span>' in page  # Disagreements
     assert '<span class="register-count">3' in page  # Escalations, "3 — forces this approval"
     assert "Implementation &amp; Timeline" in page  # the Lead's Next Steps, previously dropped
+    assert 'class="avatar"' in page  # team roster visual identity
+    assert "chip-neutral" in page  # a specialist's "N challenged · M resolved" chip
+    # The Engagement Lead's own synthesis is critiqued too (orchestrator._do_synthesis) — the
+    # old renderer never surfaced that debate at all.
+    assert "The plan itself was challenged" in page
     assert "What Could Go Wrong" in page  # the Lead's Risks, previously dropped
     assert "gate forced" in page
     assert "decision forced" in page

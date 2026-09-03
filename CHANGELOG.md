@@ -1,5 +1,49 @@
 # Changelog
 
+## 0.17.0 — 2026-09-03
+
+Tony's reaction to the first rendered dashboard, verbatim: "I don't know who they are... I would
+never even show anybody this." That was correct and specific, not a taste disagreement. The
+"Institutional Briefing" system (`DESIGN.md`, 2026-08-31) was built on the premise that this page
+is an audit record — sober, one accent color, dense serif prose, no cards, silently dark by
+default on a dark-mode OS. That premise was wrong for a page meant to be run live, shown to
+people, and used to actually review an engagement.
+
+- **Full visual rewrite.** Light by default regardless of OS setting, with an in-page dark
+  toggle (`localStorage`-remembered) instead of silent `prefers-color-scheme` inheritance. One
+  sans-serif face throughout — Spectral is gone. Colors are a validated palette (checked against
+  the dataviz skill's palette validator), not picked by eye.
+- **Stat tiles at the top**: advisors dispatched, findings challenged, disagreements, escalations,
+  gate status — real numbers from the run, severity-colored (amber for disagreements, red for
+  escalations), the first thing a reader sees.
+- **The team roster now has actual visual identity**: a colored initials avatar per specialist
+  (a fixed eight-color order, assigned by dispatch position, never reassigned), plus a
+  "N challenged · M resolved" chip per advisor. The old version was a title and a gray one-line
+  remit at the bottom of a wall of text — exactly the thing that read as "I don't know who they
+  are."
+- **Every advisor's Critique and Artifact are collapsed by default**, not forced open. A reader
+  sees seven compact summary rows before choosing what to expand, instead of a page-long wall of
+  serif prose.
+- **The Engagement Lead's own synthesis gets a critique block too.** `orchestrator._do_synthesis`
+  has run a real critique pass on the plan itself since v0.10.0 — the old renderer never surfaced
+  it at all. The team roster's chip for the Lead is now backed by an actual expandable section
+  ("The plan itself was challenged"), not a number with nothing behind it.
+- Severity badges, disagreement/escalation markers: color plus a visible word, never color
+  alone — the one accessibility rule carried over unchanged from the prior system.
+- Cards, border-radius, and status color are no longer banned — the prior system's rules were
+  written for an audit record, not a dashboard, and are documented as superseded in `DESIGN.md`'s
+  "The pivot" rather than silently dropped.
+- Found and fixed along the way: a Python string-escaping bug that corrupted the header's middle-
+  dot separator into a stray null byte plus literal text (`\00b7` needed to be `\\00b7` inside a
+  non-raw triple-quoted Python string — silently wrong since the original "Institutional
+  Briefing" version, just not visually obvious in that system's dense small-text header); a
+  trailing-space class bug (`class="stat-value "`) on any stat tile with no severity color.
+- Verified visually, not just by test — rendered the actual live demo run through a real
+  browser (light, dark, and 390px mobile widths) before shipping, since this whole rewrite
+  exists because a previous version wasn't checked that way and shipped ugly and unreadable.
+- 205 → 207 tests (two new: stat-tile numbers are real, not decorative; the team roster carries
+  visual identity), ruff clean, no eval regression (render.py isn't eval-scored).
+
 ## 0.16.0 — 2026-09-03
 
 The rendered report only ever showed a decision already made. That meant the consulting lead's
