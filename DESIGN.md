@@ -130,16 +130,16 @@ wants to leave the page with a checklist, not a paragraph to re-read.
 - **The ending is not spoiled at the top.** Anything that records a verdict — the human decision,
   in full — appears once, at the close.
 
+**Decided (2026-09-03, v0.18.1): the model's `**bold**`/`*italic*` is interpreted, not left
+literal.** A reader flagged raw asterisks in the middle of sentences — correctly; a page read as
+continuous prose can't carry markup syntax as visible noise. `mdlite()` escapes everything first
+(a literal `<b>` in the model's own text still can never become real HTML), then converts
+`**bold**`/`*italic*` on the now-safe string. Every place rendering free-form model prose uses it.
+
 ## Not yet decided
 
 - Treatment for rejected and errored-run states (unchanged across both pivots — still genuinely
   undesigned; `render_run` still refuses both with `RenderError`).
-- Whether the model's own markdown-style emphasis (`**bold**`) in a specialist's prose should be
-  interpreted or left literal. Currently literal — escaping is settled (`html.escape` on
-  everything); rendering the model's own formatting choices is a bigger claim than this project
-  has decided to make about text nobody has reviewed for markup, only for content. Worth
-  revisiting now that the page is read as continuous prose, where literal asterisks are more
-  visible than they were in the dashboard's shorter text blocks.
 - A true live view of a run in progress — this system covers the finished (or pending) report,
   not a running one. Watching agents work in real time would need a running process pushing
   updates, not a static file generated after the fact; that's a distinct, larger feature, not

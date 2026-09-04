@@ -200,7 +200,7 @@ uv run python -m evals.run   # scored eval; writes evals/results/latest.json (gi
                              # fails on regression against the committed evals/results/baseline.json
 ```
 
-At v0.18.0 that is 207 tests green and no eval regression. Router exact-plan 0.957 (1.000 on the
+At v0.18.1 that is 208 tests green and no eval regression. Router exact-plan 0.957 (1.000 on the
 easy regression cases, 0.913 on the deliberately ambiguous hard ones), governance verdict and issue
 recall both 1.000, persona coverage 22/22, and the house brief reaching 22/22 specialists.
 

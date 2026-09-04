@@ -20,7 +20,7 @@ import re
 from pathlib import Path
 
 from .gate import verify_artifacts
-from .governance import REQUIRED_SECTIONS, flagged_roles, split_sections
+from .governance import flagged_roles, split_sections
 from .orchestrator import SYNTHESIS_ROLE, parse_registers
 from .roles import get_role
 
@@ -336,13 +336,6 @@ details.story[open] > summary::after{content:"\\25b4"}
 _HTTPS_RE = re.compile(r"https://\S+")
 _SENTENCE_RE = re.compile(r"(?<=[.!?])\s+")
 _NUMBERED_LINE_RE = re.compile(r"^[ \t]*\d+[.)][ \t]*(.+)$")
-_SECTION_LABELS = {
-    "objective": "Objective",
-    "body": "Body",
-    "citations": "Citations",
-    "risks": "Risks",
-    "next steps": "Next Steps",
-}
 
 
 class RenderError(Exception):
@@ -351,6 +344,21 @@ class RenderError(Exception):
 
 def esc(text: str | None) -> str:
     return html.escape(text or "", quote=True)
+
+
+_BOLD_RE = re.compile(r"\*\*(.+?)\*\*")
+_ITALIC_RE = re.compile(r"(?<!\*)\*([^*]+?)\*(?!\*)")
+
+
+def mdlite(text: str | None) -> str:
+    """Escape everything, then interpret the one piece of markup the model actually writes:
+    **bold** and *italic*. Escaping first means a literal '<' in the model's own text can never
+    become a tag — the <b>/<em> this function inserts afterward are ours, not the model's, so
+    this stays exactly as safe as plain esc() while no longer leaving raw asterisks on the page.
+    """
+    escaped = esc(text)
+    escaped = _BOLD_RE.sub(r"<b>\1</b>", escaped)
+    return _ITALIC_RE.sub(r"<em>\1</em>", escaped)
 
 
 def _linkify(escaped_line: str) -> str:
@@ -402,7 +410,7 @@ def _render_citations(body: str) -> str:
     items = [ln.strip().lstrip("-").strip() for ln in body.splitlines() if ln.strip()]
     if not items:
         return ""
-    lis = "\n".join(f"<li>{_linkify(esc(item))}</li>" for item in items)
+    lis = "\n".join(f"<li>{_linkify(mdlite(item))}</li>" for item in items)
     return f"<ul>{lis}</ul>"
 
 
@@ -410,13 +418,13 @@ def _render_next_steps(body: str) -> str:
     lines = [ln.strip() for ln in body.splitlines() if ln.strip()]
     numbered = [_NUMBERED_LINE_RE.match(ln) for ln in lines]
     if lines and all(numbered):
-        lis = "\n".join(f"<li>{esc(m.group(1))}</li>" for m in numbered)
+        lis = "\n".join(f"<li>{mdlite(m.group(1))}</li>" for m in numbered)
         return f"<ol>{lis}</ol>"
-    return "".join(f"<p>{esc(p)}</p>" for p in body.split("\n\n") if p.strip())
+    return "".join(f"<p>{mdlite(p)}</p>" for p in body.split("\n\n") if p.strip())
 
 
 def _render_prose(body: str) -> str:
-    return "".join(f"<p>{esc(p.strip())}</p>" for p in body.split("\n\n") if p.strip())
+    return "".join(f"<p>{mdlite(p.strip())}</p>" for p in body.split("\n\n") if p.strip())
 
 
 def _parse_milestones(body: str) -> list[str]:
@@ -428,27 +436,6 @@ def _parse_milestones(body: str) -> list[str]:
     if lines and all(numbered):
         return [m.group(1) for m in numbered]
     return [p.strip() for p in body.split("\n\n") if p.strip()]
-
-
-def artifact_doc_html(text: str) -> str:
-    """The five-section envelope (Objective/Body/Citations/Risks/Next Steps), escaped and
-    given light structure. No markdown is interpreted — DESIGN.md settles escaping, not
-    rendering, and interpreting the model's own formatting choices is a bigger claim than an
-    audit record should make about text nobody has reviewed for markup, only for content."""
-    sections = split_sections(text)
-    parts = []
-    for key in REQUIRED_SECTIONS:
-        body = sections.get(key, "")
-        if not body:
-            continue
-        parts.append(f"<h4>{esc(_SECTION_LABELS[key])}</h4>")
-        if key == "citations":
-            parts.append(_render_citations(body))
-        elif key == "next steps":
-            parts.append(_render_next_steps(body))
-        else:
-            parts.append(_render_prose(body))
-    return "\n".join(p for p in parts if p)
 
 
 def _plan_counts(lead_text: str | None) -> dict:
@@ -659,12 +646,12 @@ def _critique_exchanges_html(critique: dict) -> str:
     if critique.get("steelman"):
         parts.append(
             '<div class="voice pushback"><div class="lbl">The strongest case for it</div>'
-            f"<p>{esc(critique['steelman'])}</p></div>"
+            f"<p>{mdlite(critique['steelman'])}</p></div>"
         )
     if critique.get("premortem"):
         parts.append(
             '<div class="voice pushback"><div class="lbl">How this could go wrong</div>'
-            f"<p>{esc(critique['premortem'])}</p></div>"
+            f"<p>{mdlite(critique['premortem'])}</p></div>"
         )
     for i, p in enumerate(critique.get("points") or [], 1):
         sev = (p.get("severity") or "minor").lower()
@@ -675,14 +662,14 @@ def _critique_exchanges_html(critique: dict) -> str:
             f'<div class="voice pushback"><div class="lbl">Pushback {i}'
             f'{" &middot; " + dim if dim else ""}</div>'
             f'<p><span class="sev {status}">{esc(sev.title())}</span>'
-            f"{esc(p.get('claim', ''))}</p></div>"
+            f"{mdlite(p.get('claim', ''))}</p></div>"
         )
         if p.get("response"):
             resolved = p.get("disposition") == "accepted"
             label = "Why they revised it" if resolved else "Their response"
             parts.append(
                 f'<div class="voice revision"><div class="lbl">{label}</div>'
-                f"<p>{esc(p['response'])}</p></div>"
+                f"<p>{mdlite(p['response'])}</p></div>"
             )
         parts.append("</div>")  # .exchange
     return "\n".join(parts)
@@ -719,7 +706,9 @@ def _advisor_story(role: str, artifact: dict, text: str) -> str:
     position = "\n\n".join(
         s for s in (sections.get("objective", ""), sections.get("body", "")) if s
     )
-    position_html = "".join(f"<p>{esc(p.strip())}</p>" for p in position.split("\n\n") if p.strip())
+    position_html = "".join(
+        f"<p>{mdlite(p.strip())}</p>" for p in position.split("\n\n") if p.strip()
+    )
     if position_html:
         parts.append(
             '<div class="voice position"><div class="lbl">Their position</div>'
@@ -728,7 +717,7 @@ def _advisor_story(role: str, artifact: dict, text: str) -> str:
     citations = sections.get("citations", "")
     cite_items = [ln.strip().lstrip("-").strip() for ln in citations.splitlines() if ln.strip()]
     if cite_items:
-        linked = ", ".join(_linkify(esc(item)) for item in cite_items)
+        linked = ", ".join(_linkify(mdlite(item)) for item in cite_items)
         parts.append(f'<p class="cite-list"><b>Citing:</b> {linked}</p>')
 
     parts.append(_critique_exchanges_html(critique))
@@ -782,10 +771,12 @@ def _register_group(name: str, entries: list[str], *, item_class: str = "", note
             )
             items.append(
                 f'<div class="{cls}"><span class="n">{i}</span>'
-                f"<div><p>{esc(text)}</p>{owner_html}</div></div>"
+                f"<div><p>{mdlite(text)}</p>{owner_html}</div></div>"
             )
         else:
-            items.append(f'<div class="{cls}"><span class="n">{i}</span><p>{esc(entry)}</p></div>')
+            items.append(
+                f'<div class="{cls}"><span class="n">{i}</span><p>{mdlite(entry)}</p></div>'
+            )
     note_html = f'<p class="register-note">{note}</p>' if note else ""
     # register-{name} lets the CSS color Disagreements amber and Escalations red without any
     # Python touching color decisions — severity is a display concern, not a content one.
@@ -824,7 +815,7 @@ def _synthesis_section(artifact: dict, text: str) -> str:
     if recommendation:
         parts.append(
             '<div class="quote"><div class="lbl">Recommendation</div>'
-            f"<p>{esc(recommendation)}</p></div>"
+            f"<p>{mdlite(recommendation)}</p></div>"
         )
     parts.append(_register_group("Decisions", regs.get("decisions") or []))
     parts.append(
@@ -850,7 +841,7 @@ def _synthesis_section(artifact: dict, text: str) -> str:
     if next_steps:
         milestones = _parse_milestones(next_steps)
         items = "".join(
-            f'<li class="milestone"><span class="num">{i}</span><p>{esc(m)}</p></li>'
+            f'<li class="milestone"><span class="num">{i}</span><p>{mdlite(m)}</p></li>'
             for i, m in enumerate(milestones, 1)
         )
         parts.append(
@@ -865,7 +856,7 @@ def _synthesis_section(artifact: dict, text: str) -> str:
     if risks:
         parts.append(
             '<div class="register"><div class="register-head"><h3>What Could Go Wrong</h3></div>'
-            f'<div class="risks-box"><p>{esc(risks)}</p></div></div>'
+            f'<div class="risks-box"><p>{mdlite(risks)}</p></div></div>'
         )
     lead_critique = artifact.get("critique")
     if lead_critique:

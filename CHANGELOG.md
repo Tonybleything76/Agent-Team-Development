@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.18.1 — 2026-09-03
+
+"It's like a markdown but the markdown isn't showing up." Every specialist writes `**bold**`
+around the phrase it wants to emphasize, and the renderer had been escaping that literally since
+before either visual pivot — DESIGN.md had flagged this as an open question ("whether the
+model's own markdown-style emphasis should be interpreted") and it went unresolved until a
+reader actually had to look at a raw asterisk in the middle of a sentence.
+
+- **New `mdlite()`**: escapes everything first (so a literal `<b>` in the model's own text can
+  never become real HTML — that safety property is unchanged), then interprets `**bold**` and
+  `*italic*` on the now-safe string. Every place that was rendering free-form model prose
+  (`_render_prose`, `_render_citations`, `_render_next_steps`, the position/steelman/pre-mortem/
+  claim/response voice blocks, the Recommendation, Decisions/Disagreements/Escalations text,
+  Milestones, Risks) now calls it instead of plain `esc()`.
+- Removed `artifact_doc_html`, `REQUIRED_SECTIONS`, and `_SECTION_LABELS` — dead code from the
+  pre-narrative renderer that nothing in the current pipeline called, and whose docstring
+  ("no markdown is interpreted") now directly contradicted the fix above.
+- 207 → 208 tests (the `artifact_doc_html` test replaced with direct `mdlite()` coverage plus a
+  citations/next-steps regression test); ruff clean, no eval regression.
+
 ## 0.18.0 — 2026-09-03
 
 Shown the dashboard from v0.17.0, Tony's reaction was as specific as the one that motivated it:

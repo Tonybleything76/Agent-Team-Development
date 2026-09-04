@@ -1,3 +1,3 @@
 """HuminLoop Agents: a hierarchical AI consulting team with a human approval gate."""
 
-__version__ = "0.18.0"
+__version__ = "0.18.1"

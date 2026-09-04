@@ -18,9 +18,11 @@ from huminloop import gate, orchestrator
 from huminloop.render import (
     RenderError,
     _register_group,
+    _render_citations,
+    _render_next_steps,
     _split_decision,
-    artifact_doc_html,
     esc,
+    mdlite,
     render_run,
     split_headline,
 )
@@ -94,20 +96,26 @@ def test_esc_escapes_html_and_quotes():
     assert esc(None) == ""
 
 
-def test_artifact_doc_html_escapes_and_never_interprets_markup():
-    text = (
-        "Objective: Decide <b>fast</b> & correctly.\n\n"
-        "Body: The plan is real.\n\n"
-        "Citations:\n- https://example.com/a\n- https://example.com/b\n\n"
-        "Risks: None material.\n\n"
-        "Next Steps:\n1. Do the thing.\n2. Then the other thing.\n"
+def test_mdlite_escapes_raw_html_but_interprets_bold_and_italic():
+    """The model's own literal HTML must never become real markup — that stays escaped no
+    matter what. **bold** and *italic* are the one thing we now deliberately interpret, since
+    a page meant to be read start to finish can't have raw asterisks littering the prose."""
+    assert mdlite("Decide <b>fast</b> & correctly.") == (
+        "Decide &lt;b&gt;fast&lt;/b&gt; &amp; correctly."
     )
-    out = artifact_doc_html(text)
-    assert "<b>fast</b>" not in out  # the model's own markup is data, never rendered as HTML
-    assert "&lt;b&gt;fast&lt;/b&gt;" in out
-    assert "&amp;" in out
-    assert '<a href="https://example.com/a">https://example.com/a</a>' in out
-    assert "<ol>" in out and "<li>Do the thing.</li>" in out
+    assert mdlite("**Claims adjudication** matters most.") == (
+        "<b>Claims adjudication</b> matters most."
+    )
+    assert mdlite("a *quiet* signal") == "a <em>quiet</em> signal"
+    assert mdlite(None) == ""
+
+
+def test_render_citations_and_next_steps_still_work_with_markdown_present():
+    assert '<a href="https://example.com/a">https://example.com/a</a>' in _render_citations(
+        "- https://example.com/a"
+    )
+    out = _render_next_steps("1. Do the **thing**.\n2. Then the other thing.")
+    assert "<ol>" in out and "<li>Do the <b>thing</b>.</li>" in out
 
 
 def test_register_group_none_reads_as_none_not_a_bare_zero():
