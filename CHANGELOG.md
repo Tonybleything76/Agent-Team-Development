@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.19.0 — 2026-09-04
+
+"Is it all mine? It's my team, so why are you talking in the third person?" — every sentence this
+module authors itself (not model output) was written as if narrating a stranger's engagement.
+Fixed the voice and, per the same conversation, applied HuminLoop's actual brand to the page for
+the first time.
+
+- **First-person team voice.** "The team involved in this planning" → "Who we put on this."
+  "How each advisor reasoned it through" → "How each of us reasoned it through." "The Team's Plan"
+  → "Our Plan." The `_summary_line` sentence, both act intros, the `.orient` paragraph, both
+  decision-bar variants, and the Disagreements/Escalations register notes all move from third
+  person ("the team," "advisors," "a person") to "we"/"our"/"us," with Tony addressed as "you"
+  throughout — matching the decision bar's voice, which already had this right. Individual
+  advisors keep their own "I" inside their own `<details class="story">` — untouched.
+- **HuminLoop brand applied**: DM Sans (headlines, labels, stat numbers) over Inter (body), Deep
+  Navy `#1a1a2e` / Body Text `#3d3d5c` ink tokens, Blue-Purple `#7a78f5` primary accent, a
+  gradient loop-mark + "HuminLoop Agents" wordmark in the header, and one deliberate gradient
+  touch on the Recommendation quote (Blue-Purple → Pink-Coral), not spread across the page.
+  `--muted` and the dark tokens are shaded a step past the brand system's literal hex to clear AA
+  contrast against this page's nested surfaces — see DESIGN.md for the exact values and why.
+- See DESIGN.md's "Decided (2026-09-03/04, v0.19.0)" for the full account, including what was
+  deliberately scoped out (no auto-generated pull-quotes or gate-status cards — those were
+  hand-picked from one specific advisor's text in a mockup, not something this renderer can do
+  generically over arbitrary content).
+- 208 tests, unchanged in count (`"were dispatched" / "was dispatched"` assertion updated to
+  match the new phrasing); ruff clean.
+
 ## 0.18.1 — 2026-09-03
 
 "It's like a markdown but the markdown isn't showing up." Every specialist writes `**bold**`

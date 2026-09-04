@@ -136,6 +136,37 @@ continuous prose can't carry markup syntax as visible noise. `mdlite()` escapes 
 (a literal `<b>` in the model's own text still can never become real HTML), then converts
 `**bold**`/`*italic*` on the now-safe string. Every place rendering free-form model prose uses it.
 
+**Decided (2026-09-03/04, v0.19.0): first-person team voice, HuminLoop brand.** Tony's reaction
+to the narrative pivot's own boilerplate: *"Is it all mine? It's my team, so why are you talking
+in the third person? Like I'm reading about some other account that I'm not associated with."*
+Right — this page is a report from Tony's own team to Tony, not a briefing about a stranger's
+engagement. Every sentence this module authors itself (not model output — advisors keep their own
+"I" voice inside their own sections) now speaks as "we": "We dispatched 6 specialists," "Who we put
+on this," "Our Plan," "our Engagement Lead." Tony stays "you" throughout, matching the decision
+bar's voice, which was already right ("Nothing here goes anywhere until *you* read it"). Alongside
+the pronoun fix, the page now carries HuminLoop's actual brand: DM Sans (headlines, labels, stat
+numbers) over Inter (body prose), Deep Navy `#1a1a2e` / Body Text `#3d3d5c` ink tokens, Blue-Purple
+`#7a78f5` as the primary accent, a small gradient loop-mark + "HuminLoop Agents" wordmark in the
+header, and one deliberate gradient touch — a Blue-Purple → Pink-Coral border on the Recommendation
+quote, the one true hero element per run, not spread across the page as wallpaper. `--muted` and
+the dark-mode tokens are shaded a step darker/lighter than the brand system's literal hex to clear
+AA contrast against this page's nested surfaces — documented here per the brand skill's own rule
+for extending a too-restrictive palette. Status colors (good/warning/critical) are unchanged from
+the narrative pivot — HuminLoop's brand system doesn't define its own, and these were already
+validated. The brand system also retires HuminLoop's dark-background lockup; this page keeps its
+opt-in dark toggle anyway as a deliberate, disclosed exception — an internal working document read
+at all hours is a different case than a public-facing brand asset, and Tony's original objection
+was to a *default* dark view, not to dark mode's existence.
+
+Scoped out of this pass, deliberately: no attempt to auto-generate pull-quotes or "gate status"
+callout cards from arbitrary advisor prose. A hand-picked callout works in a one-off mockup because
+a human read that advisor's specific text; the production renderer runs over any task's arbitrary
+Objective/Body content, and guessing which sentence is "the" pull-quote or which lines are
+"gates" would misfire on content this module has never seen. The existing per-advisor structure —
+position, citations, pushback paired with revision, risks, next steps, all inside one continuous
+account — already delivers the narrative-plus-actionable-detail hybrid; it just needed the voice
+and brand fix, not a new content-extraction mechanism.
+
 ## Not yet decided
 
 - Treatment for rejected and errored-run states (unchanged across both pivots — still genuinely

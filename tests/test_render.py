@@ -198,7 +198,7 @@ def test_summary_line_reports_real_run_numbers(workdir, fake_llm):
     n_roles = len((manifest.get("plan") or {}).get("roles") or [])
     page = render_run(manifest, d)
     assert f"<b>{n_roles}</b>" in page
-    assert "were dispatched" in page or "was dispatched" in page
+    assert "We dispatched" in page
     assert "only you can answer" in page
     assert "awaiting your decision" in page
 

@@ -26,17 +26,18 @@ from .roles import get_role
 
 CSS = """
 :root{
-  --page:#f9f9f7;
-  --surface:#fcfcfb;
-  --surface-2:#f2f2ef;
-  --ink:#0b0b0b;
-  --ink-2:#40403c;
-  --muted:#787670;
-  --rule:#e1e0d9;
-  --rule-soft:#ececea;
-  --accent:#2a78d6;
-  --accent-ink:#184f95;
-  --accent-wash:#eaf1fb;
+  --page:#ffffff;
+  --surface:#f5f5f7;
+  --surface-2:#eceef3;
+  --ink:#1a1a2e;
+  --ink-2:#3d3d5c;
+  --muted:#5b6270;
+  --rule:#e8e8f0;
+  --rule-soft:#eef0f5;
+  --accent:#7a78f5;
+  --accent-2:#ec6496;
+  --accent-ink:#4a47b8;
+  --accent-wash:#edecfd;
   --good:#0ca30c;
   --good-wash:#e8f7e8;
   --warning:#c98500;
@@ -45,21 +46,22 @@ CSS = """
   --critical:#c23333;
   --critical-wash:#fbe9e8;
   --avatar-ink:#ffffff;
-  --story-wash:#f4f2ec;
+  --story-wash:#f6f3fb;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --page:#0d0d0d;
-    --surface:#1a1a19;
-    --surface-2:#212120;
-    --ink:#ffffff;
-    --ink-2:#d2d0c8;
-    --muted:#a4a29a;
-    --rule:#2c2c2a;
-    --rule-soft:#242422;
-    --accent:#5b9fed;
-    --accent-ink:#a9cdf5;
-    --accent-wash:#152238;
+    --page:#14141f;
+    --surface:#1e1e2f;
+    --surface-2:#262638;
+    --ink:#f2f1f7;
+    --ink-2:#cfcee0;
+    --muted:#a4a2c0;
+    --rule:#34334a;
+    --rule-soft:#2b2a3f;
+    --accent:#9b99f7;
+    --accent-2:#f5a0c4;
+    --accent-ink:#b4b2ff;
+    --accent-wash:#2a2850;
     --good:#39c239;
     --good-wash:#173317;
     --warning:#fab219;
@@ -67,21 +69,22 @@ CSS = """
     --warning-wash:#332708;
     --critical:#f0837f;
     --critical-wash:#341918;
-    --story-wash:#221f1a;
+    --story-wash:#241f34;
   }
 }
 :root[data-theme="dark"]{
-  --page:#0d0d0d;
-  --surface:#1a1a19;
-  --surface-2:#212120;
-  --ink:#ffffff;
-  --ink-2:#d2d0c8;
-  --muted:#a4a29a;
-  --rule:#2c2c2a;
-  --rule-soft:#242422;
-  --accent:#5b9fed;
-  --accent-ink:#a9cdf5;
-  --accent-wash:#152238;
+  --page:#14141f;
+  --surface:#1e1e2f;
+  --surface-2:#262638;
+  --ink:#f2f1f7;
+  --ink-2:#cfcee0;
+  --muted:#a4a2c0;
+  --rule:#34334a;
+  --rule-soft:#2b2a3f;
+  --accent:#9b99f7;
+  --accent-2:#f5a0c4;
+  --accent-ink:#b4b2ff;
+  --accent-wash:#2a2850;
   --good:#39c239;
   --good-wash:#173317;
   --warning:#fab219;
@@ -89,14 +92,14 @@ CSS = """
   --warning-wash:#332708;
   --critical:#f0837f;
   --critical-wash:#341918;
-  --story-wash:#221f1a;
+  --story-wash:#241f34;
 }
 *{box-sizing:border-box}
 body{
   margin:0;
   background:var(--page);
-  color:var(--ink);
-  font-family:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  color:var(--ink-2);
+  font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   font-size:17px;
   line-height:1.65;
   -webkit-font-smoothing:antialiased;
@@ -112,18 +115,29 @@ code{
 
 /* ---- header ---- */
 .topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.brandmark{display:flex;align-items:center;gap:10px}
+.loop-mark{
+  width:22px;height:22px;border-radius:50%;flex-shrink:0;
+  background:conic-gradient(
+    from 200deg,#5ea0e8,#7a78f5,#9752fa,#c849d8,#ec6496,#f47c71,#f9c040,#5ea0e8
+  );
+}
+.brand-word{
+  font-family:"DM Sans",sans-serif;font-weight:700;font-size:14px;
+  color:var(--ink);letter-spacing:-.01em;
+}
 .rid{
   font-size:11px;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--muted);font-weight:700;
+  color:var(--muted);font-weight:700;font-family:"DM Sans",sans-serif;
   font-variant-numeric:tabular-nums;
-  display:flex;flex-wrap:wrap;gap:6px 14px;
+  display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:16px;
 }
 .rid span::after{content:" \\00b7";color:var(--rule)}
 .rid span:last-child::after{content:""}
 .theme-toggle{
   appearance:none;border:1px solid var(--rule);background:var(--surface);color:var(--ink-2);
-  font:inherit;font-size:13px;font-weight:600;padding:8px 14px;border-radius:8px;cursor:pointer;
-  min-height:44px;flex-shrink:0;
+  font-family:"DM Sans",sans-serif;font-size:13px;font-weight:600;padding:8px 14px;
+  border-radius:8px;cursor:pointer;min-height:44px;flex-shrink:0;
 }
 .theme-toggle:hover{border-color:var(--accent);color:var(--ink)}
 .orient{
@@ -131,7 +145,7 @@ code{
   font-size:17px;line-height:1.6;color:var(--ink-2);
 }
 h1.task{
-  font-family:inherit;
+  font-family:"DM Sans",sans-serif;
   font-weight:700;
   font-size:clamp(24px,4vw,34px);
   line-height:1.2;
@@ -148,12 +162,12 @@ h1.task{
   margin:22px 0 0;padding:16px 20px;background:var(--surface-2);border-radius:10px;
   font-size:16px;line-height:1.6;color:var(--ink-2);max-width:68ch;
 }
-.summary-line b{color:var(--ink);font-variant-numeric:tabular-nums}
+.summary-line b{font-family:"DM Sans",sans-serif;color:var(--ink);font-variant-numeric:tabular-nums}
 .summary-line b.warn{color:var(--warning-ink)}
 .summary-line b.crit{color:var(--critical)}
 .chip{
   display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;
-  font-size:13px;font-weight:700;letter-spacing:.01em;
+  font-family:"DM Sans",sans-serif;font-size:13px;font-weight:700;letter-spacing:.01em;
 }
 .chip-pending{background:var(--accent-wash);color:var(--accent-ink)}
 .chip-good{background:var(--good-wash);color:var(--good)}
@@ -175,7 +189,7 @@ h1.task{
   display:flex;align-items:center;justify-content:center;
   font-size:12px;font-weight:700;color:var(--avatar-ink);
 }
-.toc-name{font-weight:700;font-size:16px;color:var(--ink)}
+.toc-name{font-family:"DM Sans",sans-serif;font-weight:700;font-size:16px;color:var(--ink)}
 .toc-remit{font-size:13px;color:var(--muted);margin-left:auto;text-align:right;max-width:38ch}
 @media (max-width:640px){.toc-remit{display:none}}
 
@@ -184,11 +198,12 @@ section{margin:0 0 12px}
 .act{margin:56px 0 0;padding-top:32px;border-top:1px solid var(--rule)}
 .act:first-of-type{margin-top:44px}
 .act-label{
+  font-family:"DM Sans",sans-serif;
   font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-ink);
   margin:0 0 6px;
 }
 h2{
-  font-family:inherit;font-weight:700;
+  font-family:"DM Sans",sans-serif;font-weight:700;
   font-size:24px;letter-spacing:-.005em;margin:0 0 8px;color:var(--ink);
 }
 .sub{font-size:15px;color:var(--muted);margin:0 0 20px;max-width:68ch;line-height:1.55}
@@ -206,7 +221,7 @@ details.story > summary::after{
   content:"\\25be";margin-left:auto;color:var(--muted);font-size:13px;flex-shrink:0;
 }
 details.story[open] > summary::after{content:"\\25b4"}
-.story-name{font-weight:700;font-size:19px;color:var(--ink)}
+.story-name{font-family:"DM Sans",sans-serif;font-weight:700;font-size:19px;color:var(--ink)}
 .story-remit{font-size:13px;color:var(--muted)}
 .story-body{padding:4px 4px 28px;max-width:68ch}
 .story-body h4{
@@ -246,7 +261,13 @@ details.story[open] > summary::after{content:"\\25b4"}
   background:var(--surface-2);padding:18px 20px;margin:0 0 16px;
   max-width:68ch;border-radius:10px;
 }
+.quote.hero{
+  padding-left:22px;border-radius:0 10px 10px 0;
+  border-left:3px solid transparent;
+  border-image:linear-gradient(var(--accent),var(--accent-2)) 1;
+}
 .quote .lbl{
+  font-family:"DM Sans",sans-serif;
   font-size:11px;letter-spacing:.1em;text-transform:uppercase;
   color:var(--muted);font-weight:700;margin-bottom:8px;
 }
@@ -255,7 +276,7 @@ details.story[open] > summary::after{content:"\\25b4"}
 .register:last-child{margin-bottom:8px}
 .register-head{display:flex;align-items:baseline;gap:10px;margin:0 0 4px}
 .register-head h3{
-  font-size:13px;font-weight:700;
+  font-family:"DM Sans",sans-serif;font-size:13px;font-weight:700;
   letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);margin:0;
 }
 .register-count{
@@ -287,8 +308,8 @@ details.story[open] > summary::after{content:"\\25b4"}
 .milestone:first-child{border-top:none}
 .milestone .num{
   flex-shrink:0;width:28px;height:28px;border-radius:50%;background:var(--accent-wash);
-  color:var(--accent-ink);font-weight:700;font-size:13px;display:flex;align-items:center;
-  justify-content:center;
+  color:var(--accent-ink);font-family:"DM Sans",sans-serif;font-weight:700;font-size:13px;
+  display:flex;align-items:center;justify-content:center;
 }
 .milestone p{margin:0;color:var(--ink);font-size:16px;line-height:1.55;max-width:62ch}
 .risks-box{
@@ -310,7 +331,7 @@ details.story[open] > summary::after{content:"\\25b4"}
 }
 .decision.forced{border-color:var(--warning-ink);background:var(--warning-wash)}
 .decision.pending{border-color:var(--accent);background:var(--accent-wash)}
-.decision .verdict{font-size:22px;font-weight:700;color:var(--ink)}
+.decision .verdict{font-family:"DM Sans",sans-serif;font-size:22px;font-weight:700;color:var(--ink)}
 .decision.forced .verdict{color:var(--warning-ink)}
 .decision.pending .verdict{color:var(--accent-ink)}
 .decision .cta{font-size:15px;margin:12px 0 0;max-width:64ch;color:var(--ink-2)}
@@ -323,7 +344,10 @@ details.story[open] > summary::after{content:"\\25b4"}
   overflow-x:auto;white-space:pre;border-radius:8px;border:1px solid var(--rule);
 }
 .decision .flag-list{margin-top:14px;font-size:13px;color:var(--warning-ink);font-weight:700}
-.decision .who{font-size:26px;font-weight:700;margin-top:8px;color:var(--ink)}
+.decision .who{
+  font-family:"DM Sans",sans-serif;font-size:26px;font-weight:700;
+  margin-top:8px;color:var(--ink);
+}
 .decision .when{font-size:13px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
 .decision .note{font-size:15px;margin:14px 0 0;max-width:60ch;color:var(--ink-2)}
 .decision .force-note{margin-top:12px;font-size:13px;color:var(--warning-ink);font-weight:700}
@@ -481,11 +505,10 @@ def _summary_line(manifest: dict, plan_counts: dict) -> str:
     escalate_cls = " crit" if n_escalations else ""
     findings_word = "finding" if n_findings == 1 else "findings"
     specialist_word = "specialist" if n_specialists == 1 else "specialists"
-    was_were = "was" if n_specialists == 1 else "were"
     return (
         '<p class="summary-line">'
-        f"<b>{n_specialists}</b> {specialist_word} {was_were} dispatched and challenged each "
-        f"other <b>{n_findings}</b> {findings_word} deep. They reached "
+        f"We dispatched <b>{n_specialists}</b> {specialist_word} and challenged each "
+        f"other <b>{n_findings}</b> {findings_word} deep. We reached "
         f'<b class="{disagree_cls.strip()}">'
         f"{n_disagreements}</b> open disagreement{'s' if n_disagreements != 1 else ''} and "
         f'<b class="{escalate_cls.strip()}">{n_escalations}</b> question'
@@ -522,8 +545,8 @@ def _pending_decision_bar(manifest: dict) -> str:
         '<section id="decision" class="decision pending">\n'
         "<h2>Your decision</h2>\n"
         '<p class="sub">Nothing here goes anywhere until you read it and say yes. The debate '
-        "is above &mdash; every advisor's draft, what got challenged, and the Team's Plan at "
-        "the top.</p>\n"
+        "is above &mdash; every one of our drafts, what got challenged, and the plan we "
+        "built, at the top.</p>\n"
         '<div class="verdict">NOT YET DECIDED</div>\n'
         '<p class="cta">Act from here once you have read it:</p>\n'
         '<div class="cmd">\n'
@@ -564,9 +587,9 @@ def _decision_bar(manifest: dict) -> str:
     return (
         f'<section id="decision" class="{cls}">\n'
         "<h2>Human decision</h2>\n"
-        '<p class="sub">Nothing here went anywhere until a person read it and said yes. '
-        "Before recording that, the system re-read every document to check nothing had "
-        "changed since they looked.</p>\n"
+        '<p class="sub">Nothing here went anywhere until you read it and said yes. '
+        "Before recording that, we re-read every document to check nothing had "
+        "changed since you looked.</p>\n"
         f'<div class="verdict">{verdict}</div>\n'
         f'<div class="who">{esc(decision.get("by", ""))}</div>\n'
         f'<div class="when">{esc(decision.get("at", ""))}</div>\n'
@@ -618,9 +641,9 @@ def _toc(artifacts: list[dict]) -> str:
             "</a></li>"
         )
     return (
-        '<section id="team"><h2>The team involved in this planning</h2>'
-        '<p class="sub">Every seat dispatched for this task. The rest of the page is the '
-        "story of what each one said, in the order they said it.</p>"
+        '<section id="team"><h2>Who we put on this</h2>'
+        '<p class="sub">Every seat we dispatched for this task. What follows is the '
+        "story of what each of us said, in the order we said it.</p>"
         f'<ul class="toc-list">{"".join(items)}</ul></section>'
     )
 
@@ -806,15 +829,15 @@ def _synthesis_section(artifact: dict, text: str) -> str:
 
     parts = [
         '<section id="plan">',
-        '<h2>The Team&#x27;s Plan</h2>',
-        '<p class="sub">The Engagement Lead reads every advisor&#x27;s work in full and reports '
-        "back: what the team recommends, what it decided, where advisors pushed back on each "
-        "other before settling, and what only you can answer. This is the one deliverable you "
-        "act on &mdash; everything after this section is how the team got here.</p>",
+        "<h2>Our Plan</h2>",
+        '<p class="sub">Our Engagement Lead reads every one of our drafts in full and reports '
+        "back: what we recommend, what we decided, where we pushed back on each other before "
+        "settling, and what only you can answer. This is the one deliverable you act on "
+        "&mdash; everything after this section is how we got here.</p>",
     ]
     if recommendation:
         parts.append(
-            '<div class="quote"><div class="lbl">Recommendation</div>'
+            '<div class="quote hero"><div class="lbl">Recommendation</div>'
             f"<p>{mdlite(recommendation)}</p></div>"
         )
     parts.append(_register_group("Decisions", regs.get("decisions") or []))
@@ -823,7 +846,7 @@ def _synthesis_section(artifact: dict, text: str) -> str:
             "Disagreements",
             regs.get("disagreements") or [],
             item_class="disagreement",
-            note="Where advisors reached different conclusions and the Lead had to weigh them.",
+            note="Where we reached different conclusions and our Lead had to weigh them.",
         )
     )
     parts.append(
@@ -832,7 +855,7 @@ def _synthesis_section(artifact: dict, text: str) -> str:
             regs.get("escalations") or [],
             item_class="escalation",
             note=(
-                "Questions no advisor can answer for you &mdash; each one is why this "
+                "Questions none of us can answer for you &mdash; each one is why this "
                 "run needed your sign-off."
             ),
         )
@@ -925,10 +948,10 @@ def render_run(manifest: dict, run_dir: Path) -> str:
     sections_html = [_toc(artifacts)]
 
     sections_html.append(
-        '<div class="act"><p class="act-label">How each advisor reasoned it through</p>'
-        f'<p class="sub">{route_note} Each one drafted independently, then a critic read that '
-        "one draft on its own and pushed back on it in writing &mdash; a real objection, not a "
-        "rubber stamp. Click an advisor to collapse it once you&#x27;ve read it.</p>"
+        '<div class="act"><p class="act-label">How each of us reasoned it through</p>'
+        f'<p class="sub">{route_note} Each of us drafted independently, then one of us, acting '
+        "as critic, read that draft alone and pushed back on it in writing &mdash; a real "
+        "objection, not a rubber stamp. Click any of us to collapse once you&#x27;ve read it.</p>"
     )
     for a in artifacts:
         role = a["role"]
@@ -943,10 +966,10 @@ def render_run(manifest: dict, run_dir: Path) -> str:
     if lead:
         sections_html.append(
             '<div class="act"><p class="act-label">Bringing it together</p>'
-            '<p class="sub">Once every advisor above had finished, the Engagement Lead read '
-            f"all {n_advisors} of their positions in full &mdash; this is where the "
-            "disagreements between them actually surface, and where one plan gets built from "
-            "what they each concluded.</p>"
+            '<p class="sub">Once every one of us above had finished, our Engagement Lead read '
+            f"all {n_advisors} of our positions in full &mdash; this is where our "
+            "disagreements actually surface, and where one plan gets built from "
+            "what we each concluded.</p>"
         )
         sections_html.append(_synthesis_section(lead, texts[SYNTHESIS_ROLE]))
         sections_html.append("</div>")  # .act
@@ -970,7 +993,7 @@ def render_run(manifest: dict, run_dir: Path) -> str:
 <head>
 <meta charset="utf-8">
 <title>HuminLoop &mdash; Run {esc(manifest.get('run_id', ''))}</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;700&family=Inter:wght@400;500;600&display=swap">
 <style>{CSS}</style>
 <script>
 (function(){{
@@ -985,18 +1008,20 @@ def render_run(manifest: dict, run_dir: Path) -> str:
 <div class="wrap">
 <header>
 <div class="topbar">
+<div class="brandmark">
+<span class="loop-mark" aria-hidden="true"></span><span class="brand-word">HuminLoop Agents</span>
+</div>
+<button type="button" id="theme-toggle" class="theme-toggle" aria-pressed="false">Dark mode</button>
+</div>
 <div class="rid">
-<span>HuminLoop</span>
 <span>Run {esc(manifest.get('run_id', ''))}</span>
 <span>{esc(manifest.get('provider', ''))}</span>
 <span>{esc((manifest.get('created_at') or '')[:10])}</span>
 </div>
-<button type="button" id="theme-toggle" class="theme-toggle" aria-pressed="false">Dark mode</button>
-</div>
-<p class="orient">This is the story of how this team reasoned through one task: who was
-dispatched, what each of them concluded on their own, the real pushback each one took, why they
-revised in response, where they disagreed with each other, and the plan the Engagement Lead
-built once everyone had finished. Nothing goes out until a person reads it and puts their name
+<p class="orient">This is the story of how we reasoned through one task: who we dispatched,
+what each of us concluded on our own, the real pushback each of us took, why we revised in
+response, where we disagreed with each other, and the plan our Engagement Lead built once we
+had all finished. Nothing goes out until you read it and put your name
 on it.</p>
 {task_html}
 {_summary_line(manifest, plan_counts)}
