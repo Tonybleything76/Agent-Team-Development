@@ -237,9 +237,7 @@ def test_produce_still_refuses_every_supervisor(fake_llm):
 # --------------------------------------------------------------------------- resynthesize
 
 
-def test_resynthesize_recovers_a_failed_synthesis_without_rerunning_specialists(
-    workdir, fake_llm
-):
+def test_resynthesize_recovers_a_failed_synthesis_without_rerunning_specialists(workdir, fake_llm):
     """The failure this exists for: every specialist succeeded, the lead's call came back
     empty. Resynthesize must retry only the lead against what's already on disk."""
     failing = RecordingLLM(fail_roles=("engagement_lead",))

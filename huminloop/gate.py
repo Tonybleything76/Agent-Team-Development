@@ -145,7 +145,7 @@ def _decide(
             os.close(os.open(src / DECISION_CLAIM, os.O_CREAT | os.O_EXCL | os.O_WRONLY))
         except FileExistsError as exc:
             raise GateError(f"run '{run_id}' is being decided by another process") from exc
-        manifest["decision"] = {
+        entry = {
             "state": decision,
             "by": by.strip(),
             "note": note.strip(),
@@ -153,6 +153,11 @@ def _decide(
             "forced": bool(force and flagged),
             "flagged_roles": flagged,
         }
+        # `decisions` is the append-only history, including anything later superseded by a
+        # reopen. `decision` is whichever one is operative now, so existing readers and the
+        # rendered report keep working.
+        manifest.setdefault("decisions", []).append(entry)
+        manifest["decision"] = entry
         manifest["status"] = decision
         # Record the decision in place first, then move: a crash between the two leaves a run in
         # pending/ whose manifest already carries the decision; re-running completes the move.
@@ -174,6 +179,93 @@ def _decide(
         log_file,
     )
     log.info("run %s %s by %s", run_id, decision, decided["by"])
+    return manifest
+
+
+def annotate(run_id: str, by: str, note: str, *, root: Path | None = None, log_file=None) -> dict:
+    """Record a comment on a run without deciding it.
+
+    Approve and reject are heavyweight, so without this the only way to register a reservation
+    is to reject the whole run — which means mild disagreement goes unsaid. Annotations are
+    append-only, allowed in any state, and never change status.
+    """
+    if not by or not by.strip():
+        raise GateError("a named author is required (--by)")
+    if not note or not note.strip():
+        raise GateError("an annotation needs something to say (--note)")
+    root = artifact_root(root)
+    try:
+        validate_run_id(run_id)
+        found = find_run(root, run_id)
+    except StorageError as exc:
+        raise GateError(str(exc)) from exc
+    if not found:
+        raise GateError(f"run '{run_id}' not found under {root}")
+    state, d = found
+    manifest = read_manifest(d)
+    entry = {"by": by.strip(), "note": note.strip(), "at": now_iso(), "state_when_written": state}
+    manifest.setdefault("annotations", []).append(entry)
+    write_manifest(d, manifest)
+    append_log(
+        {"event": "annotated", "run_id": run_id, "by": entry["by"], "note": entry["note"]}, log_file
+    )
+    log.info("run %s annotated by %s", run_id, entry["by"])
+    return manifest
+
+
+def reopen(run_id: str, by: str, reason: str, *, root: Path | None = None, log_file=None) -> dict:
+    """Take a decided run back to pending, superseding the earlier decision without erasing it.
+
+    A decision you cannot revisit is a decision people avoid making. The history stays
+    append-only — the superseded decision remains in `decisions` — so changing your mind is
+    cheap and always visible.
+    """
+    if not by or not by.strip():
+        raise GateError("a named person is required (--by)")
+    if not reason or not reason.strip():
+        raise GateError("a reason is required to reopen")
+    root = artifact_root(root)
+    try:
+        validate_run_id(run_id)
+        found = find_run(root, run_id)
+    except StorageError as exc:
+        raise GateError(str(exc)) from exc
+    if not found:
+        raise GateError(f"run '{run_id}' not found under {root}")
+    state, src = found
+    if state == "pending":
+        raise GateError(f"run '{run_id}' is already pending; there is no decision to reopen")
+    dst = run_dir(root, "pending", run_id)
+    if dst.exists():
+        raise GateError(f"destination {dst} already exists; refusing to merge directories")
+    manifest = read_manifest(src)
+    superseded = manifest.get("decision")
+    entry = {
+        "state": "reopened",
+        "by": by.strip(),
+        "note": reason.strip(),
+        "at": now_iso(),
+        "supersedes": {k: superseded.get(k) for k in ("state", "by", "at")} if superseded else None,
+    }
+    manifest.setdefault("decisions", []).append(entry)
+    manifest["decision"] = None  # nothing is operative until someone decides again
+    manifest["status"] = "pending"
+    write_manifest(src, manifest)
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    os.rename(src, dst)
+    # The old claim marker would otherwise block the next decision on this run.
+    (dst / DECISION_CLAIM).unlink(missing_ok=True)
+    append_log(
+        {
+            "event": "reopened",
+            "run_id": run_id,
+            "by": entry["by"],
+            "note": entry["note"],
+            "supersedes": entry["supersedes"],
+        },
+        log_file,
+    )
+    log.info("run %s reopened by %s", run_id, entry["by"])
     return manifest
 
 

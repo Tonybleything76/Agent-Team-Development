@@ -212,7 +212,7 @@ def test_toc_has_visual_identity(workdir, fake_llm):
     page = render_run(manifest, d)
     assert 'class="avatar"' in page
     assert 'class="toc-name"' in page
-    assert '<nav' not in page  # no persistent sidebar to scan against every section
+    assert "<nav" not in page  # no persistent sidebar to scan against every section
 
 
 def test_render_falls_back_to_a_quote_block_for_a_dense_task(workdir, fake_llm):
@@ -331,7 +331,7 @@ def test_render_the_committed_synthesis_example(tmp_path):
     # No stray Next Steps text leaked into the Escalations register itself (the bug this
     # fixes) — scoped to that one register, not the Implementation/Risks sections that now
     # legitimately follow it and legitimately mention the same phrase.
-    escalations_idx = page.index('<h3>Escalations</h3>')
+    escalations_idx = page.index("<h3>Escalations</h3>")
     next_register_idx = page.index("<h3>", escalations_idx + 1)
     escalations_html = page[escalations_idx:next_register_idx]
     assert "classification memo" not in escalations_html

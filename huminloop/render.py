@@ -529,13 +529,11 @@ def _pending_decision_bar(manifest: dict) -> str:
     run_id = manifest.get("run_id", "")
     flagged = flagged_roles(manifest.get("artifacts") or [])
     if flagged:
-        approve_cmd = (
-            f'huminloop approve {run_id} --by "Your Name" --force --note "..."'
-        )
+        approve_cmd = f'huminloop approve {run_id} --by "Your Name" --force --note "..."'
         flag_html = (
             f'<p class="flag-list">{len(flagged)} role(s) carried findings that require '
             f"<code>--force</code> and a <code>--note</code> to approve: "
-            f'{esc(", ".join(flagged))}.</p>'
+            f"{esc(', '.join(flagged))}.</p>"
         )
     else:
         approve_cmd = f'huminloop approve {run_id} --by "Your Name"'
@@ -595,8 +593,8 @@ def _decision_bar(manifest: dict) -> str:
         f'<div class="when">{esc(decision.get("at", ""))}</div>\n'
         f"{note}\n{force_note}\n"
         f'<p class="hash">Artifacts verified at decision time &middot; {clean} artifact(s), '
-        f'all sha256-checked &middot; forced: {str(forced).lower()} &middot; '
-        f'flagged roles: {esc(", ".join(decision.get("flagged_roles") or []) or "none")}</p>\n'
+        f"all sha256-checked &middot; forced: {str(forced).lower()} &middot; "
+        f"flagged roles: {esc(', '.join(decision.get('flagged_roles') or []) or 'none')}</p>\n"
         "</section>"
     )
 
@@ -654,7 +652,7 @@ _SEV_STATUS = {"blocking": "crit", "serious": "warn", "minor": "info"}
 def _critique_summary_line(critique: dict) -> str:
     points = critique.get("points") or []
     accepted = sum(1 for p in points if p.get("disposition") == "accepted")
-    summary = f'{len(points)} challenge{"s" if len(points) != 1 else ""}'
+    summary = f"{len(points)} challenge{'s' if len(points) != 1 else ''}"
     if points:
         summary += f" &middot; {accepted} resolved"
     return summary
@@ -683,7 +681,7 @@ def _critique_exchanges_html(critique: dict) -> str:
         parts.append('<div class="exchange">')
         parts.append(
             f'<div class="voice pushback"><div class="lbl">Pushback {i}'
-            f'{" &middot; " + dim if dim else ""}</div>'
+            f"{' &middot; ' + dim if dim else ''}</div>"
             f'<p><span class="sev {status}">{esc(sev.title())}</span>'
             f"{mdlite(p.get('claim', ''))}</p></div>"
         )
@@ -759,7 +757,7 @@ def _advisor_story(role: str, artifact: dict, text: str) -> str:
     gov = "passed" if not issues else f"{len(issues)} issue(s)"
     parts.append(
         f'<p class="sub">Automated checks: <b>{esc(gov)}</b>'
-        f'{" (verdict: " + esc(verdict) + ")" if verdict else ""}.</p>'
+        f"{' (verdict: ' + esc(verdict) + ')' if verdict else ''}.</p>"
     )
     parts.append("</div></details>")
     return "\n".join(parts)
@@ -808,7 +806,7 @@ def _register_group(name: str, entries: list[str], *, item_class: str = "", note
         f'<div class="{reg_cls}"><div class="register-head">'
         f"<h3>{esc(name)}</h3>"
         f'<span class="register-count">{count_label}</span></div>'
-        f'{note_html}{"".join(items)}</div>'
+        f"{note_html}{''.join(items)}</div>"
     )
 
 
@@ -935,7 +933,8 @@ def render_run(manifest: dict, run_dir: Path) -> str:
     if rules:
         route_note = (
             f"Matched by rule{'s' if len(rules) != 1 else ''}: "
-            + ", ".join(f"<code>{esc(r)}</code>" for r in rules) + "."
+            + ", ".join(f"<code>{esc(r)}</code>" for r in rules)
+            + "."
         )
     else:
         route_note = "No rule matched; routed to the default specialist."
@@ -983,16 +982,13 @@ def render_run(manifest: dict, run_dir: Path) -> str:
     else:
         # No sentence in the task was actually pithy (see PITHY_MAX_CHARS) — the honest fallback
         # is to stop pretending display type fits it, not to invent a shorter paraphrase.
-        task_html = (
-            '<div class="quote"><div class="lbl">The task</div>'
-            f"<p>{esc(context)}</p></div>"
-        )
+        task_html = f'<div class="quote"><div class="lbl">The task</div><p>{esc(context)}</p></div>'
 
     return f"""<!doctype html>
 <html>
 <head>
 <meta charset="utf-8">
-<title>HuminLoop &mdash; Run {esc(manifest.get('run_id', ''))}</title>
+<title>HuminLoop &mdash; Run {esc(manifest.get("run_id", ""))}</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;700&family=Inter:wght@400;500;600&display=swap">
 <style>{CSS}</style>
 <script>
@@ -1014,9 +1010,9 @@ def render_run(manifest: dict, run_dir: Path) -> str:
 <button type="button" id="theme-toggle" class="theme-toggle" aria-pressed="false">Dark mode</button>
 </div>
 <div class="rid">
-<span>Run {esc(manifest.get('run_id', ''))}</span>
-<span>{esc(manifest.get('provider', ''))}</span>
-<span>{esc((manifest.get('created_at') or '')[:10])}</span>
+<span>Run {esc(manifest.get("run_id", ""))}</span>
+<span>{esc(manifest.get("provider", ""))}</span>
+<span>{esc((manifest.get("created_at") or "")[:10])}</span>
 </div>
 <p class="orient">This is the story of how we reasoned through one task: who we dispatched,
 what each of us concluded on our own, the real pushback each of us took, why we revised in

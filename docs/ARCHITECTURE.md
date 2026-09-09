@@ -9,6 +9,8 @@
 | Specialist producer | `huminloop/orchestrator.py::produce` | Builds the system/user prompt for a role, calls the LLM, runs Governance. |
 | Governance evaluator | `huminloop/governance.py` | Rule-based checks: required sections, no placeholders, ≥1 https citation, no email/phone. |
 | Orchestrator | `huminloop/orchestrator.py::run` | Runs the plan sequentially, passes prior output as context, isolates per-specialist failures, writes manifest + log. |
+| Decision history | `huminloop/gate.py` | `decisions` is append-only, including superseded ones; `decision` is whichever is operative now. `annotations` are human notes that never change status. |
+| Run statistics | `huminloop/stats.py` | Aggregates the run log; flags total agreement, total dismissal, and forced approvals as things to look at. |
 | Human gate | `huminloop/gate.py` | pending → approved/rejected by a named person; re-reads every artifact and re-derives governance from the bytes before recording a decision (digest + verdict must match the manifest); refuses governance-flagged or errored runs without `--force` + note; validates `run_id`; claims the decision with an exclusive marker so concurrent decisions cannot both "succeed". |
 | Storage | `huminloop/storage.py` | `out/<state>/<run_id>/{manifest.json,<role>.md}` and `logs/runs.jsonl`. |
 | Critique loop | `huminloop/critique.py` | A critic challenges each draft (steelman, pre-mortem, findings on named dimensions); the author answers every point and reissues. The critic never edits. Unresolved blocking critique becomes a process flag. |
@@ -51,6 +53,25 @@ after approve/reject; `forced` is true when a human overrode governance flags).
 
 `logs/runs.jsonl` events: `run_start, artifact, specialist_error, run_end, approved, rejected`
 (decision events carry `by`, `note`, `forced`).
+
+## Your side of the loop
+
+The agents' side of disagreement is the critique loop. Yours is three commands, built on the
+observation that a review gate with only two buttons teaches people to use neither.
+
+`annotate` records a note on a run without deciding it. Approve and reject are heavyweight, so
+without this the only way to register a reservation is to reject the whole run — which means
+mild disagreement goes unsaid, and unsaid reservations are the ones that turn out to matter.
+Annotations are append-only, allowed in any state, and never change status.
+
+`reopen` takes a decided run back to pending, superseding the earlier decision without erasing
+it. A decision you cannot revisit is a decision people avoid making, and avoidance shows up as
+rubber-stamping rather than as caution. The superseded entry stays in `decisions`, so the
+history reads: approved, reopened, rejected — with who and why at each step.
+
+`stats` reads the run log and says what it sees. Most of it is counting. The part that earns
+its place is the warning when authors accepted *every* critique point: a critic nobody ever
+argues with is doing half its job, and that reading is only visible over many runs.
 
 ## Making disagreement survive
 

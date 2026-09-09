@@ -178,8 +178,7 @@ def parse_registers(text: str) -> dict[str, list[str]]:
         if re.search(r"^\s*none\.?\s*$", body, re.IGNORECASE | re.MULTILINE):
             continue
         out[m.group("name").lower()] = [
-            line.strip()
-            for line in re.findall(r"^[ \t]*\d+[.)][ \t]*(.+)$", body, re.MULTILINE)
+            line.strip() for line in re.findall(r"^[ \t]*\d+[.)][ \t]*(.+)$", body, re.MULTILINE)
         ]
     return out
 
@@ -516,7 +515,5 @@ def resynthesize(
     finally:
         write_manifest(out, asdict(record))
         clear_lock(out)
-    append_log(
-        {"event": "resynthesis", "run_id": run_id, "synthesis": record.synthesis}, log_file
-    )
+    append_log({"event": "resynthesis", "run_id": run_id, "synthesis": record.synthesis}, log_file)
     return record

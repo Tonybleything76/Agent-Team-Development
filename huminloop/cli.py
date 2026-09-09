@@ -5,7 +5,7 @@ import os
 import sys
 from pathlib import Path
 
-from . import __version__, gate, orchestrator
+from . import __version__, gate, orchestrator, stats
 from .governance import strip_controls
 from .llm import PROVIDERS, get_llm
 from .render import RenderError, render_run
@@ -20,6 +20,7 @@ from .storage import (
     StorageError,
     artifact_root,
     find_run,
+    log_path,
     read_manifest,
 )
 
@@ -83,7 +84,7 @@ def load_dotenv(path: Path) -> None:
 
 def _cmd_run(args) -> int:
     llm = get_llm(args.provider)
-    rec = orchestrator.run(args.task, llm=llm)
+    rec = orchestrator.run(args.task, llm=llm, critique=args.critique)
     print(f"run_id: {rec.run_id}  provider: {rec.provider}")
     print(f"plan:   {rec.plan['roles']}  (rules: {rec.plan['matched_rules'] or 'default'})")
     for a in rec.artifacts:
@@ -149,7 +150,15 @@ def _cmd_pending(args) -> int:
         flag = "" if status == args.state else f"  [{status}]"
         task = str(m.get("task") or "")[:50]
         created = str(m.get("created_at") or "")
-        print(f"{m.get('run_id', '?')}  {created:<25} {task!r} {verdicts}{flag}")
+        notes = len(m.get("annotations") or [])
+        # A reopened run looks identical to a fresh one in the directory, so say so here.
+        reopens = sum(1 for d in (m.get("decisions") or []) if d.get("state") == "reopened")
+        marks = ""
+        if notes:
+            marks += f"  {notes} note(s)"
+        if reopens:
+            marks += f"  reopened x{reopens}"
+        print(f"{m.get('run_id', '?')}  {created:<25} {task!r} {verdicts}{flag}{marks}")
     return 0
 
 
@@ -173,7 +182,18 @@ def _cmd_show(args) -> int:
         print(f"run {args.run_id} not found", file=sys.stderr)
         return 1
     state, d = found
-    print(json.dumps(read_manifest(d), indent=2))
+    manifest = read_manifest(d)
+    print(json.dumps(manifest, indent=2))
+    # Human commentary leads, because it is the part a reviewer most needs before deciding
+    # and the part most easily lost in a long manifest.
+    for entry in manifest.get("decisions") or []:
+        if entry.get("state") == "reopened":
+            was = entry.get("supersedes") or {}
+            print(f"\n[reopened] by {entry['by']} at {entry['at']}: {entry['note']}")
+            print(f"           supersedes {was.get('state')} by {was.get('by')} at {was.get('at')}")
+    for note in manifest.get("annotations") or []:
+        print(f"\n[note] {note['by']} at {note['at']} (run was {note['state_when_written']}):")
+        print(f"       {strip_controls(note['note'])}")
     for f in sorted(d.glob("*.md")):
         body = strip_controls(f.read_text(encoding="utf-8"))
         print(f"\n===== {state}/{f.name} =====\n{body}")
@@ -189,6 +209,41 @@ def _cmd_approve(args) -> int:
 def _cmd_reject(args) -> int:
     m = gate.reject(args.run_id, args.by, args.reason)
     print(f"rejected {m['run_id']} by {m['decision']['by']}")
+    return 0
+
+
+def _cmd_annotate(args) -> int:
+    m = gate.annotate(args.run_id, args.by, args.note)
+    print(f"annotated {m['run_id']} ({len(m['annotations'])} note(s)); status unchanged")
+    return 0
+
+
+def _cmd_reopen(args) -> int:
+    m = gate.reopen(args.run_id, args.by, args.reason)
+    prior = m["decisions"][-1].get("supersedes") or {}
+    was = f"{prior.get('state')} by {prior.get('by')}" if prior else "a prior decision"
+    print(f"reopened {m['run_id']} (superseded {was}); it is pending again")
+    return 0
+
+
+def _cmd_stats(args) -> int:
+    events = stats.read_events(log_path(None))
+    if not events:
+        print("no run log yet")
+        return 0
+    summary = stats.summarize(events)
+    for key, value in summary.items():
+        if isinstance(value, float):
+            print(f"  {key:<32} {value:.2f}")
+        elif value is None:
+            print(f"  {key:<32} n/a")
+        else:
+            print(f"  {key:<32} {value}")
+    notes = stats.warnings(summary)
+    if notes:
+        print("\nworth a look:")
+        for note in notes:
+            print(f"  - {note}")
     return 0
 
 
@@ -213,6 +268,12 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("run", help="route a task to specialists and park output in pending/")
     s.add_argument("task")
     s.add_argument("--provider", choices=PROVIDERS)
+    s.add_argument(
+        "--no-critique",
+        dest="critique",
+        action="store_false",
+        help="skip the critique round (faster and cheaper; the draft is what you get)",
+    )
     s.set_defaults(fn=_cmd_run)
 
     s = sub.add_parser(
@@ -253,6 +314,24 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--by", required=True)
     s.add_argument("--reason", required=True)
     s.set_defaults(fn=_cmd_reject)
+
+    s = sub.add_parser("annotate", help="record a note on a run without deciding it")
+    s.add_argument("run_id")
+    s.add_argument("--by", required=True, help="name of the person writing the note")
+    s.add_argument("--note", required=True)
+    s.set_defaults(fn=_cmd_annotate)
+
+    s = sub.add_parser(
+        "reopen", help="take a decided run back to pending, superseding the decision"
+    )
+    s.add_argument("run_id")
+    s.add_argument("--by", required=True)
+    s.add_argument("--reason", required=True)
+    s.set_defaults(fn=_cmd_reopen)
+
+    sub.add_parser(
+        "stats", help="what the run log says about how the team is working"
+    ).set_defaults(fn=_cmd_stats)
     return p
 
 

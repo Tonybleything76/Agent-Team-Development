@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.20.0 — 2026-09-09
+
+The human's side of psychological safety: disagreeing cheaply, and being allowed to be wrong.
+
+- `annotate` records a note on a run without deciding it, in any state, append-only. Previously
+  the only way to register a reservation was to reject the whole run, so mild disagreement had
+  nowhere to go.
+- `reopen` takes a decided run back to pending, superseding the earlier decision rather than
+  erasing it. `decisions` is now an append-only history; `decision` is whichever is operative.
+  A decision you cannot revisit is one people avoid making.
+- `stats` reports what the run log says about how the team is working, and flags the readings
+  that matter: authors accepting every critique point, authors dismissing nearly all of them,
+  and approvals that overrode a governance flag.
+- `pending` shows note counts and reopen counts; `show` leads with reopens and notes, with
+  control characters stripped from annotation text as they already were from artifacts.
+- `--no-critique` is now reachable from the CLI; the orchestrator already supported it.
+
 ## 0.19.0 — 2026-09-04
 
 "Is it all mine? It's my team, so why are you talking in the third person?" — every sentence this
