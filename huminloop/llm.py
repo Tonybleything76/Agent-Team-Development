@@ -59,6 +59,32 @@ class Completion:
     truncated: bool = False
 
 
+class ProviderConfigError(RuntimeError):
+    """The provider rejected the request for a reason no specialist can work around.
+
+    A bad key, an exhausted credit limit, or a forbidden model fails identically for every
+    role, so retrying the next specialist just buries the provider's own explanation under N
+    identical tracebacks. Raising this aborts the run and shows the message once.
+    """
+
+
+# Statuses that mean "fix your configuration", not "this particular call went wrong".
+CONFIG_ERROR_STATUSES = (401, 402, 403)
+
+
+def _as_config_error(exc: Exception, provider: str) -> ProviderConfigError | None:
+    status = getattr(exc, "status_code", None) or getattr(
+        getattr(exc, "response", None), "status_code", None
+    )
+    if status not in CONFIG_ERROR_STATUSES:
+        return None
+    detail = str(exc)
+    body = getattr(exc, "body", None)
+    if isinstance(body, dict):
+        detail = (body.get("error") or {}).get("message") or detail
+    return ProviderConfigError(f"{provider} rejected the request ({status}): {detail}")
+
+
 def _bound(env: str, default: float) -> float:
     raw = os.getenv(env)
     if not raw:
@@ -103,14 +129,20 @@ def chat_completion(
 ) -> Completion:
     """One bounded OpenAI-protocol chat-completions call, shared by OpenAI and OpenRouter."""
     kwargs = {"extra_body": extra_body} if extra_body else {}
-    resp = client.chat.completions.create(
-        model=model,
-        messages=[{"role": "system", "content": system}, {"role": "user", "content": prompt}],
-        temperature=0.2,
-        max_tokens=max_tokens,
-        timeout=_bound("LLM_TIMEOUT_S", DEFAULT_TIMEOUT_S),
-        **kwargs,
-    )
+    try:
+        resp = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "system", "content": system}, {"role": "user", "content": prompt}],
+            temperature=0.2,
+            max_tokens=max_tokens,
+            timeout=_bound("LLM_TIMEOUT_S", DEFAULT_TIMEOUT_S),
+            **kwargs,
+        )
+    except Exception as exc:
+        config_error = _as_config_error(exc, provider)
+        if config_error:
+            raise config_error from exc
+        raise
     choices = getattr(resp, "choices", None) or []
     if not choices:
         # OpenRouter answers upstream failures with HTTP 200 and a top-level error object.
@@ -333,13 +365,19 @@ class AnthropicLLM:
 
     def generate(self, system: str, prompt: str, role: str | None = None) -> Completion:
         max_tokens = self.max_tokens or resolve_max_tokens(role)
-        resp = self.client.messages.create(
-            model=self.model,
-            max_tokens=max_tokens,
-            system=system,
-            messages=[{"role": "user", "content": prompt}],
-            timeout=_bound("LLM_TIMEOUT_S", DEFAULT_TIMEOUT_S),
-        )
+        try:
+            resp = self.client.messages.create(
+                model=self.model,
+                max_tokens=max_tokens,
+                system=system,
+                messages=[{"role": "user", "content": prompt}],
+                timeout=_bound("LLM_TIMEOUT_S", DEFAULT_TIMEOUT_S),
+            )
+        except Exception as exc:
+            config_error = _as_config_error(exc, "anthropic")
+            if config_error:
+                raise config_error from exc
+            raise
         truncated = getattr(resp, "stop_reason", None) == "max_tokens"
         if truncated:
             log.warning("anthropic response truncated (stop_reason=max_tokens)")

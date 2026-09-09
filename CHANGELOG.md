@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.20.1 — 2026-09-09
+
+- **A provider configuration failure now stops the run once instead of failing every role.**
+  A bad key, an exhausted credit limit, or a forbidden model returns 401/402/403 and fails
+  identically for every specialist, so the orchestrator was running all of them and burying the
+  provider's own explanation under N tracebacks. Those statuses now raise `ProviderConfigError`,
+  which aborts the run, writes the manifest, releases the lock, and prints the provider's message
+  once. Diagnosed from a live 402: OpenRouter refuses upfront when `max_tokens` exceeds what the
+  key's remaining credit can cover, which is a configuration fact, not a specialist failure.
+
 ## 0.20.0 — 2026-09-09
 
 The human's side of psychological safety: disagreeing cheaply, and being allowed to be wrong.

@@ -152,3 +152,30 @@ def test_annotation_text_cannot_repaint_the_terminal(workdir, fake_llm, capsys):
     assert main(["show", rec.run_id]) == 0
     shown = capsys.readouterr().out
     assert "\x1b" not in shown and "now APPROVED" in shown
+
+
+def test_a_credit_failure_stops_the_run_instead_of_failing_every_specialist(workdir, capsys):
+    """A configuration problem fails identically for every role; say it once and stop."""
+    import huminloop.cli as cli
+    from huminloop.llm import ProviderConfigError
+
+    calls = []
+
+    class BrokeLLM:
+        name = "broke"
+
+        def generate(self, system, prompt, role=None):
+            calls.append(role)
+            raise ProviderConfigError(
+                "openrouter rejected the request (402): requires more credits, or fewer max_tokens"
+            )
+
+    monkey = pytest.MonkeyPatch()
+    monkey.setattr(cli, "get_llm", lambda provider=None: BrokeLLM())
+    try:
+        assert main(["run", "Draft an RFP response and SOW"]) == 2
+    finally:
+        monkey.undo()
+    err = capsys.readouterr().err
+    assert "requires more credits" in err and "Traceback" not in err
+    assert len(calls) == 1, f"should stop after the first refusal, not try {len(calls)} roles"

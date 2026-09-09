@@ -14,6 +14,7 @@ from .critique import (
 from .governance import REQUIRED_SECTIONS, Review, flagged_roles, review_text
 from .llm import (
     LLMClient,
+    ProviderConfigError,
     build_critic_prompt,
     build_prompt,
     build_response_prompt,
@@ -258,6 +259,8 @@ def _do_synthesis(
         return
     try:
         s_text, s_review, s_flags = synthesize(task, record.artifacts, llm, out)
+    except ProviderConfigError:
+        raise
     except Exception as exc:  # a failed synthesis must not lose the advisors' artifacts
         log.exception("synthesis failed")
         record.artifacts.append(ArtifactRecord(SYNTHESIS_ROLE, None, None, error=repr(exc)))
@@ -361,6 +364,13 @@ def run(
     for role_key in plan.roles:
         try:
             text, review, flags = produce(role_key, task, llm, "\n\n".join(context_parts))
+        except ProviderConfigError:
+            # Every remaining specialist would fail identically, so stop and surface it once
+            # rather than burying the provider's own explanation under N tracebacks.
+            append_log({"event": "provider_config_error", "run_id": run_id}, log_file)
+            write_manifest(out, asdict(record))
+            clear_lock(out)
+            raise
         except Exception as exc:  # one failing specialist must not hide the others
             log.exception("specialist %s failed", role_key)
             record.artifacts.append(ArtifactRecord(role_key, None, None, error=repr(exc)))

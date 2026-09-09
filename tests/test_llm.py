@@ -325,3 +325,35 @@ def test_house_brief_is_not_mistaken_for_a_role_persona():
 
     assert "_house" not in persona_keys()
     assert load_persona("_house") is None or "_house" not in persona_keys()
+
+
+class _Status402(Exception):
+    status_code = 402
+    body = {
+        "error": {
+            "message": "This request requires more credits, or fewer max_tokens. "
+            "You requested up to 4000 tokens, but can only afford 2792."
+        }
+    }
+
+
+def test_a_credit_or_auth_failure_is_raised_as_a_config_error(workdir):
+    from huminloop.llm import OpenAILLM, ProviderConfigError
+
+    fake = FakeOpenAIClient()
+    fake.chat.completions.create = lambda **kw: (_ for _ in ()).throw(_Status402())
+    with pytest.raises(ProviderConfigError, match="can only afford 2792"):
+        OpenAILLM(model="m", client=fake).generate("SYS", "USER")
+
+
+def test_an_ordinary_provider_failure_is_left_alone(workdir):
+    from huminloop.llm import OpenAILLM, ProviderConfigError
+
+    class _Boom(Exception):
+        status_code = 500
+
+    fake = FakeOpenAIClient()
+    fake.chat.completions.create = lambda **kw: (_ for _ in ()).throw(_Boom("upstream blew up"))
+    with pytest.raises(_Boom):
+        OpenAILLM(model="m", client=fake).generate("SYS", "USER")
+    assert not issubclass(_Boom, ProviderConfigError)
