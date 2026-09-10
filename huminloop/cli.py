@@ -247,6 +247,13 @@ def _cmd_stats(args) -> int:
     return 0
 
 
+def _cmd_serve(args) -> int:
+    from . import server
+
+    server.serve(port=args.port, open_browser=not args.no_open)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="huminloop", description="Hierarchical agent team with a human approval gate"
@@ -332,6 +339,11 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser(
         "stats", help="what the run log says about how the team is working"
     ).set_defaults(fn=_cmd_stats)
+
+    s = sub.add_parser("serve", help="open the review inbox in a browser (localhost only)")
+    s.add_argument("--port", type=int, default=8765)
+    s.add_argument("--no-open", action="store_true", help="do not launch a browser")
+    s.set_defaults(fn=_cmd_serve)
     return p
 
 

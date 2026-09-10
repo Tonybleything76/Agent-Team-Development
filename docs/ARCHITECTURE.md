@@ -10,6 +10,7 @@
 | Governance evaluator | `huminloop/governance.py` | Rule-based checks: required sections, no placeholders, ≥1 https citation, no email/phone. |
 | Orchestrator | `huminloop/orchestrator.py::run` | Runs the plan sequentially, passes prior output as context, isolates per-specialist failures, writes manifest + log. |
 | Decision history | `huminloop/gate.py` | `decisions` is append-only, including superseded ones; `decision` is whichever is operative now. `annotations` are human notes that never change status. |
+| Review inbox | `huminloop/server.py` | `huminloop serve`: a loopback-only browser inbox over the same `gate` functions. Adds no rules; surfaces escalations first, since those are why the gate stops you. |
 | Run statistics | `huminloop/stats.py` | Aggregates the run log; flags total agreement, total dismissal, and forced approvals as things to look at. |
 | Human gate | `huminloop/gate.py` | pending → approved/rejected by a named person; re-reads every artifact and re-derives governance from the bytes before recording a decision (digest + verdict must match the manifest); refuses governance-flagged or errored runs without `--force` + note; validates `run_id`; claims the decision with an exclusive marker so concurrent decisions cannot both "succeed". |
 | Storage | `huminloop/storage.py` | `out/<state>/<run_id>/{manifest.json,<role>.md}` and `logs/runs.jsonl`. |
@@ -53,6 +54,25 @@ after approve/reject; `forced` is true when a human overrode governance flags).
 
 `logs/runs.jsonl` events: `run_start, artifact, specialist_error, run_end, approved, rejected`
 (decision events carry `by`, `note`, `forced`).
+
+## The inbox
+
+The gate is an inbox — a queue of runs waiting on a person — and a terminal is a poor inbox.
+`huminloop serve` opens the same queue in a browser: pending runs with a chip counting what the
+team escalated to you, then the existing narrative report with a decision panel appended.
+
+It is deliberately a thin layer. Every decision calls `gate.approve/reject/annotate/reopen`, so
+the digest verification, the named approver, the forced-override record and the append-only
+history are the ones already tested. There is no second implementation of the rules to drift out
+of sync, and a test asserts the UI cannot approve a flagged run without the same forced override
+the CLI demands.
+
+What it does not do is authenticate anyone. `--by` is still a name typed into a box. On loopback
+with one user that is the trust model you already had, which is why the server refuses to bind
+anywhere but the loopback interface, checks the `Host` header against DNS rebinding, and guards
+every state-changing form with a per-process token so another site open in the same browser
+cannot post a decision on your behalf. If this is ever hosted, identity stops being a footnote
+and becomes a design problem.
 
 ## Your side of the loop
 

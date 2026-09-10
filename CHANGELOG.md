@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.21.0 — 2026-09-10
+
+- **`huminloop serve`** — a review inbox in the browser. Pending runs with a chip counting what
+  the team escalated to you, then the existing narrative report with a decision panel appended:
+  approve, reject, annotate, reopen. A terminal is a poor inbox and the gate is nothing but one.
+- Adds no rules. Every action calls the same `gate` functions the CLI does, so digest
+  verification, the named approver, the forced-override record and the append-only history are
+  the already-tested ones. A test asserts the UI cannot approve a flagged run without the same
+  forced override the CLI demands.
+- Loopback-only by design, since nothing here authenticates anyone: `serve` refuses to bind a
+  non-loopback host, the `Host` header is checked against DNS rebinding, and every
+  state-changing form carries a per-process token so another site in the same browser cannot
+  post a decision on your behalf.
+- Escalations lead the panel. They are the reason the gate stops you, and they were previously
+  buried in `process_flags` in the manifest.
+- Still zero runtime dependencies: `http.server`, not a framework.
+
 ## 0.20.1 — 2026-09-09
 
 - **A provider configuration failure now stops the run once instead of failing every role.**

@@ -134,6 +134,7 @@ uv run huminloop show <run_id> # read the manifest and every artifact in the ter
 uv run huminloop render <run_id>                  # the same run as a reviewable HTML report
 uv run huminloop approve <run_id> --by "Your Name"
 uv run huminloop reject  <run_id> --by "Your Name" --reason "placeholder content"
+uv run huminloop serve         # the same queue in a browser, localhost only
 uv run huminloop resynthesize <run_id>            # retry a failed Engagement Lead synthesis
 ```
 
