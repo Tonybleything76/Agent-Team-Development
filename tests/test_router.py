@@ -108,3 +108,33 @@ def test_transformation_block_dispatches_in_engagement_order(router):
     # that owns the outcome is briefed before the seat that redesigns the work.
     plan = router.route("Where does the handoff sit once we own the claims process end to end?")
     assert plan.roles == ["domain_owner", "process_excellence_lead"]
+
+
+def test_staffing_explains_who_was_dispatched_and_who_was_not(router):
+    task = "Design an AI enablement and adoption program for field technicians"
+    plan = router.route(task)
+    s = router.staffing(task, plan)
+
+    dispatched = {d["role"]: d["why"] for d in s["dispatched"]}
+    assert set(dispatched) == set(plan.roles)
+    # Each dispatched advisor names the rule and the word that summoned it.
+    assert "adoption" in dispatched["change_management_lead"]
+    assert "change_adoption" in dispatched["change_management_lead"]
+
+    absent = {a["role"]: a["would_join_on"] for a in s["absent"]}
+    assert not set(absent) & set(plan.roles)
+    assert "legal" in absent and "nda" in absent["legal"]
+
+
+def test_staffing_names_the_default_when_no_rule_fired(router):
+    task = "xyzzy plugh"
+    plan = router.route(task)
+    s = router.staffing(task, plan)
+    assert plan.used_default
+    assert "no rule matched" in s["dispatched"][0]["why"]
+
+
+def test_every_specialist_is_reachable_by_some_rule(router):
+    """An advisor no rule can reach is a router gap, not a staffing judgement."""
+    plan = router.route("xyzzy plugh")
+    assert router.staffing("xyzzy plugh", plan)["unreachable"] == []

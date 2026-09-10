@@ -10,6 +10,8 @@
 | Governance evaluator | `huminloop/governance.py` | Rule-based checks: required sections, no placeholders, ≥1 https citation, no email/phone. |
 | Orchestrator | `huminloop/orchestrator.py::run` | Runs the plan sequentially, passes prior output as context, isolates per-specialist failures, writes manifest + log. |
 | Decision history | `huminloop/gate.py` | `decisions` is append-only, including superseded ones; `decision` is whichever is operative now. `annotations` are human notes that never change status. |
+| Engagement | `huminloop/engagement.py` | The durable object a run belongs to: a folder in `~/Cowork/Engagements/<slug>/` holding the brief, `context/`, `documents/`, every run, and a `CLAUDE.md`. An engagement folder *is* a run root. |
+| Dashboard | `huminloop/dashboard.py` | `render --dashboard`: a tabbed working surface (Overview, Needs you, Team, Debate, Plan, Next steps, Documents) for using a run with a client, as opposed to reading about it. |
 | Review inbox | `huminloop/server.py` | `huminloop serve`: a loopback-only browser inbox over the same `gate` functions. Adds no rules; surfaces escalations first, since those are why the gate stops you. |
 | Run statistics | `huminloop/stats.py` | Aggregates the run log; flags total agreement, total dismissal, and forced approvals as things to look at. |
 | Human gate | `huminloop/gate.py` | pending → approved/rejected by a named person; re-reads every artifact and re-derives governance from the bytes before recording a decision (digest + verdict must match the manifest); refuses governance-flagged or errored runs without `--force` + note; validates `run_id`; claims the decision with an exclusive marker so concurrent decisions cannot both "succeed". |
@@ -54,6 +56,25 @@ after approve/reject; `forced` is true when a human overrode governance flags).
 
 `logs/runs.jsonl` events: `run_start, artifact, specialist_error, run_end, approved, rejected`
 (decision events carry `by`, `note`, `forced`).
+
+## Engagements, and why context matters more than layout
+
+A run on its own is an island. Real consulting work runs for months, accumulates material, and
+produces documents you return to — so the durable object is the engagement and a run is an event
+inside it. `huminloop engagement new "<client>"` creates the folder; `--engagement <slug>` works
+inside it.
+
+Everything in `context/` is read before any advisor drafts, fenced as client evidence rather
+than instructions, and the manifest records exactly which files were read, truncated, or dropped
+for budget. A silent omission is the one failure this must not have: you should never wonder
+whether the note you added was seen.
+
+This is also the honest answer to "make the report more visual". What can be drawn is what the
+team records as structure — counts, severities, dispositions, staffing — so those became a
+severity bar, an accepted donut, a roster with a bench, and a milestone timeline. Phases, gates,
+risks and dates are prose, so a roadmap timeline or a RAG gate board cannot be drawn yet. That
+is upstream work: the Engagement Lead has to emit structure alongside its argument. Rendering
+cannot invent data the team never produced.
 
 ## The inbox
 

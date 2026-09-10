@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.22.0 — 2026-09-10
+
+Engagements, context that feeds forward, and a dashboard you use rather than read.
+
+- **`huminloop engagement new|list`** and a global `--engagement <slug>`. An engagement is a
+  folder in `~/Cowork/Engagements/` holding the brief, `context/`, `documents/`, every run, and a
+  `CLAUDE.md` so Claude Code picks up the history. The folder *is* a run root, so nothing in the
+  run pipeline changed to support it.
+- **Context feeds forward.** Anything in `context/` is read before any advisor drafts, fenced as
+  client evidence and never as instructions. The manifest records which files were read,
+  truncated, or dropped for budget, and the dashboard shows them as chips — a silent omission is
+  the one failure this must not have.
+- **`render --dashboard`** — a tabbed surface: Overview, Needs you (badged with the escalation
+  count), Team, Debate, The plan, Next steps, Documents. The narrative report is unchanged and
+  still the default; it reads well, it just does not work well with a client in front of you.
+- **Visuals where structure exists**: severity bar, accepted-challenges donut, the roster as
+  faces with a dimmed bench you hover, milestones as a timeline. Phases, gates and risks stay
+  prose because no structured data underlies them yet; that is the next upstream change.
+- **Staffing note**: the router now records why each advisor was called in and what would have
+  called in each one who was not. Deterministic, so it can be trusted.
+- Report reordered to lead with the decision. v0.18 deliberately put it last so the story was not
+  spoiled; that reads well and reviews badly.
+
 ## 0.21.0 — 2026-09-10
 
 - **`huminloop serve`** — a review inbox in the browser. Pending runs with a chip counting what

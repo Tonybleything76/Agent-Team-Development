@@ -354,6 +354,36 @@ details.story[open] > summary::after{content:"\\25b4"}
 @media (max-width:640px){
   .wrap{padding-left:16px;padding-right:16px}
 }
+
+/* --- the decision brief: what you are being asked to agree to, before the story --- */
+.brief-block{margin:0 0 22px}
+.brief-block h3{font:600 13px/1.3 var(--sans);letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-3);margin:0 0 10px}
+.brief-block .sub{margin:0 0 12px}
+.staff{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.staff-row{display:flex;gap:14px;padding:10px 14px;border-bottom:1px solid var(--line);
+  align-items:baseline}
+.staff-row:last-child{border-bottom:none}
+.staff-name{font:600 14px/1.4 var(--sans);color:var(--ink);flex:0 0 13rem}
+.staff-why{font-size:13px;color:var(--ink-3);flex:1 1 auto}
+.staff-absent{margin-top:10px;font-size:13px;color:var(--ink-3)}
+.staff-absent summary{cursor:pointer;color:var(--accent)}
+.staff-absent ul{margin:10px 0 0;padding-left:18px}
+.staff-absent li{margin:5px 0}
+.pushback{display:grid;gap:10px}
+.pb{border:1px solid var(--line);border-left-width:3px;border-radius:8px;padding:10px 14px}
+.pb.kept{border-left-color:var(--accent)}
+.pb.held{border-left-color:var(--warn,#b4453d)}
+.pb-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.pb-role{font:600 13px/1.3 var(--sans);color:var(--ink)}
+.pb-dim{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
+.pb-verdict{margin-left:auto;font-size:11px;letter-spacing:.05em;text-transform:uppercase;
+  font-weight:600;color:var(--ink-3)}
+.pb.kept .pb-verdict{color:var(--accent)}
+.pb-claim{margin:0 0 6px;font-size:14px;line-height:1.55;color:var(--ink-2)}
+.pb-resp{margin:0;font-size:13px;line-height:1.55;color:var(--ink-3);
+  padding-left:12px;border-left:2px solid var(--line)}
+
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 """
 
@@ -816,6 +846,112 @@ _RECOMMENDATION_END_RE = re.compile(
 )
 
 
+def _brief_plan(lead: dict | None, lead_text: str | None) -> str:
+    """The recommendation and the open registers, lifted to the top of the page.
+
+    The full synthesis still appears below in its place in the story; this is the same content
+    surfaced where a decision actually gets made.
+    """
+    if not lead or not lead_text:
+        return (
+            '<section class="brief-block"><h3>No plan</h3><p class="sub">The Engagement Lead '
+            "produced nothing for this run, so there is no recommendation to weigh.</p></section>"
+        )
+    sections = split_sections(lead_text)
+    body = sections.get("body", "")
+    regs = parse_registers(body)
+    parts = []
+    recommendation = sections.get("objective") or ""
+    if recommendation:
+        parts.append(
+            f'<div class="quote"><div class="lbl">Our recommendation</div>'
+            f"<p>{mdlite(recommendation)}</p></div>"
+        )
+    escalations = regs.get("escalations") or []
+    if escalations:
+        parts.append(
+            _register_group(
+                "Escalations",
+                escalations,
+                item_class="esc",
+                note="Only you can answer these. Until they are answered this run needs an "
+                "explicit override to release.",
+            )
+        )
+    disagreements = regs.get("disagreements") or []
+    if disagreements:
+        parts.append(_register_group("Disagreements", disagreements))
+    decisions = regs.get("decisions") or []
+    if decisions:
+        parts.append(_register_group("Decisions", decisions))
+    return f'<section class="brief-block">{"".join(parts)}</section>'
+
+
+def _staffing_section(plan: dict) -> str:
+    """Who we put on this, and — the question a reviewer always asks — who is missing.
+
+    Deterministic: the router can name the rule and the word that summoned each advisor, and
+    the words that would have summoned the ones who never appeared.
+    """
+    staffing = plan.get("staffing") or {}
+    dispatched, absent = staffing.get("dispatched") or [], staffing.get("absent") or []
+    if not dispatched:
+        return ""
+    rows = "".join(
+        f'<div class="staff-row"><span class="staff-name">{esc(d["title"])}</span>'
+        f'<span class="staff-why">{esc(d["why"])}</span></div>'
+        for d in dispatched
+    )
+    absent_html = ""
+    if absent:
+        items = "".join(
+            f"<li><b>{esc(a['title'])}</b> &mdash; would join on {esc(a['would_join_on'])}</li>"
+            for a in absent
+        )
+        absent_html = (
+            '<details class="staff-absent"><summary>'
+            f"{len(absent)} advisors were not staffed. What would have brought them in"
+            f"</summary><ul>{items}</ul></details>"
+        )
+    return (
+        '<section class="brief-block"><h3>Who we put on this</h3>'
+        f'<div class="staff">{rows}</div>{absent_html}</section>'
+    )
+
+
+def _pushback_section(artifacts: list[dict]) -> str:
+    """Every challenge and what it changed, in one scannable place.
+
+    The story below carries these in context, but a reviewer deciding whether they agree with
+    the direction should not have to reassemble the argument from three separate accounts.
+    """
+    rows = []
+    for a in artifacts:
+        critique = a.get("critique") or {}
+        for point in critique.get("points") or []:
+            disposition = point.get("disposition") or "unanswered"
+            cls = "kept" if disposition == "accepted" else "held"
+            rows.append(
+                f'<div class="pb {cls}">'
+                f'<div class="pb-head"><span class="pb-role">{esc(a["role"].replace("_", " "))}'
+                f'</span><span class="pb-dim">{esc(point.get("severity", ""))} / '
+                f"{esc(point.get('dimension', ''))}</span>"
+                f'<span class="pb-verdict">{esc(disposition)}</span></div>'
+                f'<p class="pb-claim">{mdlite(point.get("claim", ""))}</p>'
+                f'<p class="pb-resp">{mdlite(point.get("response", "") or "No response recorded.")}'
+                "</p></div>"
+            )
+    if not rows:
+        return ""
+    return (
+        '<section class="brief-block"><h3>Where we pushed back on each other</h3>'
+        '<p class="sub">Each challenge and what it actually changed. '
+        "<b>Accepted</b> means the author rewrote in response; <b>rejected</b> means they "
+        "defended the original and said why.</p>"
+        f'<div class="pushback">{"".join(rows)}</div></section>'
+    )
+
+
 def _synthesis_section(artifact: dict, text: str) -> str:
     sections = split_sections(text)
     body = sections.get("body", "")
@@ -944,7 +1080,17 @@ def render_run(manifest: dict, run_dir: Path) -> str:
     # real pushback, and only afterward did the Engagement Lead read everyone's finished work
     # and bring it together. The plan comes last because it's the destination, not the opener —
     # this page is meant to be read, not scanned for the verdict first.
-    sections_html = [_toc(artifacts)]
+    # Decision-first. An earlier version led with the narrative so the ending was not spoiled,
+    # which reads well and reviews badly: the person deciding needs the recommendation, what is
+    # being asked of them, and where we disagreed, before they invest in the story.
+    sections_html = [
+        '<div class="act"><p class="act-label">What you are deciding</p>',
+        _brief_plan(lead, texts.get(SYNTHESIS_ROLE)),
+        _staffing_section(plan),
+        _pushback_section(artifacts),
+        "</div>",
+        _toc(artifacts),
+    ]
 
     sections_html.append(
         '<div class="act"><p class="act-label">How each of us reasoned it through</p>'

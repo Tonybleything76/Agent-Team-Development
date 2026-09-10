@@ -5,7 +5,8 @@ import os
 import sys
 from pathlib import Path
 
-from . import __version__, gate, orchestrator, stats
+from . import __version__, engagement, gate, orchestrator, stats
+from .dashboard import render_dashboard
 from .governance import strip_controls
 from .llm import PROVIDERS, get_llm
 from .render import RenderError, render_run
@@ -169,7 +170,7 @@ def _cmd_render(args) -> int:
         return 1
     _, d = found
     manifest = read_manifest(d)
-    page = render_run(manifest, d)
+    page = render_dashboard(manifest, d) if args.dashboard else render_run(manifest, d)
     out = Path(args.out) if args.out else d / "run.html"
     out.write_text(page, encoding="utf-8")
     print(f"wrote {out}")
@@ -247,6 +248,27 @@ def _cmd_stats(args) -> int:
     return 0
 
 
+def _cmd_engagement(args) -> int:
+    if args.action == "new":
+        try:
+            root = engagement.create(args.name, brief=args.brief or "")
+        except engagement.EngagementError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        print(f"created {root}")
+        print(f"  drop discovery notes and client material into {root / 'context'}/")
+        print(f'  then: huminloop --engagement {engagement.slugify(args.name)} run "<task>"')
+        return 0
+    rows = engagement.list_all()
+    if not rows:
+        print(f"no engagements in {engagement.engagements_dir()}")
+        return 0
+    for e in rows:
+        ctx = len(engagement.context_files(engagement.path_for(e["slug"])))
+        print(f"{e['slug']:<24} {e['created_at'][:10]}  {ctx} context file(s)  {e['name']}")
+    return 0
+
+
 def _cmd_serve(args) -> int:
     from . import server
 
@@ -264,6 +286,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--root",
         help="directory holding out/ and logs/; overrides ARTIFACT_DIR/LOG_DIR "
         "(default: $HUMINLOOP_ROOT or current directory)",
+    )
+    p.add_argument(
+        "--engagement",
+        help="work inside this client engagement in ~/Cowork/Engagements (created on first use)",
     )
     p.add_argument(
         "--env-file",
@@ -307,6 +333,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     s.add_argument("run_id")
     s.add_argument("--out", help="output path (default: <run_dir>/run.html)")
+    s.add_argument(
+        "--dashboard",
+        action="store_true",
+        help="a tabbed working dashboard instead of the narrative report",
+    )
     s.set_defaults(fn=_cmd_render)
 
     s = sub.add_parser("approve", help="human approval: move a run to approved/")
@@ -340,6 +371,12 @@ def build_parser() -> argparse.ArgumentParser:
         "stats", help="what the run log says about how the team is working"
     ).set_defaults(fn=_cmd_stats)
 
+    s = sub.add_parser("engagement", help="create or list client engagements")
+    s.add_argument("action", choices=["new", "list"])
+    s.add_argument("name", nargs="?", default="")
+    s.add_argument("--brief", help="one line on what this engagement is")
+    s.set_defaults(fn=_cmd_engagement)
+
     s = sub.add_parser("serve", help="open the review inbox in a browser (localhost only)")
     s.add_argument("--port", type=int, default=8765)
     s.add_argument("--no-open", action="store_true", help="do not launch a browser")
@@ -355,9 +392,15 @@ def main(argv: list[str] | None = None) -> int:
     )
     try:
         load_dotenv(Path(args.env_file))
-        if args.root:
+        root = args.root
+        if getattr(args, "engagement", None):
+            # An engagement folder *is* a run root: same out/ and logs/ layout, plus the parts
+            # that outlive a single run (context, documents, the brief).
+            slug = engagement.slugify(args.engagement)
+            root = str(engagement.resolve_root(slug, create_missing=True, name=args.engagement))
+        if root:
             # --root wins over anything .env says, including absolute ARTIFACT_DIR/LOG_DIR.
-            os.environ[ROOT_ENV] = args.root
+            os.environ[ROOT_ENV] = root
             os.environ[ARTIFACT_DIR_ENV] = DEFAULT_ARTIFACT_DIR
             os.environ[LOG_DIR_ENV] = DEFAULT_LOG_DIR
         return args.fn(args)

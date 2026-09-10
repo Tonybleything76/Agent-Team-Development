@@ -1,7 +1,7 @@
 import re
 from dataclasses import dataclass, field
 
-from .roles import SPECIALISTS
+from .roles import SPECIALISTS, get_role
 
 # Each rule: (name, keywords that trigger it, specialists it adds in dispatch order).
 # Rules are evaluated in order; every matching rule contributes. Order matters downstream:
@@ -248,6 +248,57 @@ class Router:
         self.rules = rules
         self._compiled = [(name, _compile(kws), roles) for name, kws, roles in rules]
         self.default = default
+
+    def staffing(self, task: str, plan: "Plan") -> dict:
+        """Why each advisor was staffed, and what would have brought in the ones who were not.
+
+        A reviewer's first question about any team is "who is missing?" — and the honest answer
+        here is deterministic, because the router is. Every dispatched role can name the rule and
+        the words that summoned it, and every absent one can name the words that would have.
+        """
+        text = task.lower()
+        fired: dict[str, list[str]] = {}
+        for name, pattern, rule_roles in self._compiled:
+            hit = pattern.search(text)
+            if hit:
+                for role in rule_roles:
+                    fired.setdefault(role, []).append(f"{name} ('{hit.group(0)}')")
+
+        dispatched = [
+            {
+                "role": role,
+                "title": get_role(role).title,
+                "why": (
+                    "; ".join(fired[role])
+                    if role in fired
+                    else "no rule matched this task, so the default advisor was staffed"
+                ),
+            }
+            for role in plan.roles
+        ]
+
+        would_include: dict[str, list[str]] = {}
+        for name, keywords, rule_roles in self.rules:
+            for role in rule_roles:
+                if role not in plan.roles:
+                    sample = ", ".join(f"'{k}'" for k in keywords[:4])
+                    would_include.setdefault(role, []).append(f"{name} ({sample})")
+
+        absent = [
+            {
+                "role": role,
+                "title": get_role(role).title,
+                "would_join_on": "; ".join(rules),
+            }
+            for role, rules in sorted(would_include.items())
+        ]
+        uncovered = sorted(r for r in SPECIALISTS if r not in plan.roles and r not in would_include)
+        return {
+            "dispatched": dispatched,
+            "absent": absent,
+            # A specialist no rule can ever reach is a gap in the router, not a judgement call.
+            "unreachable": [{"role": r, "title": get_role(r).title} for r in uncovered],
+        }
 
     def route(self, task: str) -> Plan:
         text = task.lower()

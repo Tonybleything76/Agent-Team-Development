@@ -11,6 +11,7 @@ from .critique import (
     numbered_points,
     parse_critique,
 )
+from .engagement import load_context
 from .governance import REQUIRED_SECTIONS, Review, flagged_roles, review_text
 from .llm import (
     LLMClient,
@@ -26,6 +27,7 @@ from .storage import (
     StorageError,
     append_log,
     artifact_root,
+    base_root,
     clear_lock,
     find_run,
     lock_holder_alive,
@@ -68,6 +70,7 @@ class RunRecord:
     plan: dict
     artifacts: list[ArtifactRecord] = field(default_factory=list)
     status: str = "running"
+    context_read: list[dict] = field(default_factory=list)
     created_at: str = ""
     # Counts derived from the synthesis artifact's registers; None when no synthesis ran.
     synthesis: dict | None = None
@@ -132,7 +135,11 @@ def critique_and_revise(
 
 
 def produce(
-    role_key: str, task: str, llm: LLMClient, context: str = ""
+    role_key: str,
+    task: str,
+    llm: LLMClient,
+    context: str = "",
+    engagement_context: str = "",
 ) -> tuple[str, Review, list[str]]:
     """Returns the draft, a review derived purely from its bytes, and process findings.
 
@@ -142,7 +149,7 @@ def produce(
     role = get_role(role_key)
     if role_key not in SPECIALISTS:
         raise ValueError(f"'{role_key}' is a supervisor role and cannot be dispatched")
-    system, prompt = build_prompt(role, task, context)
+    system, prompt = build_prompt(role, task, context, engagement_context)
     completion = llm.generate(system, prompt, role=role_key)
     flags = []
     if completion.truncated:
@@ -336,12 +343,22 @@ def run(
     llm = llm or get_llm()
     router = router or Router()
     plan: Plan = router.route(task)
+    # Everything the human put in the engagement's context folder, read once and given to every
+    # advisor. `context_read` goes into the manifest so the report can say what was actually seen.
+    # base_root(), not artifact_root(): context/ is a sibling of out/, at the engagement root.
+    engagement_context, context_read = load_context(Path(root) if root else base_root())
     run_id = new_run_id()
     record = RunRecord(
         run_id=run_id,
         task=task,
         provider=llm.name,
-        plan={"roles": plan.roles, "matched_rules": plan.matched_rules},
+        plan={
+            "roles": plan.roles,
+            "matched_rules": plan.matched_rules,
+            # Recorded at run time: a reviewer's first question is who is missing.
+            "staffing": router.staffing(task, plan),
+        },
+        context_read=context_read,
         created_at=now_iso(),
     )
     out = run_dir(artifact_root(root), "pending", run_id)
@@ -363,7 +380,9 @@ def run(
     context_parts: list[str] = []
     for role_key in plan.roles:
         try:
-            text, review, flags = produce(role_key, task, llm, "\n\n".join(context_parts))
+            text, review, flags = produce(
+                role_key, task, llm, "\n\n".join(context_parts), engagement_context
+            )
         except ProviderConfigError:
             # Every remaining specialist would fail identically, so stop and surface it once
             # rather than burying the provider's own explanation under N tracebacks.

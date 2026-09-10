@@ -135,6 +135,12 @@ uv run huminloop render <run_id>                  # the same run as a reviewable
 uv run huminloop approve <run_id> --by "Your Name"
 uv run huminloop reject  <run_id> --by "Your Name" --reason "placeholder content"
 uv run huminloop serve         # the same queue in a browser, localhost only
+
+# a client engagement: a folder in ~/Cowork/Engagements that outlives any one run
+uv run huminloop engagement new "Acme Engineering" --brief "AI enablement for field techs"
+# drop discovery notes, transcripts, their architecture into context/ — the team reads them
+uv run huminloop --engagement acme-engineering run "Design the enablement program"
+uv run huminloop render <run_id> --dashboard   # tabbed working surface, not a document
 uv run huminloop resynthesize <run_id>            # retry a failed Engagement Lead synthesis
 ```
 

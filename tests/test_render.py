@@ -299,10 +299,14 @@ def test_render_the_committed_synthesis_example(tmp_path):
     shutil.copytree(FIXTURE_DIR, d)
     page = render_run(manifest, d)
 
-    # team + plan + decision are the only <section>s left — each advisor's account is a
-    # <details class="story">, not a <section>, since the page is a narrative, not a scanned
-    # dashboard.
-    assert page.count("<section") == 3
+    # v0.22 reversed v0.18's narrative-first order. Leading with the story read well and
+    # reviewed badly: the person deciding needs the recommendation, what is being asked of
+    # them, and where we disagreed, before they invest in reading the account. The story is
+    # still here in full, below the brief.
+    assert '<section class="brief-block">' in page
+    assert page.index('class="brief-block"') < page.index('id="team"')
+    assert "Who we put on this" in page  # the staffing note, with who was NOT dispatched
+    assert "Where we pushed back on each other" in page
     assert '<section id="team">' in page
     assert '<section id="plan">' in page
     assert page.index('id="team"') < page.index('id="plan"')  # who's involved, before the plan
