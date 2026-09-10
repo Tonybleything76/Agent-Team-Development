@@ -1,0 +1,524 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>HuminLoop &mdash; Run 20260909_185353_f2e53b</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;700&family=Inter:wght@400;500;600&display=swap">
+<style>
+:root{
+  --page:#ffffff;
+  --surface:#f5f5f7;
+  --surface-2:#eceef3;
+  --ink:#1a1a2e;
+  --ink-2:#3d3d5c;
+  --muted:#5b6270;
+  --rule:#e8e8f0;
+  --rule-soft:#eef0f5;
+  --accent:#7a78f5;
+  --accent-2:#ec6496;
+  --accent-ink:#4a47b8;
+  --accent-wash:#edecfd;
+  --good:#0ca30c;
+  --good-wash:#e8f7e8;
+  --warning:#c98500;
+  --warning-ink:#8a5a12;
+  --warning-wash:#fdf1da;
+  --critical:#c23333;
+  --critical-wash:#fbe9e8;
+  --avatar-ink:#ffffff;
+  --story-wash:#f6f3fb;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --page:#14141f;
+    --surface:#1e1e2f;
+    --surface-2:#262638;
+    --ink:#f2f1f7;
+    --ink-2:#cfcee0;
+    --muted:#a4a2c0;
+    --rule:#34334a;
+    --rule-soft:#2b2a3f;
+    --accent:#9b99f7;
+    --accent-2:#f5a0c4;
+    --accent-ink:#b4b2ff;
+    --accent-wash:#2a2850;
+    --good:#39c239;
+    --good-wash:#173317;
+    --warning:#fab219;
+    --warning-ink:#fed07a;
+    --warning-wash:#332708;
+    --critical:#f0837f;
+    --critical-wash:#341918;
+    --story-wash:#241f34;
+  }
+}
+:root[data-theme="dark"]{
+  --page:#14141f;
+  --surface:#1e1e2f;
+  --surface-2:#262638;
+  --ink:#f2f1f7;
+  --ink-2:#cfcee0;
+  --muted:#a4a2c0;
+  --rule:#34334a;
+  --rule-soft:#2b2a3f;
+  --accent:#9b99f7;
+  --accent-2:#f5a0c4;
+  --accent-ink:#b4b2ff;
+  --accent-wash:#2a2850;
+  --good:#39c239;
+  --good-wash:#173317;
+  --warning:#fab219;
+  --warning-ink:#fed07a;
+  --warning-wash:#332708;
+  --critical:#f0837f;
+  --critical-wash:#341918;
+  --story-wash:#241f34;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--page);
+  color:var(--ink-2);
+  font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:17px;
+  line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent-ink);text-decoration:none}
+a:hover{color:var(--accent);text-decoration:underline}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+code{
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  background:var(--surface-2);padding:2px 6px;font-size:.85em;border-radius:4px;
+}
+.wrap{max-width:760px;margin:0 auto;padding:clamp(24px,4vw,56px) clamp(20px,4vw,32px) 140px}
+
+/* ---- header ---- */
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.brandmark{display:flex;align-items:center;gap:10px}
+.loop-mark{
+  width:22px;height:22px;border-radius:50%;flex-shrink:0;
+  background:conic-gradient(
+    from 200deg,#5ea0e8,#7a78f5,#9752fa,#c849d8,#ec6496,#f47c71,#f9c040,#5ea0e8
+  );
+}
+.brand-word{
+  font-family:"DM Sans",sans-serif;font-weight:700;font-size:14px;
+  color:var(--ink);letter-spacing:-.01em;
+}
+.rid{
+  font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);font-weight:700;font-family:"DM Sans",sans-serif;
+  font-variant-numeric:tabular-nums;
+  display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:16px;
+}
+.rid span::after{content:" \00b7";color:var(--rule)}
+.rid span:last-child::after{content:""}
+.theme-toggle{
+  appearance:none;border:1px solid var(--rule);background:var(--surface);color:var(--ink-2);
+  font-family:"DM Sans",sans-serif;font-size:13px;font-weight:600;padding:8px 14px;
+  border-radius:8px;cursor:pointer;min-height:44px;flex-shrink:0;
+}
+.theme-toggle:hover{border-color:var(--accent);color:var(--ink)}
+.orient{
+  margin:22px 0 0;max-width:68ch;
+  font-size:17px;line-height:1.6;color:var(--ink-2);
+}
+h1.task{
+  font-family:"DM Sans",sans-serif;
+  font-weight:700;
+  font-size:clamp(24px,4vw,34px);
+  line-height:1.2;
+  letter-spacing:-.01em;
+  margin:24px 0 6px;
+  color:var(--ink);
+  text-wrap:balance;
+}
+.task-context{
+  margin:0 0 4px;max-width:68ch;
+  font-size:15px;line-height:1.6;color:var(--ink-2);
+}
+.summary-line{
+  margin:22px 0 0;padding:16px 20px;background:var(--surface-2);border-radius:10px;
+  font-size:16px;line-height:1.6;color:var(--ink-2);max-width:68ch;
+}
+.summary-line b{font-family:"DM Sans",sans-serif;color:var(--ink);font-variant-numeric:tabular-nums}
+.summary-line b.warn{color:var(--warning-ink)}
+.summary-line b.crit{color:var(--critical)}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;
+  font-family:"DM Sans",sans-serif;font-size:13px;font-weight:700;letter-spacing:.01em;
+}
+.chip-pending{background:var(--accent-wash);color:var(--accent-ink)}
+.chip-good{background:var(--good-wash);color:var(--good)}
+.chip-warning{background:var(--warning-wash);color:var(--warning-ink)}
+
+/* ---- table of contents ---- */
+#team{margin-top:36px}
+#team h2{margin-bottom:2px}
+.toc-list{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:2px}
+.toc-list li{border-top:1px solid var(--rule-soft)}
+.toc-list li:first-child{border-top:none}
+.toc-list a{
+  display:flex;align-items:center;gap:12px;padding:11px 4px;color:inherit;text-decoration:none;
+}
+.toc-list a:hover{color:var(--accent)}
+.toc-list a:hover .toc-name{color:var(--accent)}
+.avatar{
+  flex-shrink:0;width:32px;height:32px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:var(--avatar-ink);
+}
+.toc-name{font-family:"DM Sans",sans-serif;font-weight:700;font-size:16px;color:var(--ink)}
+.toc-remit{font-size:13px;color:var(--muted);margin-left:auto;text-align:right;max-width:38ch}
+@media (max-width:640px){.toc-remit{display:none}}
+
+/* ---- generic section rhythm ---- */
+section{margin:0 0 12px}
+.act{margin:56px 0 0;padding-top:32px;border-top:1px solid var(--rule)}
+.act:first-of-type{margin-top:44px}
+.act-label{
+  font-family:"DM Sans",sans-serif;
+  font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-ink);
+  margin:0 0 6px;
+}
+h2{
+  font-family:"DM Sans",sans-serif;font-weight:700;
+  font-size:24px;letter-spacing:-.005em;margin:0 0 8px;color:var(--ink);
+}
+.sub{font-size:15px;color:var(--muted);margin:0 0 20px;max-width:68ch;line-height:1.55}
+
+/* ---- advisor story ---- */
+details.story{margin:0 0 8px}
+details.story > summary{
+  list-style:none;cursor:pointer;
+  display:flex;align-items:center;gap:12px;
+  padding:14px 4px;border-top:1px solid var(--rule);
+}
+details.story:first-of-type > summary{border-top:none}
+details.story > summary::-webkit-details-marker{display:none}
+details.story > summary::after{
+  content:"\25be";margin-left:auto;color:var(--muted);font-size:13px;flex-shrink:0;
+}
+details.story[open] > summary::after{content:"\25b4"}
+.story-name{font-family:"DM Sans",sans-serif;font-weight:700;font-size:19px;color:var(--ink)}
+.story-remit{font-size:13px;color:var(--muted)}
+.story-body{padding:4px 4px 28px;max-width:68ch}
+.story-body h4{
+  font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+  margin:22px 0 8px;font-weight:700;
+}
+.story-body h4:first-child{margin-top:2px}
+.story-body p{margin:0 0 12px;color:var(--ink-2);line-height:1.65}
+.story-body ul,.story-body ol{margin:0 0 12px;padding-left:1.3em;color:var(--ink-2)}
+.story-body li{margin:0 0 6px}
+.voice{padding:16px 18px;border-radius:10px;margin:0 0 14px}
+.voice > .lbl{
+  font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:8px;
+  display:block;
+}
+.voice p{margin:0;line-height:1.6}
+.voice.position{background:var(--surface-2)}
+.voice.position .lbl{color:var(--muted)}
+.voice.pushback{background:var(--story-wash);border-left:3px solid var(--warning)}
+.voice.pushback .lbl{color:var(--warning-ink)}
+.voice.pushback .sev{
+  display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.05em;padding:2px 8px;border-radius:999px;margin-right:8px;
+  background:var(--warning-wash);color:var(--warning-ink);
+}
+.voice.pushback .sev.crit{background:var(--critical-wash);color:var(--critical)}
+.voice.pushback .sev.info{background:var(--surface-2);color:var(--ink-2)}
+.voice.revision{background:var(--good-wash);border-left:3px solid var(--good)}
+.voice.revision .lbl{color:var(--good)}
+.exchange{margin:0 0 22px}
+.exchange:last-child{margin-bottom:0}
+.cite-list{font-size:13px;color:var(--muted);margin:14px 0 0}
+.cite-list a{color:var(--accent-ink)}
+
+/* ---- plan / registers ---- */
+.quote{
+  background:var(--surface-2);padding:18px 20px;margin:0 0 16px;
+  max-width:68ch;border-radius:10px;
+}
+.quote.hero{
+  padding-left:22px;border-radius:0 10px 10px 0;
+  border-left:3px solid transparent;
+  border-image:linear-gradient(var(--accent),var(--accent-2)) 1;
+}
+.quote .lbl{
+  font-family:"DM Sans",sans-serif;
+  font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);font-weight:700;margin-bottom:8px;
+}
+.quote p{margin:0;font-size:16px;line-height:1.6;color:var(--ink-2)}
+.register{margin:0 0 28px}
+.register:last-child{margin-bottom:8px}
+.register-head{display:flex;align-items:baseline;gap:10px;margin:0 0 4px}
+.register-head h3{
+  font-family:"DM Sans",sans-serif;font-size:13px;font-weight:700;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);margin:0;
+}
+.register-count{
+  font-size:12px;font-weight:700;color:var(--ink-2);background:var(--surface-2);
+  border-radius:999px;padding:2px 9px;
+}
+.register-disagreements .register-count{background:var(--warning-wash);color:var(--warning-ink)}
+.register-escalations .register-count{background:var(--critical-wash);color:var(--critical)}
+.register-note{font-size:13px;color:var(--muted);margin:2px 0 10px;max-width:65ch}
+.reg-item{
+  padding:12px 0;border-top:1px solid var(--rule-soft);display:flex;
+  gap:14px;align-items:flex-start;
+}
+.reg-item .n{
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  min-width:24px;height:24px;border-radius:50%;
+  font-weight:700;font-size:12px;background:var(--surface-2);color:var(--ink-2);
+}
+.register-disagreements .reg-item .n{background:var(--warning-wash);color:var(--warning-ink)}
+.register-escalations .reg-item .n{background:var(--critical-wash);color:var(--critical)}
+.reg-item p{margin:0;max-width:65ch;color:var(--ink);font-size:16px;line-height:1.55}
+.reg-item .owner-note{font-size:13px;color:var(--muted);margin-top:4px}
+
+/* ---- milestones ---- */
+.milestones{list-style:none;margin:8px 0 0;padding:0;counter-reset:milestone}
+.milestone{
+  display:flex;gap:16px;padding:16px 0;border-top:1px solid var(--rule-soft);align-items:flex-start;
+}
+.milestone:first-child{border-top:none}
+.milestone .num{
+  flex-shrink:0;width:28px;height:28px;border-radius:50%;background:var(--accent-wash);
+  color:var(--accent-ink);font-family:"DM Sans",sans-serif;font-weight:700;font-size:13px;
+  display:flex;align-items:center;justify-content:center;
+}
+.milestone p{margin:0;color:var(--ink);font-size:16px;line-height:1.55;max-width:62ch}
+.risks-box{
+  background:var(--critical-wash);padding:18px 20px;border-radius:10px;
+  margin:8px 0 0;max-width:68ch;
+}
+.risks-box p{margin:0;color:var(--ink-2);font-size:15px;line-height:1.6}
+
+/* ---- errored / absent ---- */
+.absent{
+  padding:18px 20px;background:var(--warning-wash);max-width:68ch;
+  font-size:15px;color:var(--ink);border-radius:10px;
+}
+
+/* ---- decision ---- */
+.decision{
+  border:1px solid var(--rule);border-radius:14px;padding:26px 28px;background:var(--surface);
+  margin-top:44px;
+}
+.decision.forced{border-color:var(--warning-ink);background:var(--warning-wash)}
+.decision.pending{border-color:var(--accent);background:var(--accent-wash)}
+.decision .verdict{font-family:"DM Sans",sans-serif;font-size:22px;font-weight:700;color:var(--ink)}
+.decision.forced .verdict{color:var(--warning-ink)}
+.decision.pending .verdict{color:var(--accent-ink)}
+.decision .cta{font-size:15px;margin:12px 0 0;max-width:64ch;color:var(--ink-2)}
+.decision .cmd{
+  margin-top:14px;display:flex;flex-direction:column;gap:8px;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:13px;
+}
+.decision .cmd code{
+  background:var(--surface);padding:10px 14px;display:block;max-width:100%;
+  overflow-x:auto;white-space:pre;border-radius:8px;border:1px solid var(--rule);
+}
+.decision .flag-list{margin-top:14px;font-size:13px;color:var(--warning-ink);font-weight:700}
+.decision .who{
+  font-family:"DM Sans",sans-serif;font-size:26px;font-weight:700;
+  margin-top:8px;color:var(--ink);
+}
+.decision .when{font-size:13px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
+.decision .note{font-size:15px;margin:14px 0 0;max-width:60ch;color:var(--ink-2)}
+.decision .force-note{margin-top:12px;font-size:13px;color:var(--warning-ink);font-weight:700}
+@media (max-width:640px){
+  .wrap{padding-left:16px;padding-right:16px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+<script>
+(function(){
+  var THEME_KEY = "huminloop-theme";
+  var saved;
+  try { saved = localStorage.getItem(THEME_KEY); } catch (e) {}
+  document.documentElement.setAttribute("data-theme", saved === "dark" ? "dark" : "light");
+})();
+</script>
+</head>
+<body>
+<div class="wrap">
+<header>
+<div class="topbar">
+<div class="brandmark">
+<span class="loop-mark" aria-hidden="true"></span><span class="brand-word">HuminLoop Agents</span>
+</div>
+<button type="button" id="theme-toggle" class="theme-toggle" aria-pressed="false">Dark mode</button>
+</div>
+<div class="rid">
+<span>Run 20260909_185353_f2e53b</span>
+<span>openrouter</span>
+<span>2026-09-09</span>
+</div>
+<p class="orient">This is the story of how we reasoned through one task: who we dispatched,
+what each of us concluded on our own, the real pushback each of us took, why we revised in
+response, where we disagreed with each other, and the plan our Engagement Lead built once we
+had all finished. Nothing goes out until you read it and put your name
+on it.</p>
+<div class="quote"><div class="lbl">The task</div><p>Design an AI enablement and adoption program for a 400-person engineering services firm introducing AI assistants to field technicians and project engineers</p></div>
+<p class="summary-line">We dispatched <b>2</b> specialists and challenged each other <b>9</b> findings deep. We reached <b class="">0</b> open disagreements and <b class="crit">3</b> questions only you can answer. This run is <span class="chip chip-pending">awaiting your decision</span>.</p>
+</header>
+<main>
+<section id="team"><h2>Who we put on this</h2><p class="sub">Every seat we dispatched for this task. What follows is the story of what each of us said, in the order we said it.</p><ul class="toc-list"><li><a href="#a-change-management-lead"><span class="avatar" style="background:#2a78d6">CM</span><span class="toc-name">Change Management &amp; Adoption Lead</span><span class="toc-remit">Own the organizational readiness plan, the training curriculum and the role-redesign strategy. Hold authority to delay a rollout when readiness assessments say the workforce is not ready.</span></a></li><li><a href="#a-ld"><span class="avatar" style="background:#eb6834">LD</span><span class="toc-name">Learning &amp; Development</span><span class="toc-remit">Curricula, micro-videos, quick-reference guides, enablement packs.</span></a></li><li><a href="#plan"><span class="avatar" style="background:#1baf7a">EL</span><span class="toc-name">Engagement Lead</span><span class="toc-remit">Read every specialist artifact in full and produce the one deliverable the client acts on: the recommendation, the decisions that must be made and who owns each, the places the advisors disagreed, and the questions only the human can answer.</span></a></li></ul></section><div class="act"><p class="act-label">How each of us reasoned it through</p><p class="sub">Matched by rules: <code>change_adoption</code>, <code>enablement</code>. Each of us drafted independently, then one of us, acting as critic, read that draft alone and pushed back on it in writing &mdash; a real objection, not a rubber stamp. Click any of us to collapse once you&#x27;ve read it.</p><details class="story" id="a-change-management-lead" open>
+<summary><span class="story-name">Change Management &amp; Adoption Lead</span><span class="story-remit">Own the organizational readiness plan, the training curriculum and the role-redesign strategy. Hold authority to delay a rollout when readiness assessments say the workforce is not ready. &mdash; 5 challenges &middot; 5 resolved</span></summary>
+<div class="story-body">
+<div class="voice position"><div class="lbl">Their position</div><p>Design and gate an AI-assistant rollout for field technicians and project engineers at a 400-person engineering services firm, using ADKAR to sequence the work and named readiness gates to decide, with evidence, whether go-live in the stated timeframe is warranted.</p><p><b>ADKAR position:</b> Leadership has done Awareness work. I have no evidence yet of Desire, Knowledge, or Ability at the frontline — that requires talking to technicians and engineers directly, not their managers. No training calendar until we know where people are stuck.</p><p><b>Readiness gates (evidence status today):</b>
+1. <em>Capability</em> — Can a sample of techs/engineers complete real tasks with the assistant, unassisted, at or above current error rates? <b>Unevidenced</b>, no pilot data exists.
+2. <em>Capacity</em> — Do supervisors/senior techs have paid time to coach, is crew coverage backfilled? <b>Unevidenced.</b> First-line managers absorb this twice and nobody has adjusted their workload.
+3. <em>Support cover</em> — Field connectivity, IT escalation, staffed champion network before go-live? [ASSUMPTION: field sites have inconsistent connectivity, common in this sector — needs on-site validation.]
+4. <em>Role clarity</em> — Is it written down who can override the assistant, on what evidence, and who is accountable if a diagnostic or spec recommendation is wrong? <b>Unevidenced</b>, non-negotiable for safety-critical field work.</p><p>All four gates are currently unevidenced. That is a readiness statement, not an opinion.</p><p><b>Role-by-role impact:</b>
+- <em>Field technicians</em> lose discretion over undocumented &quot;tribal knowledge&quot; fixes — real, currently invisible to any assistant. They gain faster documentation access but risk a surveillance perception if activity logs feed reviews. Must learn a verification protocol (physical inspection before acting on any suggestion) and escalation triggers. Taught by senior-tech champions via ride-along — <b>but this ride-along duration is only feasible once Gate 2 (Capacity/backfill) is closed; it currently assumes the coverage it hasn&#x27;t secured.</b>
+- <em>Project engineers</em> lose ownership of first-draft calculations; the correct question is who carries liability when they sign off on an AI-assisted number. Must learn to red-team assistant output against code/spec, embedded in existing design-review cadence, taught by senior leads.
+- <em>First-line supervisors/foremen</em> absorb this twice — own job plus crew&#x27;s. Need explicit backfill hours and input on escalation design, or the rollout stalls here first.</p><p><b>Curriculum:</b> field techs train on-device in field conditions (gloves, noise, poor signal) against rehearsed real incidents; engineers train on red-teaming within existing review workflow. Duration and cost for field-tech training are gated on Capacity approval, not assumed.</p><p><b>Reinforcement:</b> 60/90-day refreshers, champion office hours, monthly QA audit sampling AI-assisted decisions. Recommendation, not yet a confirmed firm standard: exclude activity metrics (logins, licence use) as adoption evidence; report the fraction of real tasks completed the new way, on a stated denominator.</p></div>
+<p class="cite-list"><b>Citing:</b> Prosci, ADKAR Model overview: <a href="https://www.prosci.com/methodology/adkar">https://www.prosci.com/methodology/adkar</a>, NIST AI Risk Management Framework (human oversight and override design): <a href="https://www.nist.gov/itl/ai-risk-management-framework">https://www.nist.gov/itl/ai-risk-management-framework</a></p>
+<div class="voice pushback"><div class="lbl">The strongest case for it</div><p>The draft&#x27;s core strength is refusing to fill an evidence vacuum with confident scaffolding: it correctly identifies that leadership Awareness does not imply frontline Desire/Knowledge/Ability, names four concrete, falsifiable readiness gates instead of a generic training calendar, is explicit that all four are currently unevidenced, and ties the go/no-go/narrow decision to evidence gathered within a defined two-week window rather than to the calendar — which is exactly the discipline the brief calls for when sponsorship or timeline pressure is likely to override caution.</p></div>
+<div class="voice pushback"><div class="lbl">How this could go wrong</div><p>Twelve months later, the rollout stalled and trust cratered because the sponsor took &quot;gate evidence in hand in two weeks&quot; at face value and greenlit go-live on the strength of the Desire-oriented technician interviews and the engineers&#x27; liability conversation — neither of which produced the hands-on task-completion data the Capability gate required, nor a written override-authority protocol for field techs. A technician was blamed for a job delay after correctly rejecting a bad assistant recommendation, override authority proved decorative exactly as Risk 2 warned, and the program lost the frontline for good. The cause traces to Next Steps not actually closing the two gates the draft itself calls non-negotiable before proceeding.</p></div>
+<div class="exchange">
+<div class="voice pushback"><div class="lbl">Pushback 1 &middot; consistency</div><p><span class="sev warn">Serious</span>Risks states proceeding without closing &quot;at least Capability and Role Clarity&quot; is launching on hope, but Next Steps only schedules Desire-testing conversations and a liability discussion — neither produces the hands-on pilot data or written override-authority document those two gates require; add an explicit next step (owner, date) that generates that evidence before the sponsor decision.</p></div>
+<div class="voice revision"><div class="lbl">Why they revised it</div><p>Added explicit Next Steps items with named owner and date to generate hands-on Capability pilot data and a written override/accountability protocol before the sponsor decision; the sponsor decision step is now made contingent on that evidence existing, not just being requested.</p></div>
+</div>
+<div class="exchange">
+<div class="voice pushback"><div class="lbl">Pushback 2 &middot; human-impact</div><p><span class="sev warn">Serious</span>Next Steps addresses engineers&#x27; liability question but has no parallel action closing Role Clarity for field technicians specifically — the group Risk 2 flags as least-ready and most exposed to a decorative-override outcome — leaving the most safety-critical gap unaddressed going into the two-week decision.</p></div>
+<div class="voice revision"><div class="lbl">Why they revised it</div><p>Added a Role Clarity action specifically for field technicians (override/escalation protocol for field diagnostics), run in parallel with the engineers&#x27; liability session, since techs are the role flagged as least-ready and most exposed to decorative override.</p></div>
+</div>
+<div class="exchange">
+<div class="voice pushback"><div class="lbl">Pushback 3 &middot; evidence</div><p><span class="sev warn">Serious</span>The OSHA citation (https://www.osha.gov/human-factors) is asserted to support override/accountability design for safety-critical decision support; this specific URL and its relevance should be verified before the client relies on it, since a broken or mismatched citation undermines the one hard-safety claim in the deliverable.</p></div>
+<div class="voice revision"><div class="lbl">Why they revised it</div><p>Replaced the unverified OSHA URL with NIST&#x27;s AI Risk Management Framework page, which directly addresses human oversight and override design and is a citation I can stand behind; flagged that any sector-specific safety standard should be added once Legal/EHS confirms it.</p></div>
+</div>
+<div class="exchange">
+<div class="voice pushback"><div class="lbl">Pushback 4 &middot; evidence</div><p><span class="sev info">Minor</span>&quot;activity metrics... are explicitly excluded per firm standard&quot; asserts a standard not established anywhere else in the draft or brief; either cite where this standard comes from or mark it as a recommended practice rather than an existing firm policy.</p></div>
+<div class="voice revision"><div class="lbl">Why they revised it</div><p>Reworded the reinforcement metric language to &quot;recommended practice&quot; rather than an asserted existing firm standard, since no such standard is established in the brief.</p></div>
+</div>
+<div class="exchange">
+<div class="voice pushback"><div class="lbl">Pushback 5 &middot; feasibility</div><p><span class="sev info">Minor</span>The 2-week paid ride-along for field techs is specified in curriculum but never reconciled with crew coverage/backfill, which Gate 2 (Capacity) and Risk 3 both flag as unresolved — the training design assumes the very capacity that is stated as unevidenced.</p></div>
+<div class="voice revision"><div class="lbl">Why they revised it</div><p>Made the 2-week ride-along explicitly contingent on the Capacity gate closing (backfill approved and costed); added a Next Step to get that backfill decision made before curriculum rollout, not assumed.</p></div>
+</div>
+<h4>What could go wrong</h4>
+<p>1. If the go-live date was set before this readiness work began, say so now — moving it is cheaper than a failed launch atop three prior transformations this workforce already distrusts.
+2. Field technicians are least-ready: safety-critical, no capability evidence, and real risk &quot;override authority&quot; becomes decorative if a tech is blamed for delaying a job by rejecting the assistant. No written protocol exists yet.
+3. First-line supervisors carry this change unsupported — no backfill plan exists.
+4. All four gates are unevidenced. Proceeding without closing Capability and Role Clarity (both roles) is launching on hope, not evidence.</p>
+<h4>What happens next</h4>
+<ol><li>Change Lead runs structured readiness conversations with 8–10 field technicians (not managers) this week, testing Desire and surfacing cost to them.</li>
+<li>Ops/Training Lead runs a hands-on Capability pilot: 3–5 techs and 3–5 engineers complete real tasks with the assistant under observation, within 10 days — this generates the missing Capability evidence.</li>
+<li>Safety/Legal jointly draft, within two weeks, a written override-and-accountability protocol covering both field diagnostics and engineering spec sign-off — closing Role Clarity for both roles before any go-live decision.</li>
+<li>Ops confirms and costs supervisor/crew backfill hours (Capacity gate) before any training duration is finalized.</li>
+<li>Sponsor decides go/narrow/slip in two weeks with all four gates&#x27; evidence in hand — recommendation follows the evidence, not the calendar.</li></ol>
+<p class="sub">Automated checks: <b>passed</b> (verdict: approve).</p>
+</div></details><details class="story" id="a-ld" open>
+<summary><span class="story-name">Learning &amp; Development</span><span class="story-remit">Curricula, micro-videos, quick-reference guides, enablement packs. &mdash; 4 challenges &middot; 4 resolved</span></summary>
+<div class="story-body">
+<div class="voice position"><div class="lbl">Their position</div><p>Produce a performance-based curriculum skeleton — objectives, 4-I session design, instructor, assessment, remediation — for field technicians and project engineers adopting AI assistants, held as a design pending pilot and explicitly gated on the Change Management Lead&#x27;s ADKAR evidence rather than scheduled as a firm calendar.</p><p>There is no evidence yet of Desire or Knowledge at the frontline, only Awareness. If frontline interviews find the real barrier is Desire (fear of role security), training will not fix that, and I will hand it back. What follows is the curriculum to run once that evidence clears — not a commitment to run it now.</p><p><b>Observable objectives:</b>
+1. Technician: given a flagged work order and the assistant&#x27;s confidence score, decides act/defer/escalate and logs the reason within the shift. Gradable pass/fail against a rubric. <b>Provisional</b>: this assumes the tool exposes an interpretable, calibrated confidence score. That has not been verified against the actual vendor tool — owner: Product/Platform Lead to confirm before this objective is locked.
+2. Project engineer: given an AI-drafted scope/estimate deviation, identifies which inputs to check, corrects or overrides the draft, and documents the override rationale.
+&quot;Understands how the model works&quot; is deliberately excluded — unassessable, and a Desire lever for Change Management, not a session for me.</p><p><b>Technician track</b> (half-day, pilot cohort ~12): Inductive — technicians surface a case where they overrode an automated system OR disagreed with a colleague&#x27;s judgment call; for anyone without such a case, a short written vignette substitutes so the on-ramp doesn&#x27;t exclude technicians whose trade never exposed them to override situations. Input — confidence-score meaning, escalation thresholds, logging requirement. Implementation — paired practice on six real flagged work orders (Operations to supply historical cases), including one correct-override case. Integration — first live use in week one, shadowed by the supervisor, against a documentation checklist.</p><p><b>Project engineer track</b>: same structure, estimation-deviation cases, cohort ~8. Runs after the technician pilot, same instructor gap below.</p><p><b>Instructor:</b> vendor&#x27;s applications engineer confirmed for session one only. No internal instructor named — one-cohort design unless the firm names an internal SME to co-facilitate session one as train-the-trainer, built into the pilot itself.</p><p><b>Time release:</b> 4 hours per technician, 4 hours per engineer, plus unspecified supervisor shadow time — assumption, not commitment; no manager has agreed to it.</p><p><b>Assessment:</b> rubric-scored pass/fail on the paired exercise, plus supervisor sign-off on one real logged override in week two. Beyond the pilot window, the technician&#x27;s direct supervisor reviews override patterns monthly, escalating disputed calls to the Ops Manager, so accountability doesn&#x27;t end when sustained use begins.</p><p><b>Remediation:</b> technicians who don&#x27;t clear the rubric get one round of supervisor coaching, reassessed in two weeks. No remediation owner exists yet for engineers beyond the one-time vendor session — needs a name before launch.</p><p>Durations and cohort sizes are design estimates, loosely informed by comparable frontline AI-tool rollouts; treat as pilot hypotheses, not a schedule.</p></div>
+<p class="cite-list"><b>Citing:</b> ADKAR model: <a href="https://www.prosci.com/methodology/adkar">https://www.prosci.com/methodology/adkar</a>, 4-I / experiential adult learning structure (Kolb-derived): <a href="https://www.simplypsychology.org/learning-kolb.html">https://www.simplypsychology.org/learning-kolb.html</a>, No citation exists yet on the actual AI assistant&#x27;s confidence-scoring behavior — the load-bearing assumption in Objective 1. This must be sourced from the vendor&#x27;s technical documentation before that objective is finalized.</p>
+<div class="voice pushback"><div class="lbl">The strongest case for it</div><p>The draft&#x27;s strongest move is refusing to let curriculum design become a substitute for readiness: it explicitly gates the pilot on the Change Management Lead&#x27;s ADKAR evidence, writes only objectives that can be observed and scored (act/defer/escalate with logged rationale; override with documented reasoning) rather than unassessable &quot;trust/understanding&quot; goals, and then surfaces every real gap — single-cohort instructor dependency, unagreed manager time release, unowned engineer remediation, unpiloted durations — as named risks instead of dressing them up as commitments. That discipline is exactly what a performance-based curriculum skeleton should look like before a firm calendar exists.</p></div>
+<div class="voice pushback"><div class="lbl">How this could go wrong</div><p>Twelve months later the pilot launched, technicians were trained on &quot;confidence score meaning, escalation thresholds&quot; as core Input content, but the actual AI assistant deployed either didn&#x27;t expose a usable confidence score or its scoring was miscalibrated against real-world work-order risk. Technicians applied the taught act/defer/escalate framework to a number that meant something different than trained, made bad calls with false confidence, and the resulting incidents were read as &quot;training failed&quot; rather than &quot;the tool&#x27;s interface didn&#x27;t match the curriculum&#x27;s founding assumption.&quot; The root cause traces to the draft treating the existence and legibility of a confidence score as a given input to session design, without flagging it — the way it carefully flagged instructor, time-release, and duration assumptions — as an unverified assumption needing product-side confirmation before the objective was finalized.</p></div>
+<div class="exchange">
+<div class="voice pushback"><div class="lbl">Pushback 1 &middot; evidence</div><p><span class="sev warn">Serious</span>Objective 1 (&quot;given the assistant&#x27;s confidence score, decides act/defer/escalate&quot;) assumes the tool exposes an interpretable, calibrated confidence score — this is never verified or cited, and unlike time-release/instructor/duration it is not listed in Risks as an assumption; it should be, with a named owner to confirm the actual tool&#x27;s output before the objective is locked.</p></div>
+<div class="voice revision"><div class="lbl">Why they revised it</div><p>Added this as a named risk with an owner (Product/Platform Lead to confirm the tool&#x27;s actual confidence-score output before the objective is locked) and note that Objective 1 is provisional pending that confirmation.</p></div>
+</div>
+<div class="exchange">
+<div class="voice pushback"><div class="lbl">Pushback 2 &middot; feasibility</div><p><span class="sev warn">Serious</span>The Inductive step assumes technicians have &quot;a recent case where they overrode an automated system (SCADA, alarms)&quot; as a universal on-ramp — in a 400-person engineering services firm this experience likely varies widely by trade/role, and the draft gives no fallback for technicians without such a case.</p></div>
+<div class="voice revision"><div class="lbl">Why they revised it</div><p>Reworded the Inductive step to ask for &quot;an automated system OR a colleague&#x27;s judgment call you disagreed with,&quot; and added a fallback prompt (a short vignette) for technicians with no override history, so the on-ramp doesn&#x27;t exclude anyone.</p></div>
+</div>
+<div class="exchange">
+<div class="voice pushback"><div class="lbl">Pushback 3 &middot; human-impact</div><p><span class="sev info">Minor</span>Assessment stops at &quot;one real logged override in week two&quot; with supervisor sign-off, but no mechanism is specified for who reviews override patterns or disputes accountability after the pilot window — the human-in-the-loop control ends exactly when sustained use begins.</p></div>
+<div class="voice revision"><div class="lbl">Why they revised it</div><p>Added a post-pilot mechanism: monthly override-pattern review by the technician&#x27;s direct supervisor, escalating disputed calls to the Ops Manager, so oversight doesn&#x27;t end when the pilot window closes.</p></div>
+</div>
+<div class="exchange">
+<div class="voice pushback"><div class="lbl">Pushback 4 &middot; consistency</div><p><span class="sev info">Minor</span>Both citations are generic methodology references (ADKAR, Kolb-derived 4-I); nothing is cited on the actual AI assistant&#x27;s confidence-scoring behavior, which is the load-bearing assumption in Objective 1 — this gap should be named explicitly rather than left implicit.</p></div>
+<div class="voice revision"><div class="lbl">Why they revised it</div><p>Added an explicit line naming the gap: no citation exists on the specific AI assistant&#x27;s confidence-scoring behavior, and this must be sourced from the vendor&#x27;s technical documentation before Objective 1 is finalized.</p></div>
+</div>
+<h4>What could go wrong</h4>
+<p>1. This curriculum is designed before Desire/Knowledge evidence exists at the frontline. If that evidence shows a Desire gap, scheduling this training is the wrong fix and should pause — first risk, stated plainly.
+2. Objective 1 assumes the tool exposes an interpretable, calibrated confidence score. Unverified. Owner: Product/Platform Lead, must confirm against actual vendor output before this objective is locked.
+3. One-cohort risk: only session one has a confirmed instructor. No internal co-trainer named, so cohort two and beyond cannot run.
+4. Manager time release for 4 hours plus shadow time is assumed, not agreed.
+5. Post-pilot oversight relies on supervisors having time and standing to review override patterns monthly — unconfirmed, and if decorative, accountability quietly ends at week two.
+6. All durations and cohort sizes are unpiloted estimates and will read as commitments if handed to a scheduler without that label.</p>
+<h4>What happens next</h4>
+<ol><li>Do not schedule the technician pilot until the Change Management Lead&#x27;s readiness gate confirms Knowledge/Desire status.</li>
+<li>Product/Platform Lead to confirm the assistant&#x27;s actual confidence-score behavior within two weeks, before Objective 1 is locked.</li>
+<li>Request historical flagged-work-order cases from Operations within two weeks for Implementation exercises.</li>
+<li>First session (technician pilot, cohort ~12): instructor is the vendor&#x27;s applications engineer; firm must name an internal SME co-trainer for that same session.</li>
+<li>Target pilot date: four weeks after the ADKAR gate clears — placeholder pending the Change Management Lead&#x27;s timeline.</li></ol>
+<p class="sub">Automated checks: <b>passed</b> (verdict: approve).</p>
+</div></details></div><div class="act"><p class="act-label">Bringing it together</p><p class="sub">Once every one of us above had finished, our Engagement Lead read all 2 of our positions in full &mdash; this is where our disagreements actually surface, and where one plan gets built from what we each concluded.</p><section id="plan">
+<h2>Our Plan</h2>
+<p class="sub">Our Engagement Lead reads every one of our drafts in full and reports back: what we recommend, what we decided, where we pushed back on each other before settling, and what only you can answer. This is the one deliverable you act on &mdash; everything after this section is how we got here.</p>
+<div class="quote hero"><div class="lbl">Recommendation</div><p>Do not schedule go-live. The Change Management Lead memo and the L&amp;D curriculum memo independently reached the same conclusion from different angles: every readiness gate that matters for a safety-adjacent rollout — Capability, Capacity, Support cover, Role clarity — is currently unevidenced, not merely undocumented. Those two memos are referenced here, not reproduced; this document is the Engagement Lead&#x27;s synthesis of them, and the client should read the underlying artifacts before treating the convergence as settled. L&amp;D&#x27;s curriculum is a sound pilot design but is explicitly contingent on gates it doesn&#x27;t control. The sentence that survives if the rest of this is lost: close the four readiness gates with real pilot evidence before setting a training calendar — right now you&#x27;d be scheduling against unobserved tool behavior and unobserved workforce reaction.</p></div>
+<div class="register register-decisions"><div class="register-head"><h3>Decisions</h3><span class="register-count">5</span></div><div class="reg-item"><span class="n">1</span><div><p>Do we hold the go-live date, or slip it pending gate evidence, given contractual or client commitments the team cannot see?</p><p class="owner-note">A likely owner, not a confirmed one: Sponsor</p></div></div><div class="reg-item"><span class="n">2</span><div><p>Who is accountable when the assistant&#x27;s recommendation is wrong — technician, engineer, or firm?</p><p class="owner-note">A likely owner, not a confirmed one: Safety/Legal (not yet engaged — see Escalations)</p></div></div><div class="reg-item"><span class="n">3</span><div><p>Does the vendor&#x27;s tool expose an interpretable, calibrated confidence score, as the curriculum&#x27;s Objective 1 assumes?</p><p class="owner-note">A likely owner, not a confirmed one: Product/Platform Lead</p></div></div><div class="reg-item"><span class="n">4</span><div><p>Will supervisors get paid, costed backfill hours for coaching, or does this land as unpaid extra work?</p><p class="owner-note">A likely owner, not a confirmed one: Ops Lead. Note: Ops has not been consulted on this engagement to date; treat any timeline estimate as a first-contact briefing, not a fast turnaround.</p></div></div><div class="reg-item"><span class="n">5</span><div><p>Who co-trains cohort two onward, since only session one has a confirmed instructor?</p><p class="owner-note">A likely owner, not a confirmed one: L&amp;D / Ops jointly</p></div></div></div>
+<div class="register register-disagreements"><div class="register-head"><h3>Disagreements</h3><span class="register-count">None</span></div><p class="register-note">Where we reached different conclusions and our Lead had to weigh them.</p></div>
+<div class="register register-escalations"><div class="register-head"><h3>Escalations</h3><span class="register-count">3</span></div><p class="register-note">Questions none of us can answer for you &mdash; each one is why this run needed your sign-off.</p><div class="reg-item escalation"><span class="n">1</span><p>Was the go-live date set before this readiness work began — is there a contractual commitment driving it? Neither memo can answer this; only the sponsor knows.</p></div><div class="reg-item escalation"><span class="n">2</span><p>Is there budget/authority to pay supervisors for backfill hours, or is &quot;free&quot; coaching time structurally assumed in crew staffing? This determines whether Gate 2 can ever close.</p></div><div class="reg-item escalation"><span class="n">3</span><p>No Safety/Legal, IT/Security, or Ops seat produced an artifact for this engagement, and Ops is being pulled in for the first time via Decision #4 above. Override-accountability and connectivity validation depend on functions not yet represented — name owners before the next round.</p></div></div>
+<div class="register"><div class="register-head"><h3>Milestones</h3><span class="register-count">5</span></div><p class="register-note">What has to happen, broken into steps you can track — not a paragraph to reread, a checklist to build from.</p><ol class="milestones"><li class="milestone"><span class="num">1</span><p>Change Lead runs frontline readiness interviews (8–10 technicians, not managers) this week to test Desire.</p></li><li class="milestone"><span class="num">2</span><p>Ops/Training Lead runs the Capability pilot (3–5 techs, 3–5 engineers) within 10 days, with task scope restricted to non-consequential, reversible decisions until Step 3 is complete.</p></li><li class="milestone"><span class="num">3</span><p>Safety/Legal — currently unnamed — is assigned to draft the override-and-accountability protocol within two weeks; pilot scope expands only after this protocol exists.</p></li><li class="milestone"><span class="num">4</span><p>Product/Platform Lead confirms actual confidence-score behavior before Objective 1 is locked.</p></li><li class="milestone"><span class="num">5</span><p>Sponsor makes the go/narrow/slip call in two weeks once all four gates carry real evidence — recommendation follows evidence, not calendar.</p></li></ol></div>
+<div class="register"><div class="register-head"><h3>What Could Go Wrong</h3></div><div class="risks-box"><p>1. If the go-live date predates this readiness work, moving it now is far cheaper than a failed launch — flagged by Change Management, unresolved.
+2. Field technicians are the least-ready group for a safety-critical rollout: no capability evidence, no written override protocol, real risk &quot;authority to override&quot; becomes decorative if a tech is blamed for a delay.
+3. This document rests on a synthesis of two memos not included verbatim; if either memo&#x27;s evidence is weaker than characterized here, the &quot;unevidenced not undocumented&quot; claim needs re-checking against source.
+4. The curriculum&#x27;s core objective assumes unverified vendor confidence-score calibration; if wrong, Objective 1 collapses mid-pilot.
+5. Only one cohort has a confirmed instructor; no named co-trainer means the program cannot scale past session one.
+6. Supervisors absorb this change twice (job plus coaching) with no confirmed backfill — likely first stall point.</p></div></div>
+<details class="story" open>
+<summary><span class="story-name">The plan itself was challenged</span><span class="story-remit">4 challenges &middot; 4 resolved</span></summary>
+<div class="story-body"><div class="voice pushback"><div class="lbl">The strongest case for it</div><p>The Engagement Lead correctly recognizes that &quot;design an adoption program&quot; for a safety-adjacent rollout is not yet an answerable brief — the two upstream specialist analyses converged on the same finding (Capability, Capacity, Support, Role clarity are unevidenced, not just undocumented), and forcing a training calendar onto that gap would be malpractice dressed as delivery. By refusing to schedule go-live, naming exactly who owns each open question, surfacing that no Safety/Legal or IT/Security seat exists on the engagement, and explicitly noting the absence of a yellow-hat case for speed, the memo does the harder and more valuable thing: it tells the steering committee what decision is actually available to them right now, rather than manufacturing a program that would look complete on paper and fail on the shop floor.</p></div>
+<div class="voice pushback"><div class="lbl">How this could go wrong</div><p>Twelve months later, the pilot ran on schedule — Capability pilot within 10 days, frontline interviews the same week — while Safety/Legal, still unnamed at kickoff, didn&#x27;t produce the override-and-accountability protocol until well after techs were already using the assistant on real tasks. A tech overrode a flagged diagnosis, the job went out anyway, and when it failed, there was no recorded protocol establishing whether the tech, the engineer who signed off, or the firm was accountable — because Decision #2 was still sitting with a function that had never joined the engagement. The root cause traces to Next Steps sequencing: the memo told the sponsor gates must close &quot;before you set a training calendar,&quot; but its own Next Steps ran the highest-stakes gate (accountability) on a slower clock (2 weeks) than the pilot that exposed real technicians to real tasks (10 days), without ever saying the two must be ordered.</p></div>
+<div class="exchange">
+<div class="voice pushback"><div class="lbl">Pushback 1 &middot; feasibility</div><p><span class="sev warn">Serious</span>Next Steps #2 (Capability pilot, &quot;real tasks,&quot; within 10 days) and #3 (override-and-accountability protocol within two weeks) run in parallel with no stated dependency, meaning technicians could be doing AI-assisted real work before anyone has decided who is accountable if the assistant is wrong — the fix is one sentence explicitly gating pilot task scope until the protocol exists, or excluding consequential decisions from pilot scope.</p></div>
+<div class="voice revision"><div class="lbl">Why they revised it</div><p>Next Steps #2 and #3 now explicitly state that pilot task scope excludes consequential/safety-relevant decisions until the override protocol exists; the two workstreams can run in parallel only on that condition.</p></div>
+</div>
+<div class="exchange">
+<div class="voice pushback"><div class="lbl">Pushback 2 &middot; evidence</div><p><span class="sev warn">Serious</span>The central claim — &quot;every readiness gate is unevidenced, not merely undocumented&quot; — is attributed to convergence between &quot;the Change Management Lead&quot; and &quot;L&amp;D&quot; memos that are referenced but never included or cited; a client reading this standalone cannot verify the finding, only the Engagement Lead&#x27;s characterization of it.</p></div>
+<div class="voice revision"><div class="lbl">Why they revised it</div><p>Body now names the two source memos explicitly (Change Management Lead memo, L&amp;D curriculum memo) as the basis for the convergence claim, states they are referenced but not reproduced here, and flags in Risks that this document is the Engagement Lead&#x27;s synthesis of those artifacts, not a substitute for reading them.</p></div>
+</div>
+<div class="exchange">
+<div class="voice pushback"><div class="lbl">Pushback 3 &middot; evidence</div><p><span class="sev info">Minor</span>The two citations (Prosci ADKAR, NIST AI RMF) are generic methodology links, not evidence for the document&#x27;s specific empirical claims (e.g., that the vendor&#x27;s confidence score is uncalibrated, that Desire has not been observed) — at least one citation should tie to something checkable about <em>this</em> rollout or a comparable one, per the memo&#x27;s own complaint in &quot;Disagreements&quot; that no comparable-rollout evidence was offered.</p></div>
+<div class="voice revision"><div class="lbl">Why they revised it</div><p>Added a citation directly relevant to the confidence-score calibration claim (Guo et al., on calibration of neural network confidence scores), since no comparable-rollout evidence exists yet; kept the methodology citations but no longer let them stand in for empirical support they don&#x27;t provide.</p></div>
+</div>
+<div class="exchange">
+<div class="voice pushback"><div class="lbl">Pushback 4 &middot; consistency</div><p><span class="sev info">Minor</span>Decision #4 sends the backfill-pay question to Ops Lead while Escalation #3 states no Ops seat produced an artifact for this engagement — worth a one-line note on whether Ops is being consulted for the first time via this decision list, since that changes how fast an answer is realistic.</p></div>
+<div class="voice revision"><div class="lbl">Why they revised it</div><p>Added a one-line note in Decisions #4 and Escalations #3 clarifying Ops has not yet been engaged on this work, so the backfill-pay answer should be timed assuming a first-contact briefing, not an existing relationship.</p></div>
+</div></div>
+</details>
+</section></div><section id="decision" class="decision pending">
+<h2>Your decision</h2>
+<p class="sub">Nothing here goes anywhere until you read it and say yes. The debate is above &mdash; every one of our drafts, what got challenged, and the plan we built, at the top.</p>
+<div class="verdict">NOT YET DECIDED</div>
+<p class="cta">Act from here once you have read it:</p>
+<div class="cmd">
+<code>huminloop approve 20260909_185353_f2e53b --by &quot;Your Name&quot; --force --note &quot;...&quot;</code>
+<code>huminloop reject 20260909_185353_f2e53b --by &quot;Your Name&quot; --reason &quot;...&quot;</code>
+</div>
+<p class="flag-list">1 role(s) carried findings that require <code>--force</code> and a <code>--note</code> to approve: engagement_lead.</p>
+</section>
+</main>
+</div>
+<script>
+(function(){
+  var THEME_KEY = "huminloop-theme";
+  var root = document.documentElement;
+  var btn = document.getElementById("theme-toggle");
+  function label(theme){
+    btn.textContent = theme === "dark" ? "Light mode" : "Dark mode";
+    btn.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+  }
+  label(root.getAttribute("data-theme"));
+  btn.addEventListener("click", function(){
+    var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    label(next);
+    try { localStorage.setItem(THEME_KEY, next); } catch (e) {}
+  });
+})();
+</script>
+</body>
+</html>

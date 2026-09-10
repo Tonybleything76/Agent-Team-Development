@@ -25,3 +25,12 @@ produced confident benchmark numbers with no labels; with the persona it produce
 That is the difference between a deliverable that reads well and one you could defend in front
 of a CFO. It is also the clearest argument for personas over prompt-tuning: the rule lives in a
 file a human owns, not in the model's discretion.
+
+## Other runs in this directory
+
+- `critique/` — the same roadmap task after the critique loop was added (2026-08-22)
+- `proposal/` — the fully persona-driven proposal route (2026-08-22)
+- `synthesis/` — the Engagement Lead synthesising a multi-specialist run
+- `enablement/` — an AI enablement programme where a critic caught a citation that did not
+  support its claim (2026-09-09)
+

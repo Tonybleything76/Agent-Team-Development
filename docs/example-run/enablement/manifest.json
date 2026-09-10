@@ -1,0 +1,181 @@
+{
+  "artifacts": [
+    {
+      "critique": {
+        "critic_role": "qa_qc",
+        "points": [
+          {
+            "claim": "Risks states proceeding without closing \"at least Capability and Role Clarity\" is launching on hope, but Next Steps only schedules Desire-testing conversations and a liability discussion \u2014 neither produces the hands-on pilot data or written override-authority document those two gates require; add an explicit next step (owner, date) that generates that evidence before the sponsor decision.",
+            "dimension": "consistency",
+            "disposition": "accepted",
+            "response": "Added explicit Next Steps items with named owner and date to generate hands-on Capability pilot data and a written override/accountability protocol before the sponsor decision; the sponsor decision step is now made contingent on that evidence existing, not just being requested.",
+            "severity": "serious"
+          },
+          {
+            "claim": "Next Steps addresses engineers' liability question but has no parallel action closing Role Clarity for field technicians specifically \u2014 the group Risk 2 flags as least-ready and most exposed to a decorative-override outcome \u2014 leaving the most safety-critical gap unaddressed going into the two-week decision.",
+            "dimension": "human-impact",
+            "disposition": "accepted",
+            "response": "Added a Role Clarity action specifically for field technicians (override/escalation protocol for field diagnostics), run in parallel with the engineers' liability session, since techs are the role flagged as least-ready and most exposed to decorative override.",
+            "severity": "serious"
+          },
+          {
+            "claim": "The OSHA citation (https://www.osha.gov/human-factors) is asserted to support override/accountability design for safety-critical decision support; this specific URL and its relevance should be verified before the client relies on it, since a broken or mismatched citation undermines the one hard-safety claim in the deliverable.",
+            "dimension": "evidence",
+            "disposition": "accepted",
+            "response": "Replaced the unverified OSHA URL with NIST's AI Risk Management Framework page, which directly addresses human oversight and override design and is a citation I can stand behind; flagged that any sector-specific safety standard should be added once Legal/EHS confirms it.",
+            "severity": "serious"
+          },
+          {
+            "claim": "\"activity metrics... are explicitly excluded per firm standard\" asserts a standard not established anywhere else in the draft or brief; either cite where this standard comes from or mark it as a recommended practice rather than an existing firm policy.",
+            "dimension": "evidence",
+            "disposition": "accepted",
+            "response": "Reworded the reinforcement metric language to \"recommended practice\" rather than an asserted existing firm standard, since no such standard is established in the brief.",
+            "severity": "minor"
+          },
+          {
+            "claim": "The 2-week paid ride-along for field techs is specified in curriculum but never reconciled with crew coverage/backfill, which Gate 2 (Capacity) and Risk 3 both flag as unresolved \u2014 the training design assumes the very capacity that is stated as unevidenced.",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "Made the 2-week ride-along explicitly contingent on the Capacity gate closing (backfill approved and costed); added a Next Step to get that backfill decision made before curriculum rollout, not assumed.",
+            "severity": "minor"
+          }
+        ],
+        "premortem": "Twelve months later, the rollout stalled and trust cratered because the sponsor took \"gate evidence in hand in two weeks\" at face value and greenlit go-live on the strength of the Desire-oriented technician interviews and the engineers' liability conversation \u2014 neither of which produced the hands-on task-completion data the Capability gate required, nor a written override-authority protocol for field techs. A technician was blamed for a job delay after correctly rejecting a bad assistant recommendation, override authority proved decorative exactly as Risk 2 warned, and the program lost the frontline for good. The cause traces to Next Steps not actually closing the two gates the draft itself calls non-negotiable before proceeding.",
+        "steelman": "The draft's core strength is refusing to fill an evidence vacuum with confident scaffolding: it correctly identifies that leadership Awareness does not imply frontline Desire/Knowledge/Ability, names four concrete, falsifiable readiness gates instead of a generic training calendar, is explicit that all four are currently unevidenced, and ties the go/no-go/narrow decision to evidence gathered within a defined two-week window rather than to the calendar \u2014 which is exactly the discipline the brief calls for when sponsorship or timeline pressure is likely to override caution."
+      },
+      "error": null,
+      "file": "change_management_lead.md",
+      "process_flags": [],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": true,
+      "role": "change_management_lead",
+      "sha256": "9a3e08ddf4e09295e76f0520bfe3dd0a8f277f3b849e2a98945c0d51f6ed00ad"
+    },
+    {
+      "critique": {
+        "critic_role": "qa_qc",
+        "points": [
+          {
+            "claim": "Objective 1 (\"given the assistant's confidence score, decides act/defer/escalate\") assumes the tool exposes an interpretable, calibrated confidence score \u2014 this is never verified or cited, and unlike time-release/instructor/duration it is not listed in Risks as an assumption; it should be, with a named owner to confirm the actual tool's output before the objective is locked.",
+            "dimension": "evidence",
+            "disposition": "accepted",
+            "response": "Added this as a named risk with an owner (Product/Platform Lead to confirm the tool's actual confidence-score output before the objective is locked) and note that Objective 1 is provisional pending that confirmation.",
+            "severity": "serious"
+          },
+          {
+            "claim": "The Inductive step assumes technicians have \"a recent case where they overrode an automated system (SCADA, alarms)\" as a universal on-ramp \u2014 in a 400-person engineering services firm this experience likely varies widely by trade/role, and the draft gives no fallback for technicians without such a case.",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "Reworded the Inductive step to ask for \"an automated system OR a colleague's judgment call you disagreed with,\" and added a fallback prompt (a short vignette) for technicians with no override history, so the on-ramp doesn't exclude anyone.",
+            "severity": "serious"
+          },
+          {
+            "claim": "Assessment stops at \"one real logged override in week two\" with supervisor sign-off, but no mechanism is specified for who reviews override patterns or disputes accountability after the pilot window \u2014 the human-in-the-loop control ends exactly when sustained use begins.",
+            "dimension": "human-impact",
+            "disposition": "accepted",
+            "response": "Added a post-pilot mechanism: monthly override-pattern review by the technician's direct supervisor, escalating disputed calls to the Ops Manager, so oversight doesn't end when the pilot window closes.",
+            "severity": "minor"
+          },
+          {
+            "claim": "Both citations are generic methodology references (ADKAR, Kolb-derived 4-I); nothing is cited on the actual AI assistant's confidence-scoring behavior, which is the load-bearing assumption in Objective 1 \u2014 this gap should be named explicitly rather than left implicit.",
+            "dimension": "consistency",
+            "disposition": "accepted",
+            "response": "Added an explicit line naming the gap: no citation exists on the specific AI assistant's confidence-scoring behavior, and this must be sourced from the vendor's technical documentation before Objective 1 is finalized.",
+            "severity": "minor"
+          }
+        ],
+        "premortem": "Twelve months later the pilot launched, technicians were trained on \"confidence score meaning, escalation thresholds\" as core Input content, but the actual AI assistant deployed either didn't expose a usable confidence score or its scoring was miscalibrated against real-world work-order risk. Technicians applied the taught act/defer/escalate framework to a number that meant something different than trained, made bad calls with false confidence, and the resulting incidents were read as \"training failed\" rather than \"the tool's interface didn't match the curriculum's founding assumption.\" The root cause traces to the draft treating the existence and legibility of a confidence score as a given input to session design, without flagging it \u2014 the way it carefully flagged instructor, time-release, and duration assumptions \u2014 as an unverified assumption needing product-side confirmation before the objective was finalized.",
+        "steelman": "The draft's strongest move is refusing to let curriculum design become a substitute for readiness: it explicitly gates the pilot on the Change Management Lead's ADKAR evidence, writes only objectives that can be observed and scored (act/defer/escalate with logged rationale; override with documented reasoning) rather than unassessable \"trust/understanding\" goals, and then surfaces every real gap \u2014 single-cohort instructor dependency, unagreed manager time release, unowned engineer remediation, unpiloted durations \u2014 as named risks instead of dressing them up as commitments. That discipline is exactly what a performance-based curriculum skeleton should look like before a firm calendar exists."
+      },
+      "error": null,
+      "file": "ld.md",
+      "process_flags": [],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": true,
+      "role": "ld",
+      "sha256": "cb6a54d1048108ab08d1421b6f32cace35bc26a8a384d431468d3840adf3b123"
+    },
+    {
+      "critique": {
+        "critic_role": "qa_qc",
+        "points": [
+          {
+            "claim": "Next Steps #2 (Capability pilot, \"real tasks,\" within 10 days) and #3 (override-and-accountability protocol within two weeks) run in parallel with no stated dependency, meaning technicians could be doing AI-assisted real work before anyone has decided who is accountable if the assistant is wrong \u2014 the fix is one sentence explicitly gating pilot task scope until the protocol exists, or excluding consequential decisions from pilot scope.",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "Next Steps #2 and #3 now explicitly state that pilot task scope excludes consequential/safety-relevant decisions until the override protocol exists; the two workstreams can run in parallel only on that condition.",
+            "severity": "serious"
+          },
+          {
+            "claim": "The central claim \u2014 \"every readiness gate is unevidenced, not merely undocumented\" \u2014 is attributed to convergence between \"the Change Management Lead\" and \"L&D\" memos that are referenced but never included or cited; a client reading this standalone cannot verify the finding, only the Engagement Lead's characterization of it.",
+            "dimension": "evidence",
+            "disposition": "accepted",
+            "response": "Body now names the two source memos explicitly (Change Management Lead memo, L&D curriculum memo) as the basis for the convergence claim, states they are referenced but not reproduced here, and flags in Risks that this document is the Engagement Lead's synthesis of those artifacts, not a substitute for reading them.",
+            "severity": "serious"
+          },
+          {
+            "claim": "The two citations (Prosci ADKAR, NIST AI RMF) are generic methodology links, not evidence for the document's specific empirical claims (e.g., that the vendor's confidence score is uncalibrated, that Desire has not been observed) \u2014 at least one citation should tie to something checkable about *this* rollout or a comparable one, per the memo's own complaint in \"Disagreements\" that no comparable-rollout evidence was offered.",
+            "dimension": "evidence",
+            "disposition": "accepted",
+            "response": "Added a citation directly relevant to the confidence-score calibration claim (Guo et al., on calibration of neural network confidence scores), since no comparable-rollout evidence exists yet; kept the methodology citations but no longer let them stand in for empirical support they don't provide.",
+            "severity": "minor"
+          },
+          {
+            "claim": "Decision #4 sends the backfill-pay question to Ops Lead while Escalation #3 states no Ops seat produced an artifact for this engagement \u2014 worth a one-line note on whether Ops is being consulted for the first time via this decision list, since that changes how fast an answer is realistic.",
+            "dimension": "consistency",
+            "disposition": "accepted",
+            "response": "Added a one-line note in Decisions #4 and Escalations #3 clarifying Ops has not yet been engaged on this work, so the backfill-pay answer should be timed assuming a first-contact briefing, not an existing relationship.",
+            "severity": "minor"
+          }
+        ],
+        "premortem": "Twelve months later, the pilot ran on schedule \u2014 Capability pilot within 10 days, frontline interviews the same week \u2014 while Safety/Legal, still unnamed at kickoff, didn't produce the override-and-accountability protocol until well after techs were already using the assistant on real tasks. A tech overrode a flagged diagnosis, the job went out anyway, and when it failed, there was no recorded protocol establishing whether the tech, the engineer who signed off, or the firm was accountable \u2014 because Decision #2 was still sitting with a function that had never joined the engagement. The root cause traces to Next Steps sequencing: the memo told the sponsor gates must close \"before you set a training calendar,\" but its own Next Steps ran the highest-stakes gate (accountability) on a slower clock (2 weeks) than the pilot that exposed real technicians to real tasks (10 days), without ever saying the two must be ordered.",
+        "steelman": "The Engagement Lead correctly recognizes that \"design an adoption program\" for a safety-adjacent rollout is not yet an answerable brief \u2014 the two upstream specialist analyses converged on the same finding (Capability, Capacity, Support, Role clarity are unevidenced, not just undocumented), and forcing a training calendar onto that gap would be malpractice dressed as delivery. By refusing to schedule go-live, naming exactly who owns each open question, surfacing that no Safety/Legal or IT/Security seat exists on the engagement, and explicitly noting the absence of a yellow-hat case for speed, the memo does the harder and more valuable thing: it tells the steering committee what decision is actually available to them right now, rather than manufacturing a program that would look complete on paper and fail on the shop floor."
+      },
+      "error": null,
+      "file": "engagement_lead.md",
+      "process_flags": [
+        "Escalated to the human: Was the go-live date set before this readiness work began \u2014 is there a contractual or client-facing commitment driving it? Both memos flag this risk but neither can answer it; only the sponsor knows.",
+        "Escalated to the human: Is there budget/authority to actually pay supervisors for backfill hours, or is the assumption of \"free\" coaching time structurally baked into how this firm staffs crews? This determines whether Gate 2 can ever close as designed.",
+        "Escalated to the human: No Safety/Legal, IT/Security, or Ops seat produced an artifact for this engagement. The override-and-accountability protocol and connectivity validation both depend on functions not represented here \u2014 the client needs to name owners before the next round, not after."
+      ],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": true,
+      "role": "engagement_lead",
+      "sha256": "119138c9f175f5154274d8a5aac6b1e0e2d550f696aa7b57466750c37d64de41"
+    }
+  ],
+  "created_at": "2026-09-09T18:53:53+00:00",
+  "plan": {
+    "matched_rules": [
+      "change_adoption",
+      "enablement"
+    ],
+    "roles": [
+      "change_management_lead",
+      "ld"
+    ]
+  },
+  "provider": "openrouter",
+  "run_id": "20260909_185353_f2e53b",
+  "status": "pending",
+  "synthesis": {
+    "decisions": 5,
+    "disagreements": 0,
+    "escalations": 3,
+    "role": "engagement_lead"
+  },
+  "task": "Design an AI enablement and adoption program for a 400-person engineering services firm introducing AI assistants to field technicians and project engineers",
+  "version": "0.20.1"
+}
