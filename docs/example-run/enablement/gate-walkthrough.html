@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HuminLoop Agents — the human gate, walked through</title>
+<style>
+  :root {
+    --ink:#1a1a2e; --body:#3d3d5c; --accent:#7a78f5; --surface:#fbfbfd; --line:#e6e6f0;
+    --term-bg:#14142b; --term-fg:#d8d8ea; --term-note:#b9a3ff; --term-cmd:#7fe3f0; --term-err:#ff9aa8;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--surface); color:var(--body); line-height:1.6; }
+  main { max-width: 62rem; margin: 0 auto; padding: 3rem 1.25rem 4rem; }
+  h1 { font-family:"DM Sans",Inter,sans-serif; color:var(--ink); font-size:1.9rem; line-height:1.25;
+       margin:0 0 .5rem; letter-spacing:-.01em; }
+  .sub { font-size:1.05rem; max-width:44rem; margin:0 0 1.5rem; }
+  .meta { display:flex; flex-wrap:wrap; gap:.5rem 1.25rem; font-size:.82rem; color:#6b6b8a;
+          border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+          padding:.75rem 0; margin-bottom:2rem; }
+  .meta b { color:var(--ink); font-weight:600; }
+  .term { background:var(--term-bg); border-radius:10px; padding:1.5rem 1.25rem;
+          overflow-x:auto; box-shadow:0 12px 32px rgba(20,20,43,.16); }
+  .ln { font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace; font-size:.82rem;
+        line-height:1.65; color:var(--term-fg); white-space:pre; }
+  .ln.note { color:var(--term-note); font-weight:600; margin-top:1.1rem; }
+  .ln.cmd { color:var(--term-cmd); }
+  .ln.cmd .prompt { color:#5c5c86; margin-right:.55rem; }
+  .ln.err { color:var(--term-err); }
+  .ln.blank { line-height:.7; }
+  .after { margin-top:2rem; font-size:.95rem; }
+  .after h2 { font-family:"DM Sans",Inter,sans-serif; color:var(--ink); font-size:1.05rem; margin:1.5rem 0 .4rem; }
+  code { background:#eeeef6; padding:.1rem .3rem; border-radius:4px; font-size:.85em; }
+  @media (prefers-color-scheme: dark) {
+    :root { --surface:#101021; --body:#c3c3d8; --ink:#f0f0f8; --line:#2a2a44; }
+    code { background:#20203a; }
+  }
+</style></head><body><main>
+<h1>The human gate, walked through</h1>
+<p class="sub">A real run from HuminLoop Agents going through its approval gate. The team
+escalated three questions it says only a human can answer, so the gate refuses to release the
+run until someone answers them &mdash; and the override, when it comes, is signed and permanent.</p>
+<div class="meta">
+  <span><b>Run</b> 20260909_185353_f2e53b</span>
+  <span><b>Provider</b> OpenRouter &middot; anthropic/claude-sonnet-5</span>
+  <span><b>Recorded</b> 2026-09-10</span>
+  <span><b>Operator</b> demo, not a real decision</span>
+</div>
+<div class="term">
+<div class="ln blank">&nbsp;</div>
+<div class="ln note"># A finished run. Three specialists, each critiqued and revised. Nothing released yet.</div>
+<div class="ln cmd"><span class="prompt">$</span> huminloop pending</div>
+<div class="ln ">20260909_185353_f2e53b  2026-09-09T18:53:53+00:00 &#x27;Design an AI enablement and adoption program for a&#x27; [&#x27;APPROVE&#x27;, &#x27;APPROVE&#x27;, &#x27;APPROVE&#x27;]</div>
+<div class="ln blank">&nbsp;</div>
+<div class="ln note"># The team escalated three questions it says only a human can answer.</div>
+<div class="ln ">  Was the go-live date set before this readiness work began — is there a contractual or</div>
+<div class="ln ">  client-facing commitment driving it? Both memos flag this risk but neither can answer it;</div>
+<div class="ln ">  only the sponsor knows.</div>
+<div class="ln blank">&nbsp;</div>
+<div class="ln ">  Is there budget/authority to actually pay supervisors for backfill hours, or is the</div>
+<div class="ln ">  assumption of &quot;free&quot; coaching time structurally baked into how this firm staffs crews? This</div>
+<div class="ln ">  determines whether Gate 2 can ever close as designed.</div>
+<div class="ln blank">&nbsp;</div>
+<div class="ln ">  No Safety/Legal, IT/Security, or Ops seat produced an artifact for this engagement. The</div>
+<div class="ln ">  override-and-accountability protocol and connectivity validation both depend on functions</div>
+<div class="ln ">  not represented here — the client needs to name owners before the next round, not after.</div>
+<div class="ln blank">&nbsp;</div>
+<div class="ln blank">&nbsp;</div>
+<div class="ln note"># So approving it is refused. The team asked; you have not answered.</div>
+<div class="ln cmd"><span class="prompt">$</span> huminloop approve 20260909_185353_f2e53b --by Demo Operator --note looks good to me</div>
+<div class="ln  err">error: governance flagged [&#x27;engagement_lead&#x27;]; re-run, or approve with --force and a note</div>
+<div class="ln blank">&nbsp;</div>
+<div class="ln note"># A reservation of my own, recorded without rejecting the whole run.</div>
+<div class="ln cmd"><span class="prompt">$</span> huminloop annotate 20260909_185353_f2e53b --by Demo Operator --note backfill for the ride-along is not funded; confirm before Phase 2</div>
+<div class="ln ">annotated 20260909_185353_f2e53b (1 note(s)); status unchanged</div>
+<div class="ln blank">&nbsp;</div>
+<div class="ln note"># Overriding is allowed. It is never silent: it needs my name and a written reason.</div>
+<div class="ln cmd"><span class="prompt">$</span> huminloop approve 20260909_185353_f2e53b --by Demo Operator --force --note escalations noted, taking them to the sponsor Monday</div>
+<div class="ln ">approved 20260909_185353_f2e53b by Demo Operator</div>
+<div class="ln blank">&nbsp;</div>
+<div class="ln note"># The reservation turned out to matter. Changing my mind stays cheap.</div>
+<div class="ln cmd"><span class="prompt">$</span> huminloop reopen 20260909_185353_f2e53b --by Demo Operator --reason backfill was never approved</div>
+<div class="ln ">reopened 20260909_185353_f2e53b (superseded approved by Demo Operator); it is pending again</div>
+<div class="ln blank">&nbsp;</div>
+<div class="ln note"># Nothing was erased. The history reads forward.</div>
+<div class="ln ">  approved  by Demo Operator — escalations noted, taking them to the sponsor Monday  [forced]</div>
+<div class="ln ">  reopened  by Demo Operator — backfill was never approved</div>
+<div class="ln ">  note      by Demo Operator (run was pending) — backfill for the ride-along is not funded; confirm before Phase 2</div>
+<div class="ln blank">&nbsp;</div>
+<div class="ln note"># Deciding again, on the evidence.</div>
+<div class="ln cmd"><span class="prompt">$</span> huminloop reject 20260909_185353_f2e53b --by Demo Operator --reason re-scope Phase 2 once backfill is confirmed</div>
+<div class="ln ">rejected 20260909_185353_f2e53b by Demo Operator</div>
+<div class="ln blank">&nbsp;</div>
+<div class="ln note"># What the log says about how the team is working.</div>
+<div class="ln cmd"><span class="prompt">$</span> huminloop stats</div>
+<div class="ln ">  runs_started                     1</div>
+<div class="ln ">  runs_completed                   1</div>
+<div class="ln ">  specialist_errors                0</div>
+<div class="ln ">  critiques                        2</div>
+<div class="ln ">  critique_points                  9</div>
+<div class="ln ">  critique_points_accepted         9</div>
+<div class="ln ">  critique_acceptance_rate         1.00</div>
+<div class="ln ">  unresolved_blocking              0</div>
+<div class="ln ">  artifacts_revised                2</div>
+<div class="ln ">  approved                         1</div>
+<div class="ln ">  rejected                         1</div>
+<div class="ln ">  forced_approvals                 1</div>
+<div class="ln ">  annotations                      1</div>
+<div class="ln ">  reopened                         1</div>
+<div class="ln blank">&nbsp;</div>
+<div class="ln ">worth a look:</div>
+<div class="ln ">  - 1 approval(s) overrode a governance flag with --force. Those carry a written reason; they are worth re-reading periodically.</div>
+<div class="ln ">  - 1 decision(s) were reopened. That is the system working, not failing: changing your mind stayed cheap.</div>
+</div>
+<div class="after">
+<h2>What to notice</h2>
+<p>The first <code>approve</code> is refused. Every artifact passed governance on its own
+content, but the Engagement Lead escalated three questions to the human, and an unanswered
+escalation flags the run. The system will not let a reviewer wave through work that the team
+itself said needs a person.</p>
+<p>The override is permitted &mdash; sometimes the right call is to proceed and carry the
+question &mdash; but it costs a name and a written reason, and lands in the record as
+<code>forced</code>. Suppressing a concern is possible here and never silent.</p>
+<p><code>annotate</code> exists because a gate with only approve and reject teaches people to
+use neither. The reservation about unfunded backfill is recorded without blowing up the run,
+and it is still there when it turns out to matter.</p>
+<p><code>reopen</code> supersedes the approval without erasing it. The history reads
+approved &rarr; reopened &rarr; rejected, with who and why at every step, because a decision
+nobody can revisit is a decision people avoid making.</p>
+</div>
+</main></body></html>

@@ -1,0 +1,64 @@
+
+# A finished run. Three specialists, each critiqued and revised. Nothing released yet.
+$ huminloop pending
+20260909_185353_f2e53b  2026-09-09T18:53:53+00:00 'Design an AI enablement and adoption program for a' ['APPROVE', 'APPROVE', 'APPROVE']
+
+# The team escalated three questions it says only a human can answer.
+  Was the go-live date set before this readiness work began — is there a contractual or
+  client-facing commitment driving it? Both memos flag this risk but neither can answer it;
+  only the sponsor knows.
+
+  Is there budget/authority to actually pay supervisors for backfill hours, or is the
+  assumption of "free" coaching time structurally baked into how this firm staffs crews? This
+  determines whether Gate 2 can ever close as designed.
+
+  No Safety/Legal, IT/Security, or Ops seat produced an artifact for this engagement. The
+  override-and-accountability protocol and connectivity validation both depend on functions
+  not represented here — the client needs to name owners before the next round, not after.
+
+
+# So approving it is refused. The team asked; you have not answered.
+$ huminloop approve 20260909_185353_f2e53b --by Demo Operator --note looks good to me
+error: governance flagged ['engagement_lead']; re-run, or approve with --force and a note
+
+# A reservation of my own, recorded without rejecting the whole run.
+$ huminloop annotate 20260909_185353_f2e53b --by Demo Operator --note backfill for the ride-along is not funded; confirm before Phase 2
+annotated 20260909_185353_f2e53b (1 note(s)); status unchanged
+
+# Overriding is allowed. It is never silent: it needs my name and a written reason.
+$ huminloop approve 20260909_185353_f2e53b --by Demo Operator --force --note escalations noted, taking them to the sponsor Monday
+approved 20260909_185353_f2e53b by Demo Operator
+
+# The reservation turned out to matter. Changing my mind stays cheap.
+$ huminloop reopen 20260909_185353_f2e53b --by Demo Operator --reason backfill was never approved
+reopened 20260909_185353_f2e53b (superseded approved by Demo Operator); it is pending again
+
+# Nothing was erased. The history reads forward.
+  approved  by Demo Operator — escalations noted, taking them to the sponsor Monday  [forced]
+  reopened  by Demo Operator — backfill was never approved
+  note      by Demo Operator (run was pending) — backfill for the ride-along is not funded; confirm before Phase 2
+
+# Deciding again, on the evidence.
+$ huminloop reject 20260909_185353_f2e53b --by Demo Operator --reason re-scope Phase 2 once backfill is confirmed
+rejected 20260909_185353_f2e53b by Demo Operator
+
+# What the log says about how the team is working.
+$ huminloop stats
+  runs_started                     1
+  runs_completed                   1
+  specialist_errors                0
+  critiques                        2
+  critique_points                  9
+  critique_points_accepted         9
+  critique_acceptance_rate         1.00
+  unresolved_blocking              0
+  artifacts_revised                2
+  approved                         1
+  rejected                         1
+  forced_approvals                 1
+  annotations                      1
+  reopened                         1
+
+worth a look:
+  - 1 approval(s) overrode a governance flag with --force. Those carry a written reason; they are worth re-reading periodically.
+  - 1 decision(s) were reopened. That is the system working, not failing: changing your mind stayed cheap.

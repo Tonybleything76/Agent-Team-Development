@@ -11,6 +11,27 @@ human and this run has not had one.
 - Engagement Lead synthesis: 5 open decisions, 0 disagreements, 3 items escalated to the human
 - Critique: 13 findings across three drafts, 13 accepted, all three artifacts revised
 - `run.html` is the rendered narrative report; `manifest.json` carries the full critique record
+- `gate-walkthrough.html` / `.txt` — a captured terminal session taking this run through the
+  gate, and the clearest single artifact in the repo
+
+## The gate refuses to release this run
+
+The Engagement Lead escalated three questions it says only a human can answer: whether the
+go-live date was fixed by a commitment nobody has disclosed, whether there is real budget to pay
+supervisors for backfill or whether "free" coaching time is baked into how crews are staffed,
+and the fact that no Safety/Legal, IT/Security or Ops seat produced an artifact even though the
+override protocol depends on them.
+
+Every artifact passed governance on its own content. An unanswered escalation still flags the
+run, so `approve` is refused. Overriding is permitted — sometimes the right call is to proceed
+and carry the question — but it costs a name and a written reason and lands in the record as
+`forced`. The walkthrough shows the refusal, the override, a reservation recorded with
+`annotate` without rejecting, and `reopen` superseding the approval when the reservation turns
+out to matter. The history reads approved → reopened → rejected, with who and why at each step.
+
+The operator in that recording is labelled "Demo Operator" because it is a demonstration in a
+throwaway directory. It is not a decision Tony made, and the committed run itself remains
+undecided in `pending/`.
 
 ## What the critics caught
 
