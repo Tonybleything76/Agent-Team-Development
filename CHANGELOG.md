@@ -95,7 +95,7 @@ engagement where a symlink is refused. The audit record keys on basenames, so tw
 the same name in different subdirectories are not distinguishable. Each of these is written up
 with a reproduction in `TODOS.md` rather than left for you to discover.
 
-Tests 252 → 381, 100% coverage of every line this release adds. Evals gain a gated
+Tests 252 → 382, 100% coverage of every line this release adds. Evals gain a gated
 `specialists_receiving_engagement_context` count and four fence-survival cases; both guards
 were verified by reverting their fixes and watching them fail.
 

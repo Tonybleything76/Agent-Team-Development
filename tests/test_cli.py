@@ -926,3 +926,55 @@ def test_a_clean_pending_run_reports_its_artifacts_verified(workdir, capsys):
     assert s["artifacts_verified"] is True
     assert s["verification_error"] == ""
     assert s["pending_action"] == "approve"
+
+
+def test_every_status_path_answers_with_the_same_shape(workdir, capsys, failing_rename):
+    """`status` had two return statements; a commit added two fields to one and not the other,
+    so a caller reading `artifacts_verified` on a manifest-less run got a KeyError -- from the
+    command whose whole purpose is being the one shape a caller can rely on. Assert the shape
+    across every path, not just the happy one."""
+    shapes = {}
+
+    # 1. a clean pending run
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    clean_id = _run_id_from(capsys.readouterr().out)
+    shapes["clean pending"] = _status_json(clean_id, capsys)
+
+    # 2. a run that died before its first manifest write
+    (_artifact_root() / "pending" / "20260101_000000_aaaaaa").mkdir(parents=True)
+    shapes["no manifest"] = _status_json("20260101_000000_aaaaaa", capsys)
+
+    # 3. an interrupted run that has a manifest
+    d = _artifact_root() / "pending" / "20260101_000000_bbbbbb"
+    d.mkdir(parents=True)
+    (d / "manifest.json").write_text(
+        '{"run_id": "20260101_000000_bbbbbb", "task": "t", "status": "running", "artifacts": []}'
+    )
+    shapes["interrupted"] = _status_json("20260101_000000_bbbbbb", capsys)
+
+    # 4. a tampered run
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    tampered_id = _run_id_from(capsys.readouterr().out)
+    art = next((_artifact_root() / "pending" / tampered_id).glob("*.md"))
+    art.write_text(art.read_text() + "\ntampered\n")
+    shapes["tampered"] = _status_json(tampered_id, capsys)
+
+    # 5. a decided run
+    assert main(["approve", clean_id, "--by", "Tony"]) == 0
+    capsys.readouterr()
+    shapes["approved"] = _status_json(clean_id, capsys)
+
+    expected = set(shapes["clean pending"])
+    for label, s in shapes.items():
+        assert set(s) == expected, f"{label} answers with a different shape"
+        assert s["status"] in gate.RUN_STATUSES, label
+        assert s["pending_action"] in gate.PENDING_ACTIONS, label
+        # Every field a caller might branch on is present and typed, on every path.
+        assert isinstance(s["artifacts_verified"], bool), label
+        assert isinstance(s["verification_error"], str), label
+        assert isinstance(s["flagged_roles"], list), label
+
+    # And the paths genuinely differ, or this test proves nothing.
+    assert shapes["no manifest"]["pending_action"] == "reject"
+    assert shapes["tampered"]["artifacts_verified"] is False
+    assert shapes["approved"]["pending_action"] == "done"

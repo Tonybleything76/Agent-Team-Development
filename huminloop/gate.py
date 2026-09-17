@@ -82,6 +82,27 @@ INTERRUPTED_STATUSES = ("running", "incomplete")
 _DECISION_ACTION = {"approved": "approve", "rejected": "reject"}
 
 
+def _status_response(run_id: str, **fields) -> dict:
+    """Every `status` answer, built from one place so the shape cannot diverge.
+
+    The function had two return statements; a later commit added two fields to one of them and
+    not the other, so a caller reading `artifacts_verified` on a run that died before its first
+    manifest write got a KeyError — from the command whose whole purpose is being the one shape
+    a caller can rely on. Defaults here are the answer for a run we know nothing about.
+    """
+    return {
+        "run_id": run_id,
+        "status": "pending",
+        "needs_resynthesize": False,
+        "flagged_roles": [],
+        "unrevised_roles": [],
+        "interrupted": False,
+        "artifacts_verified": True,
+        "verification_error": "",
+        "pending_action": "approve",
+    } | fields
+
+
 def status(run_id: str, root: Path | None = None) -> dict:
     """What this run needs right now, as recorded fact rather than caller inference.
 
@@ -115,15 +136,13 @@ def status(run_id: str, root: Path | None = None) -> dict:
             # `list_runs` surfaces this as "incomplete (no manifest)", so denying it here
             # would put the two gate surfaces into exactly the disagreement this command
             # exists to end. It died before its first manifest write; a human clears it.
-            return {
-                "run_id": run_id,
-                "status": "running" if lock_holder_alive(orphan) else "pending",
-                "needs_resynthesize": False,
-                "flagged_roles": [],
-                "unrevised_roles": [],
-                "interrupted": not lock_holder_alive(orphan),
-                "pending_action": "wait" if lock_holder_alive(orphan) else "reject",
-            }
+            alive = lock_holder_alive(orphan)
+            return _status_response(
+                run_id,
+                status="running" if alive else "pending",
+                interrupted=not alive,
+                pending_action="wait" if alive else "reject",
+            )
         raise GateError(f"run '{run_id}' not found under {root}")
     state, d = found
     try:
@@ -187,19 +206,19 @@ def status(run_id: str, root: Path | None = None) -> dict:
     else:
         action = "approve"
 
-    return {
-        "run_id": manifest["run_id"],
-        "status": "running" if live else state,
-        "needs_resynthesize": needs_resynthesize,
-        "flagged_roles": flagged_roles(artifacts),
-        "unrevised_roles": unrevised_roles,
-        "interrupted": interrupted,
+    return _status_response(
+        manifest["run_id"],
+        status="running" if live else state,
+        needs_resynthesize=needs_resynthesize,
+        flagged_roles=flagged_roles(artifacts),
+        unrevised_roles=unrevised_roles,
+        interrupted=interrupted,
         # Empty when the bytes match the manifest. Named rather than folded into
         # `flagged_roles`, which is about what the team produced, not about tampering.
-        "artifacts_verified": not tampered,
-        "verification_error": tampered,
-        "pending_action": action,
-    }
+        artifacts_verified=not tampered,
+        verification_error=tampered,
+        pending_action=action,
+    )
 
 
 def list_runs(state: str = "pending", root: Path | None = None) -> list[dict]:
