@@ -508,6 +508,8 @@ def test_status_fields_stay_inside_their_enums(workdir, capsys):
         "flagged_roles",
         "unrevised_roles",
         "interrupted",
+        "artifacts_verified",
+        "verification_error",
         "pending_action",
     }
 
@@ -873,3 +875,54 @@ def test_a_newline_in_a_filename_cannot_forge_rows_in_the_consent_prompt(
     assert "\\n" in line  # the newline is shown escaped, not acted on
     assert "\x1b" not in err  # and the escape sequence never reaches the terminal
     assert "ordinary.md" in err  # the real file is still listed
+
+
+def test_status_refuses_to_recommend_approving_a_tampered_run(workdir, capsys, tmp_path):
+    """`status` said `approve` while `approve` refused on the bytes -- the command
+    contradicting the very next command, which is the failure pending_action exists to
+    prevent. Fixed for interrupted runs in this same branch and missed here."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    run_id = _run_id_from(capsys.readouterr().out)
+    art = next((_artifact_root() / "pending" / run_id).glob("*.md"))
+    art.write_text(art.read_text() + "\nSmuggled in after the run.\n")
+
+    s = _status_json(run_id, capsys)
+    assert s["artifacts_verified"] is False
+    assert "changed since the run" in s["verification_error"]
+    assert s["pending_action"] == "reject"  # not approve: the gate will refuse that
+    assert s["needs_resynthesize"] is False  # and resynthesizing cannot repair bytes
+
+    # The recommendation and the gate now agree.
+    assert main(["approve", run_id, "--by", "Tony"]) == 2
+    assert "changed since the run" in capsys.readouterr().err
+    assert main(["status", run_id]) == 0
+    out = capsys.readouterr().out
+    assert "no longer match the manifest" in out
+    assert f"huminloop reject {run_id}" in out
+
+
+def test_status_and_pending_agree_that_a_manifestless_run_exists(workdir, capsys):
+    """`pending` listed it as "incomplete (no manifest)" while `status` said "not found" --
+    two gate surfaces disagreeing that a run exists at all."""
+    d = _artifact_root() / "pending" / "20260101_000000_aaaaaa"
+    d.mkdir(parents=True)
+
+    assert main(["pending"]) == 0
+    assert "20260101_000000_aaaaaa" in capsys.readouterr().out
+
+    s = _status_json("20260101_000000_aaaaaa", capsys)
+    assert s["run_id"] == "20260101_000000_aaaaaa"
+    assert s["status"] == "pending"
+    assert s["interrupted"] is True
+    assert s["pending_action"] == "reject"  # a human clears it; it cannot be approved
+    assert main(["approve", "20260101_000000_aaaaaa", "--by", "Tony"]) == 2
+
+
+def test_a_clean_pending_run_reports_its_artifacts_verified(workdir, capsys):
+    """The other side: don't start telling every honest run its bytes are suspect."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    run_id = _run_id_from(capsys.readouterr().out)
+    s = _status_json(run_id, capsys)
+    assert s["artifacts_verified"] is True
+    assert s["verification_error"] == ""
+    assert s["pending_action"] == "approve"

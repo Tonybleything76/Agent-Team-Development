@@ -58,8 +58,9 @@ task ──▶ Router ──▶ [specialist 1] ─▶ [specialist 2] ─▶ … 
 ```
 
 At any point, `huminloop status <run_id> --json` answers "what does this run need right now" as
-machine-readable fact — `pending_action`, `needs_resynthesize`, `flagged_roles` — rather than
-leaving each caller to infer it from the manifest.
+machine-readable fact — `pending_action`, `needs_resynthesize`, `flagged_roles`,
+`artifacts_verified` — rather than leaving each caller to infer it from the manifest. It runs
+the same byte check the gate does, so it never recommends an action the next command refuses.
 
 1. **Router** (`huminloop/router.py`): deterministic keyword rules map a task to an ordered list of
    specialists. Deterministic on purpose — a plan must be explainable and testable. Unmatched tasks

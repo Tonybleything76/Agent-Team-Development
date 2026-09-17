@@ -283,6 +283,8 @@ def _cmd_status(args) -> int:
         print("  the Engagement Lead's synthesis came back empty; resynthesize can fix it")
     if s["interrupted"]:
         print("  this run died before it finished; it cannot be approved")
+    if not s["artifacts_verified"]:
+        print(f"  the bytes on disk no longer match the manifest: {s['verification_error']}")
     if s["flagged_roles"]:
         print(f"  flagged for your attention: {', '.join(s['flagged_roles'])}")
     if s["unrevised_roles"]:

@@ -110,6 +110,20 @@ def status(run_id: str, root: Path | None = None) -> dict:
     except StorageError as exc:
         raise GateError(str(exc)) from exc
     if not found:
+        orphan = run_dir(root, "pending", run_id)
+        if orphan.is_dir():
+            # `list_runs` surfaces this as "incomplete (no manifest)", so denying it here
+            # would put the two gate surfaces into exactly the disagreement this command
+            # exists to end. It died before its first manifest write; a human clears it.
+            return {
+                "run_id": run_id,
+                "status": "running" if lock_holder_alive(orphan) else "pending",
+                "needs_resynthesize": False,
+                "flagged_roles": [],
+                "unrevised_roles": [],
+                "interrupted": not lock_holder_alive(orphan),
+                "pending_action": "wait" if lock_holder_alive(orphan) else "reject",
+            }
         raise GateError(f"run '{run_id}' not found under {root}")
     state, d = found
     try:
@@ -144,6 +158,17 @@ def status(run_id: str, root: Path | None = None) -> dict:
         and a.get("role") != CRITIC_ROLE  # the critic is never its own critic
     ]
 
+    # The bytes, checked the same way `_decide` checks them. Recommending "approve" for a run
+    # whose artifact was edited since it ran is the command contradicting the very next
+    # command — the failure `pending_action` exists to prevent, and one this branch already
+    # fixed for interrupted runs and missed here.
+    tampered = ""
+    if state == "pending" and not live:
+        try:
+            verify_artifacts(d, manifest)
+        except GateError as exc:
+            tampered = str(exc)
+
     decision = manifest.get("decision") or {}
     if state in ("approved", "rejected"):
         action = "done"
@@ -155,7 +180,9 @@ def status(run_id: str, root: Path | None = None) -> dict:
         action = _DECISION_ACTION[decision["state"]]
     elif needs_resynthesize:
         action = "resynthesize"
-    elif interrupted:
+    elif interrupted or tampered:
+        # A tampered run cannot be approved and cannot be repaired by resynthesizing; the only
+        # move the gate will accept is rejecting it and running again.
         action = "reject"
     else:
         action = "approve"
@@ -167,6 +194,10 @@ def status(run_id: str, root: Path | None = None) -> dict:
         "flagged_roles": flagged_roles(artifacts),
         "unrevised_roles": unrevised_roles,
         "interrupted": interrupted,
+        # Empty when the bytes match the manifest. Named rather than folded into
+        # `flagged_roles`, which is about what the team produced, not about tampering.
+        "artifacts_verified": not tampered,
+        "verification_error": tampered,
         "pending_action": action,
     }
 

@@ -9,6 +9,7 @@ it. Tests that claim otherwise would be theatre.
 
 import json
 import os
+from pathlib import Path
 
 import pytest
 
@@ -373,7 +374,7 @@ def test_the_snapshot_survives_the_context_folder_changing_underneath(tmp_path, 
 # ---------------------------------------------------------------------------
 
 
-def test_resynthesize_refuses_a_snapshot_nobody_cleared(tmp_path, monkeypatch):
+def test_resynthesize_refuses_a_snapshot_nobody_cleared(workdir):
     """A run that never had engagement context would accept a context.md dropped into its
     directory afterwards and send it, with context_clearance still null in the manifest."""
     from huminloop.engagement import EngagementError
@@ -452,7 +453,7 @@ def test_resynthesize_refuses_when_the_cleared_snapshot_is_gone(tmp_path, monkey
             snap.chmod(0o644)
 
 
-def test_resynthesize_refuses_a_lost_snapshot_even_with_no_clearance_recorded(tmp_path):
+def test_resynthesize_refuses_a_lost_snapshot_even_with_no_clearance_recorded(workdir):
     """The guard originally keyed on `clearance` alone, so the hole stayed open through the
     null-clearance branch: context_read still advertised the files as read while the lead was
     rewritten having been given nothing."""
@@ -470,3 +471,20 @@ def test_resynthesize_refuses_a_lost_snapshot_even_with_no_clearance_recorded(tm
     with pytest.raises(EngagementError, match="snapshot is missing or empty"):
         orchestrator.resynthesize(rec.run_id, llm=retry)
     assert retry.calls == []
+
+
+def test_no_test_in_this_file_runs_the_orchestrator_outside_a_temp_root():
+    """A test without `workdir` leaves HUMINLOOP_ROOT unset, so `base_root()` falls back to
+    Path(".") -- the run writes into the repo and would read ./context/ if one existed. One
+    test in this file did exactly that. Pin it so the next one cannot."""
+    import re
+
+    src = Path(__file__).read_text()
+    offenders = []
+    for block in re.split(r"\n(?=def test_|@pytest)", src):
+        m = re.search(r"def (test_\w+)\(([^)]*)\)", block, re.S)
+        if not m or "orchestrator.run(" not in block:
+            continue
+        if "workdir" not in m.group(2) and "_engagement_run(" not in block:
+            offenders.append(m.group(1))
+    assert offenders == [], f"these run the orchestrator without an isolated root: {offenders}"

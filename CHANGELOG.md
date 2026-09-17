@@ -15,8 +15,11 @@ that contributed nothing, so read its `state`, not its length.
 
 - **`huminloop status <run_id> --json`** answers "what does this run need right now" as one
   machine-readable fact: `pending_action`, `needs_resynthesize`, `flagged_roles`,
-  `unrevised_roles`, `interrupted`. Five surfaces each had their own idea of this. Without
-  `--json` it prints the exact command to run next.
+  `unrevised_roles`, `interrupted`, `artifacts_verified`. Five surfaces each had their own idea
+  of this. It verifies the bytes the way the gate does, so it will not recommend approving a
+  run whose artifact was edited since it ran, and it reports a run directory that never got a
+  manifest instead of calling it missing — `pending` already listed those. Without `--json` it
+  prints the exact command to run next.
 - **A clearance gate before any client material reaches a provider.** You see the files, their
   size, the directory on disk, which seats will receive them and how many calls that costs,
   then answer. `--context-cleared` and `--cleared-by` for scripts; a non-interactive run with
@@ -92,7 +95,7 @@ engagement where a symlink is refused. The audit record keys on basenames, so tw
 the same name in different subdirectories are not distinguishable. Each of these is written up
 with a reproduction in `TODOS.md` rather than left for you to discover.
 
-Tests 252 → 377, 100% coverage of every line this release adds. Evals gain a gated
+Tests 252 → 381, 100% coverage of every line this release adds. Evals gain a gated
 `specialists_receiving_engagement_context` count and four fence-survival cases; both guards
 were verified by reverting their fixes and watching them fail.
 
