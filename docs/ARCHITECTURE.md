@@ -11,7 +11,8 @@
 | Orchestrator | `huminloop/orchestrator.py::run` | Runs the plan sequentially, passes prior output as context, isolates per-specialist failures, writes manifest + log. |
 | Decision history | `huminloop/gate.py` | `decisions` is append-only, including superseded ones; `decision` is whichever is operative now. `annotations` are human notes that never change status. |
 | Engagement | `huminloop/engagement.py` | The durable object a run belongs to: a folder in `~/Cowork/Engagements/<slug>/` holding the brief, `context/`, `documents/`, every run, and a `CLAUDE.md`. An engagement folder *is* a run root. |
-| Dashboard | `huminloop/dashboard.py` | `render --dashboard`: a tabbed working surface (Overview, Needs you, Team, Debate, Plan, Next steps, Documents) for using a run with a client, as opposed to reading about it. |
+| Dashboard | `huminloop/dashboard.py` | `render --dashboard`: a tabbed working surface (Overview, Needs you, Team, Debate, Plan, Next steps, Documents) for using a run with a client, as opposed to reading about it. Passes the same `render.precheck` the narrative report does — status guard plus artifact verification — because a second view of a run is not a lower bar for showing one. |
+| Run status | `huminloop/gate.py::status` | `huminloop status <run_id> --json`: the one machine-readable answer to "what does this run need right now" — `pending_action`, `needs_resynthesize`, `flagged_roles`, `unrevised_roles`, `interrupted`. `needs_resynthesize` mirrors `resynthesize`'s own preconditions so the command cannot contradict the next one, and a specialist whose critic call returned nothing is reported separately as `unrevised_roles`, with no fix offered, because none exists. |
 | Review inbox | `huminloop/server.py` | `huminloop serve`: a loopback-only browser inbox over the same `gate` functions. Adds no rules; surfaces escalations first, since those are why the gate stops you. |
 | Run statistics | `huminloop/stats.py` | Aggregates the run log; flags total agreement, total dismissal, and forced approvals as things to look at. |
 | Human gate | `huminloop/gate.py` | pending → approved/rejected by a named person; re-reads every artifact and re-derives governance from the bytes before recording a decision (digest + verdict must match the manifest); refuses governance-flagged or errored runs without `--force` + note; validates `run_id`; claims the decision with an exclusive marker so concurrent decisions cannot both "succeed". |
@@ -65,9 +66,24 @@ inside it. `huminloop engagement new "<client>"` creates the folder; `--engageme
 inside it.
 
 Everything in `context/` is read before any advisor drafts, fenced as client evidence rather
-than instructions, and the manifest records exactly which files were read, truncated, or dropped
-for budget. A silent omission is the one failure this must not have: you should never wonder
-whether the note you added was seen.
+than instructions, and reaches every seat that reasons about the work: each draft, the critic's
+read of it, the author's revision, and the Engagement Lead's synthesis. A critic asked to
+challenge evidence it cannot see can only challenge shape.
+
+The manifest records a row for every candidate file — read, truncated, dropped for budget,
+empty, unreadable, unresolvable, or refused for resolving outside the engagement — including
+the ones that contributed nothing. A silent omission is the one failure this must not have:
+you should never wonder whether the note you added was seen, and a file that simply disappears
+from that list is indistinguishable from one you never added.
+
+Nothing in `context/` reaches a provider until a named human clears it. The clearance is
+checked in `orchestrator.run`, not in the CLI, so it holds for every caller, and the run keeps
+its own snapshot of what it was given so a later `resynthesize` integrates the material the
+specialists actually saw. Who cleared it, when, and a sha256 of the exact bytes go into the
+manifest, because every other human decision here is recorded permanently so it can be proven
+later. What that gate does *not* guarantee is written down in the v0.23.0 CHANGELOG entry and
+tracked in `TODOS.md`: it records a self-asserted name rather than authenticating one, and it
+does not defend the record against someone who can already write inside the run directory.
 
 This is also the honest answer to "make the report more visual". What can be drawn is what the
 team records as structure — counts, severities, dispositions, staffing — so those became a
