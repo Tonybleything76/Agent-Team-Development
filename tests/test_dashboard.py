@@ -189,9 +189,10 @@ def test_every_context_state_is_visually_distinct_from_read(tmp_path):
     manifest["context_read"] = [
         {"file": "ok.md", "chars": 10, "state": "read"},
         {"file": "cut.md", "chars": 5, "state": "truncated"},
-        {"file": "gone.md", "chars": 0, "state": "dropped (budget)"},
+        {"file": "dropped.md", "chars": 0, "state": "dropped (budget)"},
         {"file": "blank.md", "chars": 0, "state": "empty"},
         {"file": "locked.md", "chars": 0, "state": "unreadable (Permission denied)"},
+        {"file": "gone.md", "chars": 0, "state": "unresolvable (No such file or directory)"},
         {
             "file": "sneaky.md",
             "chars": 0,

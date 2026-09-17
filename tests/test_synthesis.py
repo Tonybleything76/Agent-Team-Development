@@ -417,3 +417,36 @@ def test_an_untampered_resynthesize_still_carries_the_cleared_material(tmp_path,
         p for (_, p), r in zip(retry.calls, retry.roles, strict=True) if r == "engagement_lead"
     )
     assert "Union caps training hours" in lead
+
+
+@pytest.mark.parametrize("sabotage", ["delete", "empty", "unreadable"])
+def test_resynthesize_refuses_when_the_cleared_snapshot_is_gone(tmp_path, monkeypatch, sabotage):
+    """Failing open here is the silent omission the gate exists to stop: the manifest still
+    asserts a named human cleared the material, and the lead would quietly rewrite the
+    client-facing recommendation having been given none of it."""
+    import os as _os
+
+    from huminloop.engagement import EngagementError
+
+    if sabotage == "unreadable" and (_os.name != "posix" or _os.geteuid() == 0):
+        pytest.skip("chmod-based test requires an unprivileged POSIX user")
+
+    failing = RecordingLLM(fail_roles=("engagement_lead",))
+    root, rec = _engagement_run(tmp_path, monkeypatch, failing)
+    snap = artifact_root() / "pending" / rec.run_id / "context" / "context.md"
+
+    if sabotage == "delete":
+        snap.unlink()
+    elif sabotage == "empty":
+        snap.write_text("")
+    else:
+        snap.chmod(0o000)
+
+    retry = RecordingLLM()
+    try:
+        with pytest.raises(EngagementError, match="missing or empty"):
+            orchestrator.resynthesize(rec.run_id, llm=retry)
+        assert retry.calls == []
+    finally:
+        if sabotage == "unreadable":
+            snap.chmod(0o644)

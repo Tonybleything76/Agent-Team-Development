@@ -204,19 +204,53 @@ CONTEXT_FENCE = ENGAGEMENT_FENCE  # one definition, in governance, so fenced() k
 TRUNCATION_NOTE = "\n[... truncated to fit the context budget]"
 
 
-def _within(path: Path, base: Path) -> bool:
-    """True when `path`, symlinks followed, is really inside `base`.
+# How far past the budget we will read looking for real content behind a wall of whitespace
+# before giving up and calling the file truncated. Bounds a pathological all-blank file.
+WHITESPACE_PROBE_CHARS = 8192
+WHITESPACE_PROBE_LIMIT = 1_000_000
+
+
+def _overflows(handle, chunk: str, remaining: int) -> bool:
+    """Does real content fall outside the budget, or is the overflow only whitespace?
+
+    `len(chunk) > remaining` alone called a ten-character document "truncated" because it had
+    five thousand trailing blank lines: a false entry in the audit record, a false truncation
+    note handed to the model, and budget charged for text nobody sent.
+    """
+    if len(chunk) <= remaining:
+        return False
+    if len(chunk.rstrip()) > remaining:
+        return True  # visible content already exceeds what is left
+    probed = 0
+    while probed < WHITESPACE_PROBE_LIMIT:
+        more = handle.read(WHITESPACE_PROBE_CHARS)
+        if not more:
+            return False  # the entire tail was whitespace; the document itself fitted
+        if more.strip():
+            return True  # real content beyond the budget
+        probed += len(more)
+    return True  # gave up looking; say truncated rather than claim it all fitted
+
+
+def _contained(path: Path, base: Path) -> str:
+    """ "" when `path`, symlinks followed, is really inside `base`; else why it is refused.
 
     A `.md` symlink dropped in `context/` is an ordinary file to `rglob` and `is_file`, so
     without this the team reads and the provider receives a document from anywhere on the
     filesystem — another client's contract, `~/.ssh/config` — while the audit record shows only
     the innocent local basename. The boundary is the engagement, not `context/` itself, so
     pointing at a sibling `documents/` file still works.
+
+    The two failures are told apart deliberately. A file that resolves outside is a refusal; a
+    file that will not resolve at all has usually just been deleted between `context_files()`
+    listing it and this call. Reporting the second as the first puts a wrong answer in an audit
+    record, which is worse than reporting nothing.
     """
     try:
-        return path.resolve(strict=True).is_relative_to(base)
-    except OSError:
-        return False
+        real = path.resolve(strict=True)
+    except OSError as exc:
+        return f"unresolvable ({exc.strerror or exc})"
+    return "" if real.is_relative_to(base) else "refused (resolves outside the engagement)"
 
 
 def load_context(root: Path, budget: int = CONTEXT_BUDGET_CHARS) -> tuple[str, list[dict]]:
@@ -236,17 +270,15 @@ def load_context(root: Path, budget: int = CONTEXT_BUDGET_CHARS) -> tuple[str, l
     remaining = budget
     base = Path(os.path.realpath(root))
     for path in reversed(context_files(root)):  # newest first
-        if not _within(path, base):
-            included.append(
-                {
-                    "file": path.name,
-                    "chars": 0,
-                    "state": "refused (resolves outside the engagement)",
-                    # The basename is what a reviewer sees; where it actually points is the
-                    # only part that tells them what nearly went out.
-                    "resolves_to": os.path.realpath(path),
-                }
-            )
+        refusal = _contained(path, base)
+        if refusal:
+            row = {"file": path.name, "chars": 0, "state": refusal}
+            if refusal.startswith("refused"):
+                # The basename is what a reviewer sees; where it actually points is the only
+                # part that tells them what nearly went out. A file that vanished has no
+                # target worth recording.
+                row["resolves_to"] = os.path.realpath(path)
+            included.append(row)
             continue
         if remaining <= 0:
             included.append({"file": path.name, "chars": 0, "state": "dropped (budget)"})
@@ -258,12 +290,13 @@ def load_context(root: Path, budget: int = CONTEXT_BUDGET_CHARS) -> tuple[str, l
                 # multi-gigabyte transcript dropped in context/ was read end to end only to
                 # discover that twenty characters of it fit the budget.
                 chunk = f.read(remaining + 1)
+                # Inside the `with`: the probe may need to keep reading this same handle.
+                over_budget = _overflows(f, chunk, remaining)
         except OSError as exc:
             included.append(
                 {"file": path.name, "chars": 0, "state": f"unreadable ({exc.strerror or exc})"}
             )
             continue
-        over_budget = len(chunk) > remaining
         text = chunk.strip()
         if not text:
             # Blank is blank whatever the byte count. Requiring `not over_budget` too meant a
@@ -323,6 +356,22 @@ class LoadedContext:
     @property
     def chars(self) -> int:
         return len(self.block)
+
+    @property
+    def is_cleared(self) -> bool:
+        """The clearance actually covers *these* bytes, not merely that some dict is present.
+
+        `run()` used to test `not context.clearance`, so any truthy dict passed and the manifest
+        then recorded it as the proof of who cleared what. The resynthesize door already
+        verified the hash; this is the same proof, so the first and paid pass is not the weaker
+        of the two.
+        """
+        c = self.clearance
+        return bool(
+            c
+            and c.get("sha256") == hashlib.sha256(self.block.encode("utf-8")).hexdigest()
+            and list(c.get("files") or []) == self.sent_files
+        )
 
     def cleared_by(self, by: str, method: str) -> "LoadedContext":
         """A copy carrying the record of who cleared exactly these bytes, and how.
@@ -403,6 +452,15 @@ def cleared_snapshot(run_out: Path, clearance: dict | None) -> str:
     """
     block = read_snapshot(run_out)
     if not block:
+        if clearance:
+            # Failing open here would be the silent omission this function exists to stop: the
+            # manifest still asserts a named human cleared N files, and the lead would quietly
+            # rewrite the client-facing recommendation having been given nothing.
+            raise EngagementError(
+                f"{run_out.name} records a clearance by {clearance.get('by', '?')} for "
+                f"{len(clearance.get('files') or [])} file(s), but its context snapshot is "
+                "missing or empty; refusing to resynthesize without the material it says it had"
+            )
         return ""
     if not clearance:
         raise EngagementError(

@@ -1,5 +1,6 @@
 """Engagements: the durable object a run belongs to, and the context that feeds forward."""
 
+import dataclasses
 import hashlib
 import json
 import os
@@ -368,11 +369,53 @@ def test_a_teammate_artifact_cannot_forge_a_client_material_block():
 
 
 def test_the_neutralised_token_itself_cannot_be_planted(eng_dir):
-    """Otherwise a document plants it and a reviewer believes something was defused."""
+    """Otherwise a document plants the system's own "I defused something" notice and a
+    reviewer believes a marker was caught that was never there.
+
+    The first version of this test asserted `count == 1` on a file that planted exactly one
+    token and contained no real marker, so it passed while the neutralising pass was literally
+    `body.replace(X, X)`. Assert the transformation, not a count that holds either way.
+    """
     root = engagement.create("Acme")
     (root / "context" / "sly.md").write_text(f"Nothing to see: {governance.FENCE_NEUTRALISED}")
     block, _ = engagement.load_context(root)
-    assert block.count(governance.FENCE_NEUTRALISED) == 1  # ours, not theirs
+
+    assert governance.FENCE_NEUTRALISED not in block  # the planted copy did not survive
+    assert governance.FENCE_NOTICE_FORGED in block  # it is shown as the forgery it is
+    assert "Nothing to see:" in block  # and nothing vanished
+
+
+def test_a_planted_notice_and_a_real_marker_stay_distinguishable(eng_dir):
+    """A document carrying both must not let the forged one launder the real one."""
+    root = engagement.create("Acme")
+    (root / "context" / "both.md").write_text(
+        f"{governance.FENCE_NEUTRALISED}\n{engagement.CONTEXT_FENCE}\npayload"
+    )
+    block, _ = engagement.load_context(root)
+    assert block.count(engagement.CONTEXT_FENCE) == 2  # only the pair we wrapped it in
+    assert block.count(governance.FENCE_NEUTRALISED) == 1  # the real marker we defused
+    assert block.count(governance.FENCE_NOTICE_FORGED) == 1  # their fake notice, marked as fake
+
+
+def test_a_short_file_with_a_long_blank_tail_is_not_called_truncated(eng_dir):
+    """`len(chunk) > remaining` measured the raw read, so five thousand trailing blank lines
+    made a ten-character document report as truncated, handed the model a false truncation
+    note, and charged the budget for text nobody sent."""
+    root = engagement.create("Acme")
+    (root / "context" / "a.txt").write_text("SHORT NOTE" + " \n" * 5000)
+    block, read = engagement.load_context(root, budget=100)
+
+    assert [(r["file"], r["state"], r["chars"]) for r in read] == [("a.txt", "read", 10)]
+    assert "truncated to fit" not in block
+    assert "SHORT NOTE" in block
+
+
+def test_real_content_behind_a_blank_wall_is_still_truncated(eng_dir):
+    """The probe must not mistake "content follows the whitespace" for "the file fitted"."""
+    root = engagement.create("Acme")
+    (root / "context" / "b.txt").write_text("HEAD" + " \n" * 5000 + "TAIL CONTENT")
+    _, read = engagement.load_context(root, budget=100)
+    assert read[0]["state"] == "truncated"
 
 
 def test_a_blank_file_over_budget_is_empty_not_falsely_reported_as_sent(eng_dir):
@@ -409,3 +452,78 @@ def test_a_known_slug_is_named_even_when_nothing_is_a_near_match(eng_dir):
     engagement.create("Acme Engineering")
     with pytest.raises(engagement.EngagementError, match="known engagements: acme-engineering"):
         engagement.resolve_root("globex")
+
+
+def test_a_file_that_vanished_is_not_reported_as_refused(eng_dir, monkeypatch):
+    """A file deleted between context_files() listing it and the resolve is reachable, and
+    saying it "resolves outside the engagement" is a wrong answer in an audit record."""
+    root = engagement.create("Acme")
+    doomed = root / "context" / "race.md"
+    doomed.write_text("here for now")
+    (root / "context" / "real.md").write_text("400 field techs.")
+
+    real_listing = engagement.context_files
+
+    def list_then_delete(r):
+        files = real_listing(r)
+        doomed.unlink(missing_ok=True)  # vanishes after listing, before the resolve
+        return files
+
+    monkeypatch.setattr(engagement, "context_files", list_then_delete)
+    _, read = engagement.load_context(root)
+
+    row = next(r for r in read if r["file"] == "race.md")
+    assert row["state"].startswith("unresolvable")
+    assert "refused" not in row["state"]
+    assert "resolves_to" not in row  # nothing to point at
+    assert next(r for r in read if r["file"] == "real.md")["state"] == "read"
+
+
+def test_a_clearance_that_does_not_match_the_bytes_is_not_a_clearance(eng_dir, monkeypatch):
+    """run()'s gate tested only that some dict was present, so a forged clearance passed and
+    the manifest then recorded it as the proof of who cleared what. The resynthesize door
+    already verified the hash; both doors now use the same proof."""
+    root = engagement.create("Acme")
+    (root / "context" / "d.md").write_text("Real client material.")
+    ctx = engagement.prepare_context(root)
+
+    assert ctx.is_cleared is False  # no clearance at all
+    assert dataclasses.replace(ctx, clearance={"by": "nobody"}).is_cleared is False
+    assert (
+        dataclasses.replace(
+            ctx, clearance={"by": "x", "sha256": "0" * 64, "files": ["d.md"]}
+        ).is_cleared
+        is False
+    )  # wrong hash
+    real = ctx.cleared_by("Tony", "test")
+    assert real.is_cleared is True
+    # A clearance for these bytes does not cover a different file list.
+    assert (
+        dataclasses.replace(
+            real, clearance={**real.clearance, "files": ["something-else.md"]}
+        ).is_cleared
+        is False
+    )
+
+
+def test_the_orchestrator_refuses_a_forged_clearance(eng_dir, monkeypatch, fake_llm):
+    root = engagement.create("Acme")
+    (root / "context" / "d.md").write_text("Real client material.")
+    monkeypatch.setenv("HUMINLOOP_ROOT", str(root))
+    forged = dataclasses.replace(
+        engagement.prepare_context(root), clearance={"by": "nobody", "sha256": "0" * 64}
+    )
+    with pytest.raises(ValueError, match="does not match"):
+        orchestrator.run("Design the program", llm=fake_llm, critique=False, context=forged)
+    assert fake_llm.calls == []
+
+
+def test_an_endless_blank_tail_gives_up_and_says_truncated(eng_dir, monkeypatch):
+    """The probe is bounded, so a pathological all-blank file cannot make it read forever. When
+    it gives up it must claim truncation, not claim the document fitted."""
+    monkeypatch.setattr(engagement, "WHITESPACE_PROBE_LIMIT", 64)
+    monkeypatch.setattr(engagement, "WHITESPACE_PROBE_CHARS", 16)
+    root = engagement.create("Acme")
+    (root / "context" / "c.txt").write_text("HEAD" + " " * 4000)
+    _, read = engagement.load_context(root, budget=100)
+    assert read[0]["state"] == "truncated"  # conservative: we stopped looking, so we say so

@@ -368,14 +368,15 @@ def run(
     # base_root(), not artifact_root(): context/ is a sibling of out/, at the engagement root.
     if context is None:
         context = prepare_context(Path(root) if root else base_root())
-    if context.block and not context.clearance:
+    if context.block and not context.is_cleared:
         # The gate the approved design doc asked for and no shipped code had. It lives here
         # rather than in the CLI so it holds for every caller: a gate only one front door
         # honours is not a gate. Real client material does not reach a provider because a
         # code path forgot to ask.
         raise ValueError(
             f"engagement context is present but not cleared to send: {len(context.sent_files)} "
-            f"file(s) from {context.source_dir}. A named human must clear it first"
+            f"file(s) from {context.source_dir}. A named human must clear these exact bytes "
+            "first (a clearance that does not match them does not count)"
         )
     engagement_context, context_read = context.block, context.read
     run_id = new_run_id()

@@ -57,6 +57,24 @@ ALL_FENCES = (ENGAGEMENT_FENCE, TEAMMATE_FENCE)
 FENCE_NEUTRALISED = "[fence marker in the source text, neutralised]"
 
 
+# What a planted copy of our own notice becomes. Without this the neutralising pass was
+# `body.replace(FENCE_NEUTRALISED, FENCE_NEUTRALISED)` -- a provable identity no-op -- and a
+# client document could paste the notice in and have a reviewer believe the system had already
+# defused a marker it never saw.
+FENCE_NOTICE_FORGED = "[fence marker notice in the source text]"
+# strip_controls deliberately keeps \n and \t because it sanitises prose. A filename is not
+# prose: POSIX allows a newline inside one, so a single crafted file can forge whole extra rows
+# in any one-row-per-line display -- including the consent prompt a human reads before allowing
+# client material to be sent.
+_LINE_UNSAFE_RE = re.compile(r"[\x00-\x1f\x7f-\x9f]")
+
+
+def one_line(text: str) -> str:
+    """Text safe to put on one row of a list, and honest about having been cleaned."""
+    cleaned = _LINE_UNSAFE_RE.sub("", text)
+    return cleaned if cleaned == text else cleaned + "  [control characters removed]"
+
+
 def fenced(body: str, marker: str) -> str:
     """Wrap untrusted text in a marker that nothing in it can close or forge.
 
@@ -70,7 +88,10 @@ def fenced(body: str, marker: str) -> str:
     exact byte sequence only; near-miss and unicode-lookalike markers are a known gap tracked
     in TODOS.md rather than papered over here.
     """
-    for known in (*ALL_FENCES, FENCE_NEUTRALISED):
+    # First, so the loop below cannot simply replace it with itself: a planted copy of our own
+    # notice is itself a forgery, claiming we defused something we never saw.
+    body = body.replace(FENCE_NEUTRALISED, FENCE_NOTICE_FORGED)
+    for known in ALL_FENCES:
         body = body.replace(known, FENCE_NEUTRALISED)
     return f"{marker}\n{body}\n{marker}"
 

@@ -8,7 +8,7 @@ from pathlib import Path
 
 from . import __version__, engagement, gate, orchestrator, stats
 from .dashboard import render_dashboard
-from .governance import strip_controls
+from .governance import one_line, strip_controls
 from .llm import PROVIDERS, get_llm
 from .render import RenderError, render_run
 from .roles import ROLES
@@ -114,7 +114,7 @@ def _context_summary(ctx: engagement.LoadedContext, roles: list[str], calls: int
     """
     lines = [
         f"This run would send {len(ctx.sent_files)} file(s) ({ctx.chars:,} characters) "
-        f"from {ctx.source_dir}",
+        f"from {one_line(ctx.source_dir)}",
         f"to {len(roles) + 1} seat(s) ({', '.join(roles)}, engagement_lead), "
         f"over up to {calls} provider call(s).",
         "",
@@ -124,8 +124,10 @@ def _context_summary(ctx: engagement.LoadedContext, roles: list[str], calls: int
         # escapes. This is the exact text a human reads before answering y/N, so a crafted
         # name could scroll rows of it out of view. `_cmd_show` already sanitises model output
         # for the same reason; the consent prompt is a worse place to omit it.
-        detail = f" -> {strip_controls(r['resolves_to'])}" if r.get("resolves_to") else ""
-        lines.append(f"  {strip_controls(r['file']):<40} {strip_controls(r['state'])}{detail}")
+        # one_line, not strip_controls: the latter keeps newlines by design, so a filename
+        # containing one forged extra rows in this very list. Reproduced 2026-09-17.
+        detail = f" -> {one_line(r['resolves_to'])}" if r.get("resolves_to") else ""
+        lines.append(f"  {one_line(r['file']):<40} {one_line(r['state'])}{detail}")
     return "\n".join(lines)
 
 

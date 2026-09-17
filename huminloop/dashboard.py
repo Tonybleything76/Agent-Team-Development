@@ -494,6 +494,7 @@ border-radius:99px;background:var(--accent);color:#fff;font:600 12px var(--sans)
 .ctxchip.empty{background:#eeeef3;color:var(--ink3)}
 .ctxchip.unreadable{background:#fdeceb;color:var(--warn)}
 .ctxchip.refused{background:#fdeceb;color:var(--warn);font-weight:600;text-decoration:underline}
+.ctxchip.unresolvable{background:#fdeceb;color:var(--warn)}
 
 html[data-theme=dark] code{background:#22223c}
 """
