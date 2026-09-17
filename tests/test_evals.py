@@ -51,6 +51,9 @@ def test_eval_flags_a_case_that_passed_at_baseline_and_fails_now(monkeypatch, tm
                     PASSING_HOLDOUT_CASE,
                 ],
                 "governance": [],
+                # These exercise router and baseline mechanics; the context section is
+                # scored separately and is empty here on purpose.
+                "context": [],
             }
         )
     )
@@ -80,6 +83,9 @@ def test_eval_passes_when_the_failure_is_already_in_the_baseline(monkeypatch, tm
                     PASSING_HOLDOUT_CASE,
                 ],
                 "governance": [],
+                # These exercise router and baseline mechanics; the context section is
+                # scored separately and is empty here on purpose.
+                "context": [],
             }
         )
     )
@@ -93,7 +99,7 @@ def test_eval_passes_when_the_failure_is_already_in_the_baseline(monkeypatch, tm
 
 def _write_cases(tmp_path, router_cases):
     cases = tmp_path / "cases.json"
-    cases.write_text(json.dumps({"router": router_cases, "governance": []}))
+    cases.write_text(json.dumps({"router": router_cases, "governance": [], "context": []}))
     baseline = tmp_path / "baseline.json"
     baseline.write_text(json.dumps({"metrics": {}, "failures": []}))
     return cases, baseline

@@ -1,0 +1,209 @@
+{
+  "artifacts": [
+    {
+      "critique": {
+        "critic_role": "qa_qc",
+        "points": [],
+        "premortem": "",
+        "steelman": ""
+      },
+      "error": null,
+      "file": "change_management_lead.md",
+      "process_flags": [],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": false,
+      "role": "change_management_lead",
+      "sha256": "cb5c7645573ba7e007f88c5a2200816f0fa396cbfc0bd364e0022222406e5a6e"
+    },
+    {
+      "critique": {
+        "critic_role": "qa_qc",
+        "points": [],
+        "premortem": "",
+        "steelman": ""
+      },
+      "error": null,
+      "file": "program_management_lead.md",
+      "process_flags": [],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": false,
+      "role": "program_management_lead",
+      "sha256": "d74f4926f463c88825528c751caa1e477ab4ca877ac8bfb8f5045c83f348bc7e"
+    },
+    {
+      "critique": {
+        "critic_role": "qa_qc",
+        "points": [],
+        "premortem": "",
+        "steelman": ""
+      },
+      "error": null,
+      "file": "ld.md",
+      "process_flags": [],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": false,
+      "role": "ld",
+      "sha256": "25bdff85ae1a36ed28905ec45f782e08dc39016cbdc96d929d3b5bc4c352b313"
+    },
+    {
+      "critique": null,
+      "error": "RuntimeError('provider returned an empty completion')",
+      "file": null,
+      "process_flags": [],
+      "review": null,
+      "revised": false,
+      "role": "engagement_lead",
+      "sha256": null
+    }
+  ],
+  "context_clearance": null,
+  "context_read": [],
+  "created_at": "2026-09-17T14:50:51+00:00",
+  "plan": {
+    "matched_rules": [
+      "change_adoption",
+      "program_delivery",
+      "enablement"
+    ],
+    "roles": [
+      "change_management_lead",
+      "program_management_lead",
+      "ld"
+    ],
+    "staffing": {
+      "absent": [
+        {
+          "role": "cybersecurity",
+          "title": "Cybersecurity",
+          "would_join_on": "security ('threat', 'security', 'vendor review', 'key management')"
+        },
+        {
+          "role": "data_readiness_lead",
+          "title": "Data Readiness Lead",
+          "would_join_on": "data_readiness ('data readiness', 'data quality', 'data lineage', 'data pipeline')"
+        },
+        {
+          "role": "data_scientist",
+          "title": "Data Scientist",
+          "would_join_on": "strategy ('roadmap', 'transformation', 'strategy', 'current state'); analytics ('kpi', 'kpis', 'dashboard', 'baseline')"
+        },
+        {
+          "role": "domain_owner",
+          "title": "Domain Owner",
+          "would_join_on": "domain_ownership ('process owner', 'business owner', 'end to end', 'end-to-end')"
+        },
+        {
+          "role": "enterprise_architect",
+          "title": "Enterprise AI Architect",
+          "would_join_on": "architecture ('target architecture', 'reference architecture', 'architecture review', 'integration blueprint')"
+        },
+        {
+          "role": "finance",
+          "title": "Accountant / Finance",
+          "would_join_on": "proposal ('rfp', 'rfi', 'sow', 'proposal'); finance ('invoice', 'forecast', 'pricing', 'budget')"
+        },
+        {
+          "role": "governance_advisor",
+          "title": "AI Governance & Risk Advisor",
+          "would_join_on": "ai_governance ('eu ai act', 'ai act', 'responsible ai', 'model risk')"
+        },
+        {
+          "role": "hr",
+          "title": "HR",
+          "would_join_on": "people ('onboard', 'onboarding', 'sop', 'skills matrix')"
+        },
+        {
+          "role": "legal",
+          "title": "Legal",
+          "would_join_on": "proposal ('rfp', 'rfi', 'sow', 'proposal'); privacy ('dpia', 'privacy', 'data retention', 'retention schedule'); legal ('nda', 'msa', 'contract', 'redline')"
+        },
+        {
+          "role": "operations",
+          "title": "Operations",
+          "would_join_on": "operations ('capacity', 'burn report', 'burn rate', 'vendor management')"
+        },
+        {
+          "role": "pre_sales",
+          "title": "Pre-Sales",
+          "would_join_on": "proposal ('rfp', 'rfi', 'sow', 'proposal')"
+        },
+        {
+          "role": "privacy",
+          "title": "Privacy",
+          "would_join_on": "privacy ('dpia', 'privacy', 'data retention', 'retention schedule')"
+        },
+        {
+          "role": "process_excellence_lead",
+          "title": "Process Excellence Lead",
+          "would_join_on": "process_design ('process map', 'process redesign', 'target state', 'target-state')"
+        },
+        {
+          "role": "product_developer",
+          "title": "Product Developer",
+          "would_join_on": "product ('prd', 'backlog', 'user story', 'user stories'); build ('poc', 'connector', 'python script', 'automation script')"
+        },
+        {
+          "role": "product_manager",
+          "title": "AI Product Manager",
+          "would_join_on": "product ('prd', 'backlog', 'user story', 'user stories')"
+        },
+        {
+          "role": "qa_qc",
+          "title": "QA/QC",
+          "would_join_on": "product ('prd', 'backlog', 'user story', 'user stories'); build ('poc', 'connector', 'python script', 'automation script')"
+        },
+        {
+          "role": "sales",
+          "title": "Sales",
+          "would_join_on": "sales ('leads', 'lead list', 'sales lead', 'email sequence')"
+        },
+        {
+          "role": "strategist",
+          "title": "Strategist",
+          "would_join_on": "strategy ('roadmap', 'transformation', 'strategy', 'current state')"
+        },
+        {
+          "role": "value_realization_lead",
+          "title": "Value Realization Lead",
+          "would_join_on": "value_realization ('business case', 'value realization', 'value realisation', 'benefits realization')"
+        }
+      ],
+      "dispatched": [
+        {
+          "role": "change_management_lead",
+          "title": "Change Management & Adoption Lead",
+          "why": "change_adoption ('rollout')"
+        },
+        {
+          "role": "program_management_lead",
+          "title": "Program Management Lead",
+          "why": "program_delivery ('workstream')"
+        },
+        {
+          "role": "ld",
+          "title": "Learning & Development",
+          "why": "enablement ('enablement')"
+        }
+      ],
+      "unreachable": []
+    }
+  },
+  "provider": "openrouter",
+  "run_id": "20260917_145051_55e78c",
+  "status": "pending",
+  "synthesis": null,
+  "task": "Design the enablement program for a field-service AI copilot rollout, and name who owns each unresolved workstream.",
+  "version": "0.22.0"
+}

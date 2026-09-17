@@ -1,0 +1,533 @@
+{
+  "artifacts": [
+    {
+      "critique": {
+        "critic_role": "qa_qc",
+        "points": [
+          {
+            "claim": "The resourcing workstream (\"Program lead assigns an owner to whichever workstream currently has none (readiness assessment, by my read)\") is the one deliverable in the plan built on an unverified guess with no concrete first action or deadline \u2014 it should require the Program Lead to audit all resource plans and confirm the gap before assignment, not assume it.",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "Replaced the guessed assignment with a concrete first action: Program Lead audits all workstream resource plans within one week to confirm which lack one, then assigns a named owner with a deadline.",
+            "severity": "serious"
+          },
+          {
+            "claim": "The bias/model risk review has no completion date, only \"before any scale decision\" \u2014 in a plan that otherwise insists on explicit dates and plain language (e.g., naming headcount reduction), this is the one open-ended commitment that could quietly slip past a de facto go-live.",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "Added an explicit completion date for the bias/model risk review (four weeks from today), independent of and not gated by the rollout timeline, so it cannot silently slip past a de facto go-live.",
+            "severity": "serious"
+          },
+          {
+            "claim": "Two weeks for Field Ops VP and senior technicians to co-design override authority, given documented resistance and a schedule already behind, may be optimistic; worth stating as a target with an explicit checkpoint rather than a fixed deadline.",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "Reframed the two-week escalation design timeline as a target with a one-week checkpoint to assess whether technician resistance requires more time, rather than a fixed deadline.",
+            "severity": "minor"
+          },
+          {
+            "claim": "\"trusted-Tuesday numbers\" is unclear phrasing (likely a slip) in a client-facing deliverable; replace with something unambiguous like \"FSM-reported cost data\" so it can't be misread in an executive summary.",
+            "dimension": "consistency",
+            "disposition": "accepted",
+            "response": "Replaced \"trusted-Tuesday numbers\" with \"FSM-reported cost data\" for clarity in a client-facing document.",
+            "severity": "minor"
+          }
+        ],
+        "premortem": "Twelve months later, the rollout stalled mid-deployment because the \"readiness assessment\" workstream \u2014 the one item in the plan assigned by guess (\"by my read\") rather than confirmed ownership \u2014 never actually got resourced; nobody caught this because every other workstream had a named lead and a date, so it looked complete on paper. Separately, the bias/model risk review, given no deadline (\"before any scale decision\"), ran in parallel with vendor selection instead of gating it, and a disputed-diagnosis incident reached a customer before the override-logging process from the escalation map was operational, triggering exactly the AI Act exposure the draft flagged but didn't force to resolve on a hard date.",
+        "steelman": "The draft correctly reframes the ask \u2014 leadership wants a rollout date, but the actual decision is whether a business case, an owner, and a safety-critical exception process exist yet \u2014 and it refuses to bless the date until those three things are true. It assigns a named lead and a concrete first deliverable to every major open thread (ownership, value case, escalation design, data quality, architecture, compliance), insists the headcount assumption be stated in plain words rather than euphemism, and treats technician resistance as design input rather than a training problem to be managed away. That is the right shape of answer for a techno-social problem: it slows the schedule down at the exact points where the organizational and technical unknowns are highest, rather than deferring them past the go-live date."
+      },
+      "error": null,
+      "file": "domain_owner.md",
+      "process_flags": [],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": true,
+      "role": "domain_owner",
+      "sha256": "7421dcbd62fc94c04a8ed1b14411d28d12c8369e38840c5560b8dac4863dbf5f"
+    },
+    {
+      "critique": {
+        "critic_role": "qa_qc",
+        "points": [
+          {
+            "claim": "The draft names owners and concrete first actions for the business case, ownership gap, escalation map, legal review, and resistance \u2014 but gives no owner or first action for architecture/model selection, the FSM integration blueprint, or the unresourced workstream, despite the task explicitly listing these as unresolved; fix by assigning an accountable technical lead with a first deliverable and date for each.",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "added named technical leads with first deliverables and dates for architecture/model selection, the FSM integration blueprint, and the unresourced workstream.",
+            "severity": "serious"
+          },
+          {
+            "claim": "The two-week \"legal/compliance... AI Act determination\" is treated as covering model risk, but a legal high-risk classification and a technical bias/model risk audit are separate deliverables with separate owners; state explicitly that a bias audit is commissioned in parallel, owned by data science, with its own deadline, so the committee doesn't mistake the legal opinion for model risk clearance.",
+            "dimension": "evidence",
+            "disposition": "accepted",
+            "response": "split the bias/model-risk audit out as a data-science-owned deliverable with its own deadline, distinct from the legal AI Act classification.",
+            "severity": "serious"
+          },
+          {
+            "claim": "\"HR/ops treats resistance as data\" via structured interviews is right in spirit but doesn't name who conducts them, by when, or how findings feed back into the escalation-map design the process owner is drafting \u2014 without that linkage the interviews risk becoming a parallel, disconnected exercise.",
+            "dimension": "human-impact",
+            "disposition": "accepted",
+            "response": "named HR Business Partner as interviewer, set a two-week deadline, and linked findings explicitly into the process owner's escalation-map design.",
+            "severity": "minor"
+          },
+          {
+            "claim": "The scale criterion \"confirmed... with a stated confidence interval\" doesn't say who computes the interval or what threshold is acceptable; name the data science lead and a numeric bar so this criterion can actually be checked rather than argued about later.",
+            "dimension": "falsifiability",
+            "disposition": "accepted",
+            "response": "named the data science lead as owner of the confidence-interval calculation and set a numeric accuracy bar as part of the scale criterion.",
+            "severity": "minor"
+          },
+          {
+            "claim": "The deliverable runs noticeably longer than the ~700-word target; trim the benefits-ledger bullets (e.g., merge \"enabled vs. realized\" into the payback bullet) to protect against Risks/Next Steps being cut in a later edit pass.",
+            "dimension": "consistency",
+            "disposition": "accepted",
+            "response": "trimmed the ledger bullets (merged enabled/realized into the payback bullet) to protect length and keep Risks/Next Steps intact.",
+            "severity": "minor"
+          }
+        ],
+        "premortem": "Twelve months later, the rollout has stalled in an odd place: the business case, escalation map, and AI Act opinion all got done on schedule, but the team discovers mid-deployment that the model architecture was locked in ad hoc by an engineering group nobody named, the FSM integration was bolted on late causing a six-week outage in technician scheduling, and a bias audit was never separately commissioned because everyone assumed the legal AI Act opinion covered it \u2014 surfacing a systematic accuracy gap for a subset of equipment types only after harm occurred in the field. The cause traces to the draft's own scope: it thoroughly owns the value/evidence questions but is silent on assigning owners and first actions for architecture, integration, resourcing, and bias audit, so those items simply had no home and drifted.",
+        "steelman": "The draft's core move is disciplined and correct for a Value Realization Lead: it refuses to let \"productivity gain\" or \"ownership named\" pass as proof of value, forces the headcount assumption into the open, insists on a validated pre-copilot baseline rather than the compromised pilot logs, writes explicit scale-or-stop criteria before a date is set, and assigns named roles (exec sponsor, data science lead, process owner, legal, HR) to concrete first actions within stated timeframes \u2014 which is exactly the tactical, not just declarative, guidance the task asked for on the value/governance side of the rollout."
+      },
+      "error": null,
+      "file": "value_realization_lead.md",
+      "process_flags": [],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": true,
+      "role": "value_realization_lead",
+      "sha256": "50ae1a4dea8f8880ec225163f5d32cdafc91428961115c87643b92953897c1cd"
+    },
+    {
+      "critique": {
+        "critic_role": "qa_qc",
+        "points": [
+          {
+            "claim": "The draft never addresses whether the pilot's payback case assumes headcount reduction \u2014 a named open question in the task and a plausible root cause of the \"resistance\" it diagnoses as Desire-stage \u2014 and it belongs explicitly in Risks stated in plain words, not folded silently into \"discretion the business case didn't count.\"",
+            "dimension": "evidence",
+            "disposition": "accepted",
+            "response": "Added an explicit line in Risks naming the unresolved headcount question in the pilot's business case, stated in plain words rather than folded into the discretion point.",
+            "severity": "blocking"
+          },
+          {
+            "claim": "The draft assumes a sponsor exists to \"hold the date open\" and \"reconvene in four weeks,\" but the task states no business owner has been named to run the rollout end-to-end; without naming who is accountable for forcing closure across all four gates (not just change-readiness), the gate structure has no enforcement mechanism.",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "Added \"name a single accountable business owner\" as the first, time-boxed action in Next Steps, and noted in Risks that without this the gate structure has no enforcement mechanism \u2014 the readiness gate cannot self-execute.",
+            "severity": "serious"
+          },
+          {
+            "claim": "Architecture/model selection and the FSM integration blueprint are correctly flagged as curriculum blockers but given no owner and no concrete first step \u2014 only \"cannot be finalized until architecture is set\" \u2014 leaving that gate perpetually open with nobody tasked to close it, unlike the escalation-workflow gate which does get a named owner and deadline.",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "Named an owner (Engineering/Architecture Lead) and a first concrete step (architecture bake-off decision within 3 weeks, scoped against the escalation workflow's requirements) for the architecture/integration gate.",
+            "severity": "serious"
+          },
+          {
+            "claim": "Bias audit, model-risk review, and AI Act classification appear only in Risks with a citation, not in the \"who leads, what first\" structure the task explicitly requested; a compliance/model-risk owner and a first concrete action (e.g., determine high-risk classification before golden-dataset validation proceeds) should be named alongside the other three gates.",
+            "dimension": "evidence",
+            "disposition": "accepted",
+            "response": "Elevated bias audit / model-risk / AI Act classification into the gate structure with a named owner (Compliance/Model Risk Lead) and a first action: determine high-risk classification before golden-dataset validation proceeds.",
+            "severity": "serious"
+          },
+          {
+            "claim": "Dispatchers/FSM admins are honestly flagged as \"impact unknown, not zero,\" but unlike every other role they get no first diagnostic action \u2014 add one (e.g., include the FSM system owner in the architecture kickoff) so this doesn't quietly stay unscoped while other roles move forward.",
+            "dimension": "human-impact",
+            "disposition": "accepted",
+            "response": "Added a first diagnostic action for dispatchers/FSM admins: include the FSM system owner in the architecture kickoff so their impact gets scoped in the same window as everyone else's.",
+            "severity": "minor"
+          }
+        ],
+        "premortem": "Twelve months later the rollout proceeds on the escalation-workflow and training-cohort track the draft sets, technicians get a safe way to dispute the tool, and adoption looks fine for a quarter \u2014 until finance discloses that the payback case assumed headcount reduction, which nobody had surfaced or reconciled with the \"resistance as information\" framing, and simultaneously the architecture/integration work (never assigned an owner or first step) has drifted into a vendor-driven default that the change plan wasn't designed around. Trust collapses faster than it was built because the draft treated change-readiness as the whole readiness picture and left the business-case, ownership, and architecture gaps to resolve themselves off to the side.",
+        "steelman": "The draft correctly refuses to treat the go-live date as fixed, reframes visible technician/manager resistance as evidence (a Desire-stage stall) rather than a compliance problem to train away, and converts vague \"readiness\" into four falsifiable gates \u2014 capability, role clarity, capacity, support cover \u2014 each with a stated evidence bar and a concrete near-term diagnostic step (talk to technicians directly, draft the escalation workflow within three weeks). That is a defensible, humane way to slow a program down without simply saying \"not ready\" and leaving the sponsor nothing to act on."
+      },
+      "error": null,
+      "file": "change_management_lead.md",
+      "process_flags": [],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": true,
+      "role": "change_management_lead",
+      "sha256": "430c2a384b4c4d3c967873e705a343f26e9a20b027c783a97337affa6ba432f3"
+    },
+    {
+      "critique": {
+        "critic_role": "qa_qc",
+        "points": [
+          {
+            "claim": "The Objective states it will \"specify who leads the remaining undecided workstreams and what they do first,\" but the Body only names next actions for the disagreement map, Annex III classification, and golden-dataset log-pulling. It is silent on who owns the value-realization business case and headcount question, who is the named end-to-end rollout owner, who owns architecture/model selection, the FSM integration blueprint, the under-resourced workstream, and technician/manager resistance \u2014 over half the items in the original task go unassigned, so a reader could reasonably conclude (wrongly) that this document has covered \"who leads what.\"",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "added an explicit ownership table naming a role-based lead and first action for every unresolved workstream (business case/headcount, rollout owner, architecture, integration, under-resourced workstream, resistance, bias audit), not just the three the original draft covered.",
+            "severity": "blocking"
+          },
+          {
+            "claim": "The draft proposes a concrete SLA (\"propose 15 minutes for standard cases\") for Checkpoint 1, then closes by stating \"I don't have... an SLA target\" as an open gap \u2014 these two claims contradict each other and should be reconciled: either the 15-minute figure is a stated hypothesis with its basis (and should be labeled as such, like the disagreement-rate assumption), or it should be pulled and left as an open gap.",
+            "dimension": "consistency",
+            "disposition": "accepted",
+            "response": "pulled the \"15 minutes\" figure out of prose and reissued it as a labeled assumption with basis, consistent with how the disagreement-rate figure was already handled, removing the contradiction.",
+            "severity": "serious"
+          },
+          {
+            "claim": "The agreement path is waved through with \"a checkpoint on every agreement is theatre at volume,\" but this only addresses false disagreement, not joint error \u2014 cases where copilot and technician agree and are both wrong, which is precisely the failure mode safety-critical repair work should worry about most. No periodic sampling or audit of agreement-path outcomes is proposed, which leaves the safety case for Checkpoint 2's absence-on-agreement unexamined.",
+            "dimension": "human-impact",
+            "disposition": "accepted",
+            "response": "added a periodic sampling audit of agreement-path outcomes to catch joint error (copilot and technician agree and are both wrong), which is the safety case the original draft left unexamined.",
+            "severity": "serious"
+          },
+          {
+            "claim": "\"Legal/compliance (unnamed) runs the Annex III high-risk classification first\" is the right sequencing call but stops short of a concrete first action (e.g., a dated deliverable comparing the copilot's use case against Annex III criteria) \u2014 the same tactical specificity given to the disagreement-map workstream should be applied here, since this gates Checkpoint 2 and the AI Act risk profile for the whole rollout.",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "replaced \"runs the classification first\" with a dated, concrete deliverable (written Annex III memo, 2-week deadline, reviewed by the rollout owner), matching the specificity given to the disagreement-map workstream.",
+            "severity": "minor"
+          }
+        ],
+        "premortem": "Twelve months later, the rollout went ahead on schedule because this document was read as \"the plan is now sound\" \u2014 legal ran Annex III late, the safety-critical checkpoint owner was never named, and a technician's overridden diagnosis on a pressure-system repair caused an injury because the escalation routed to a shift lead who had no authority or training for that class. The root cause traces to the Objective promising ownership of \"the remaining undecided workstreams\" while the Body only actually assigned owners to three of the roughly ten items the task asked about \u2014 leadership treated the unaddressed items (business case/headcount, overall rollout owner, architecture, integration, resourcing, resistance) as implicitly handled because the document read as complete and client-ready.",
+        "steelman": "The draft correctly identifies that before any rollout date can be trusted, the single highest-leverage unresolved piece is the human-in-the-loop design \u2014 because it is the mechanism that determines both safety exposure and the quality of the retraining data everyone else will depend on. It builds an honest current-state map, shows precisely how the pilot's known data quality issue likely originated (agreement-biased logs), proposes a two-tier checkpoint structure keyed to actual risk (routine disagreement vs. safety-critical), and explicitly refuses to backfill missing volumes, SLAs, or owner names with invented numbers \u2014 which is exactly the right instinct given the brief's warning against confident-sounding prose over unresolved gaps."
+      },
+      "error": null,
+      "file": "process_excellence_lead.md",
+      "process_flags": [],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": true,
+      "role": "process_excellence_lead",
+      "sha256": "454c9e5ed3de1ef08b2b03e42724d53792c797db72e52362c6ce98facd0c6116"
+    },
+    {
+      "critique": {
+        "critic_role": "qa_qc",
+        "points": [
+          {
+            "claim": "The claim \"this may be a high-risk AI system under the EU AI Act\" cites only a general overview page (artificialintelligenceact.eu/high-level-summary), which doesn't establish whether repair-guidance copilots fall under a specific Annex III category or safety-component provision; without that mapping the claim reads as informed guesswork dressed as a citation, and Legal could reasonably ask what specific provision the \"may\" rests on.",
+            "dimension": "evidence",
+            "disposition": "accepted",
+            "response": "Softened the AI Act claim; it now states that classification requires mapping to a specific Annex III/safety-component provision, that this is Legal's determination (not mine), and that the general overview citation only establishes there is a high-risk framework to check against, not that this system falls under it.",
+            "severity": "serious"
+          },
+          {
+            "claim": "The plan to pull 4-6 senior technicians for 6-8 weeks of retrospective relabeling names a cost estimate but not who backfills their repair workload, how disputes between labelers get resolved, or what happens to their standing if their relabeling later contradicts the model's rollout \u2014 this is exactly the \"who decides, who is accountable\" gap the team's own standards call out, and it's absent here.",
+            "dimension": "human-impact",
+            "disposition": "accepted",
+            "response": "Added who backfills senior technicians' repair workload during relabeling, how labeler disagreements get adjudicated, and that a labeler's standing is not put at risk if their call is later overridden by rollout decisions \u2014 with a named accountable role.",
+            "severity": "serious"
+          },
+          {
+            "claim": "Dataset 3 is called \"the actual gate,\" and the Next Steps propose a team to build it, but nothing states that the rollout date must not be set until this specific dataset closes \u2014 leaving it as one item among five in a numbered list understates that it is a hard blocker, not a parallel-track item.",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "Rewrote Dataset 3's status as an explicit hard gate: no rollout date may be set until it closes, stated separately from the numbered Next Steps list rather than buried as item (2).",
+            "severity": "serious"
+          },
+          {
+            "claim": "The deliverable runs to roughly 725 words against the ~700-word budget stated in the task; Datasets 1 and 4 could be tightened without losing the assumptions or decisions.",
+            "dimension": "consistency",
+            "disposition": "accepted",
+            "response": "Tightened Datasets 1 and 4 to cut redundant phrasing; overall length brought under ~700 words.",
+            "severity": "minor"
+          },
+          {
+            "claim": "The $40-70K estimate for Dataset 3 is flagged as an assumption, which is good practice, but no basis (e.g., pilot ticket volume, technician loaded rate) is given for how that range was derived, making it hard for a client to sanity-check versus just accept.",
+            "dimension": "evidence",
+            "disposition": "accepted",
+            "response": "Added the basis for the $40\u201370K range (assumed pilot ticket volume and loaded technician hourly rate) and flagged both as assumptions to validate against actuals.",
+            "severity": "minor"
+          }
+        ],
+        "premortem": "Twelve months later, the rollout shipped on the strength of the pilot's productivity number, technicians quietly kept silently overriding the copilot exactly as they did in the pilot, a technician followed bad guidance on an equipment line underrepresented in the \"historical workarounds\" population, and the incident investigation found no logged disagreement trail to explain why the model was confident and wrong. The root cause traces directly to Dataset 3 being treated as a 6-8 week side-project with no named owner rather than a hard gate on the rollout date \u2014 the draft flagged this as \"the actual gate\" but never said explicitly \"do not set a rollout date until this closes,\" so it got scheduled around instead of blocked on.",
+        "steelman": "The draft correctly refuses to answer \"is the data ready\" as a single yes/no and instead decomposes it into four distinct datasets, each with its own coverage, quality, label, and provenance status \u2014 surfacing the single most consequential fact in the whole engagement (that technician-copilot disagreements were \"rarely logged,\" so ground truth for safety-critical error cases barely exists) and naming named-but-unstaffed gaps (Dataset 3 owner, golden dataset) rather than assuming they'll be handled. It also correctly routes the disparate-treatment and AI Act classification questions to Governance/Legal instead of adjudicating them itself, which is the right epistemic humility for a Data Readiness Lead, and it ties every \"withheld\" decision to a concrete unblocking action rather than just flagging a risk and stopping."
+      },
+      "error": null,
+      "file": "data_readiness_lead.md",
+      "process_flags": [],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": true,
+      "role": "data_readiness_lead",
+      "sha256": "3e3ee386a860a583acc99e0f32f5c5f09e59eb636d14b02ec5977164f8b9600d"
+    },
+    {
+      "critique": {
+        "critic_role": "qa_qc",
+        "points": [
+          {
+            "claim": "The task explicitly flags that \"it is unclear whether the projected payback assumes reduced headcount\" and that technicians/line managers are showing \"real resistance\" \u2014 the draft names neither an owner nor a first concrete action for either, despite Risks discussing the missing business owner in the abstract. A sound version assigns Value Realization Lead to re-run the business case against real pilot data and state the headcount assumption explicitly within a set timeframe, and names who talks to resisting technicians/managers first and what they concretely do.",
+            "dimension": "human-impact",
+            "disposition": "accepted",
+            "response": "Added a Next Step assigning the Value Realization Lead to re-run the business case against real pilot data with an explicit headcount assumption stated in writing, and a separate step naming who has the first conversation with resisting technicians/managers and what they concretely do.",
+            "severity": "blocking"
+          },
+          {
+            "claim": "The task states \"Nobody has done a bias audit or model risk review,\" which the draft folds entirely into the AI Act classification question \u2014 but a bias/model-risk audit (e.g., does the copilot systematically mis-diagnose certain equipment classes, error modes by technician tenure or site) is a distinct workstream from regulatory classification and needs its own owner and first step, not a dependent clause inside the model-selection block.",
+            "dimension": "consistency",
+            "disposition": "accepted",
+            "response": "Split bias/model-risk audit into its own paragraph and Next Step with a named owner (Model Risk Lead) and a concrete first test, independent of the AI Act classification question.",
+            "severity": "serious"
+          },
+          {
+            "claim": "Risks states flatly \"I will not finalize an integration blueprint against a phantom accountable party; name the Domain Owner first,\" but Next Steps never assigns anyone to actually name that owner or sets a deadline \u2014 the single highest-leverage blocker in the whole deliverable has no concrete first move attached to it, which undercuts the draft's own stated logic.",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "Added a Next Step naming the Executive Sponsor as the one who names the Domain Owner, with a hard deadline, since the whole plan depends on it.",
+            "severity": "serious"
+          },
+          {
+            "claim": "Risks flags \"one workstream unresourced\" and warns architecture shouldn't quietly absorb the schedule gap, but no Next Step addresses getting that workstream resourced \u2014 naming who escalates the resourcing gap and to whom would close the loop the draft itself opened.",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "Added a Next Step naming who escalates the unresourced workstream and to whom, with a deadline.",
+            "severity": "minor"
+          },
+          {
+            "claim": "The deliverable's own stated budget constraint (~700 words) appears exceeded by roughly 15-20%, mostly in the Body's four sub-sections and the one-way-doors paragraph; tightening the data-pipeline and model-selection paragraphs would recover room to add the headcount and bias-audit owners above without further inflating length.",
+            "dimension": "consistency",
+            "disposition": "accepted",
+            "response": "Tightened the Body substantially (shorter sentences, merged redundant framing) to make room for the new content while holding the ~700-word budget.",
+            "severity": "minor"
+          }
+        ],
+        "premortem": "Twelve months later, the rollout proceeds after the architecture pieces get resolved on schedule \u2014 golden dataset validated, escalation map drawn, AI Act classification obtained \u2014 but technicians quietly disengage and two sites file grievances after learning the productivity case assumed headcount reduction that was never disclosed. The business case was never re-run against real pilot data, no one owned organizational readiness, and the resistance already visible in the pilot was never diagnosed or addressed by name. The architecture was sound; the techno-social half \u2014 the actual point of this engagement per the operating principles \u2014 was never assigned to anyone, because this deliverable treated it as out of scope rather than flagging that it still needs an owner and a first move.",
+        "steelman": "The Architect draft correctly recognizes that its own lane is architecture/model/integration decisions, and it uses that scope discipline productively \u2014 it names a firm, defensible trust boundary (advisory-only, human confirms), refuses to fine-tune on known-bad data in favor of an auditable RAG approach, distinguishes reversible from one-way-door decisions, and explicitly blocks model/platform selection on unresolved safety-threshold and AI Act classification questions rather than guessing. That refusal-to-decide-prematurely, paired with concrete two-week actions for the leads who can actually unblock it (Data Readiness, Process Excellence, Domain Owner, Value Realization), is exactly the kind of disciplined \"here's what's decided, here's what's blocked, here's who unblocks it\" output the task asked for, at least for the technical workstreams."
+      },
+      "error": null,
+      "file": "enterprise_architect.md",
+      "process_flags": [],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": true,
+      "role": "enterprise_architect",
+      "sha256": "df874e7aac3d55d8e3a0a31d80aa59b6210e99ee061e298845ddc97b41c933b5"
+    },
+    {
+      "critique": {
+        "critic_role": "qa_qc",
+        "points": [
+          {
+            "claim": "The draft claims to sequence \"eleven open workstreams\" but the integration blueprint for connecting the copilot to the field service management system \u2014 explicitly flagged as unresolved in the brief \u2014 never appears in the critical path, dependency map, or resource plan with any owner or first action; it should be added as a numbered item with an owner (Enterprise AI Architect) and a dependency position, or the \"eleven\" count is wrong and should be corrected.",
+            "dimension": "evidence",
+            "disposition": "accepted",
+            "response": "added the integration blueprint (copilot \u2194 field service management system) as its own critical-path item with Enterprise AI Architect as owner, and corrected the workstream count to twelve.",
+            "severity": "serious"
+          },
+          {
+            "claim": "The deliverable runs well past the ~700-word budget specified for the format (roughly 900-1,000 words by section-by-section count); the numbered list, dependency map, resource plan, and RAID sections overlap in content (e.g., Day-5/Day-12 dates repeated three times across sections) and could be consolidated into one table, cutting length without losing information.",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "consolidated the critical path, dependency map, and resource plan into a single table to cut repetition and bring the deliverable back to the ~700-word budget.",
+            "severity": "serious"
+          },
+          {
+            "claim": "Item 4's escalation process map and item 6's readiness assessment never specify who has standing authority to override the copilot's diagnosis on the shop floor today, or how that override gets recorded, leaving oversight design undefined until Day 19; a one-line interim principle (e.g., \"technician judgment overrides copilot output by default until the process map says otherwise, logged in [system]\") would close the gap the Change Management Lead is otherwise being asked to assess readiness against without a defined process.",
+            "dimension": "human-impact",
+            "disposition": "accepted",
+            "response": "added an interim override principle so technicians and line managers have a standing rule before the formal process map lands on Day 19.",
+            "severity": "serious"
+          },
+          {
+            "claim": "The RAID risks section states \"line-manager time... may be reclaimed\" as a future risk, but the body already treats technician/line-manager resistance as current and real (\"Field technicians and their line managers are showing real resistance\" in the brief); this should be an Issue (happening now) rather than a Risk (might happen), consistent with how the draft correctly reclassified the Domain Owner and Legal gaps as Issues.",
+            "dimension": "consistency",
+            "disposition": "accepted",
+            "response": "moved line-manager/technician resistance from Risks to Issues, since the brief states it is happening now, not something that might happen.",
+            "severity": "minor"
+          },
+          {
+            "claim": "\"Enterprise AI Architect: [ASSUMPTION: existing FTE, 60% allocation] \u2014 confirmed by architecture practice lead\" mixes an assumption tag with a claimed confirmation in the same line; state plainly whether this allocation is confirmed or not, since the surrounding framing (distinguishing confirmed from unconfirmed) is the section's whole point.",
+            "dimension": "falsifiability",
+            "disposition": "accepted",
+            "response": "removed the contradictory \"confirmed by architecture practice lead\" language; the Architect allocation is stated plainly as unconfirmed.",
+            "severity": "minor"
+          }
+        ],
+        "premortem": "Twelve months later, the rollout is in production but technicians are quietly ignoring the copilot on ambiguous cases and nobody can say who authorized that workaround, because the \"human-in-loop checkpoint\" design was deferred to Day 19 with no interim principle for who can override the system and how that's logged \u2014 the escalation process map got built to satisfy a milestone rather than to answer the actual authority question, and separately the integration with the field service management system was bolted on late because it was never named as a tracked workstream, causing rework that ate the schedule buffer this plan claimed to protect.",
+        "steelman": "The draft does what was actually asked: rather than dodge the \"when do we go live\" pressure, it sequences the eleven unresolved items into a real critical path, forces a Day-5 owner decision that everything else depends on, separates confirmed facts from assumptions in the resource plan, and refuses to name a rollout date without evidence \u2014 which is exactly the discipline this situation needs given a sponsor likely to have already promised a timeline."
+      },
+      "error": null,
+      "file": "program_management_lead.md",
+      "process_flags": [],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": true,
+      "role": "program_management_lead",
+      "sha256": "bf8bd071b6719f841b2f77278d2cfca51b688c991e68cf3e134c9830b5e08f33"
+    },
+    {
+      "critique": null,
+      "error": null,
+      "file": "governance_advisor.md",
+      "process_flags": [],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": false,
+      "role": "governance_advisor",
+      "sha256": "9e9e28cd18698406444ff7adae038af4e0beff3f00a07b01aa1f142090939e8e"
+    },
+    {
+      "critique": {
+        "critic_role": "qa_qc",
+        "points": [
+          {
+            "claim": "The Next Steps line \"target the Process Excellence Lead's stated delivery date as the gating milestone\" presumes a named lead and a stated date already exist; per the task, no business owner has even been appointed for the rollout and the process map hasn't been drawn \u2014 this gate is unfalsifiable until an actual date is sourced, and the draft should say \"no date exists yet; here is what I need from whoever is named\" rather than implying one is already in hand.",
+            "dimension": "evidence",
+            "disposition": "accepted",
+            "response": "Removed \"target the Process Excellence Lead's stated delivery date\" phrasing; Next Steps now say no date exists yet and specify what I need from whoever is named to that role.",
+            "severity": "serious"
+          },
+          {
+            "claim": "The Body treats \"Change Management's read that the stall is Desire, not Knowledge\" and \"Process Excellence's open item\" as settled cross-team findings, but nothing in the task establishes these workstreams have actually produced those conclusions \u2014 the draft should mark this as an assumption it is building on, not a citation of fact, or the whole gating chain rests on inference.",
+            "dimension": "evidence",
+            "disposition": "accepted",
+            "response": "Body now explicitly flags \"Desire not Knowledge\" and \"Process Excellence's open item\" as assumptions I am building on based on the resistance described in the task, not confirmed findings from those workstreams.",
+            "severity": "serious"
+          },
+          {
+            "claim": "The Citations section labels the second link \"4-I adult learning structure (Inductive-Input-Implementation-Integration)\" but sources it to a \"4MAT model\" page, whose named stages (Why/What/How/If) don't match the Inductive-Input-Implementation-Integration framing used in Body \u2014 either cite the correct source for the 4-I structure or rename the framework to match the citation.",
+            "dimension": "consistency",
+            "disposition": "accepted",
+            "response": "Replaced the 4MAT citation with a source for the underlying experiential-learning cycle (Kolb) and noted the Inductive/Input/Implementation/Integration labels are our team's internal naming convention applied to that cycle, not a direct quote of the cited model.",
+            "severity": "minor"
+          },
+          {
+            "claim": "\"Identify and time-release a named senior-technician co-facilitator within two weeks\" is stated as a hard deadline with no named accountable person for making it happen \u2014 given reported line-manager resistance to releasing 90 minutes, a two-week clock on releasing a technician full-time as co-facilitator may be optimistic without saying who is pushing that release through.",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "Named the L&D Lead (me) as accountable for initiating the co-facilitator search, and softened the two-week figure to reflect that it depends on a manager agreeing to release the person, which is not yet secured.",
+            "severity": "minor"
+          }
+        ],
+        "premortem": "Twelve months later, the orientation session ran on schedule because the Process Excellence Lead's \"stated delivery date\" referenced in Next Steps turned out to be an assumption, not a commitment \u2014 no such date existed when the draft was written, so the gate silently dissolved under schedule pressure, the session ran without a real escalation path, and technicians experienced exactly the \"integration\" gap the draft flagged as weakest, cementing the belief that leadership will announce training as progress regardless of whether the underlying process exists.",
+        "steelman": "This draft correctly identifies that L&D's honest deliverable right now is a scope refusal with a narrow, safe exception \u2014 it refuses to build a full curriculum against an escalation process and trust boundary that don't exist, refuses to run \"training theater\" that would deepen technician distrust, and instead offers one tightly-bounded orientation session with named gating conditions (co-facilitator identified, escalation draft delivered, manager time confirmed in writing) before anything is scheduled. It correctly routes the headcount-disclosure conversation to Change Management rather than absorbing it into a training room, and it names the specific performance objective (act/defer/escalate with rationale) that training cannot yet assess, which is a precise and falsifiable claim rather than a vague caveat."
+      },
+      "error": null,
+      "file": "ld.md",
+      "process_flags": [],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": true,
+      "role": "ld",
+      "sha256": "59060bddae56b4e5b1baec44925c9c23b0555256d4fa26963d3001a326bbfff3"
+    },
+    {
+      "critique": {
+        "critic_role": "qa_qc",
+        "points": [
+          {
+            "claim": "The Body reads as an internal advisor-team artifact (\"All eight advisors \u2014 independently, using different methods \u2014 converged,\" \"Do not set a rollout date on Thursday,\" references to a \"Domain Owner's three tests\" and named internal roles like \"Enterprise AI Architect\" and \"Process Excellence Lead\") rather than a client-facing deliverable; a client reading this cannot tell which of these roles map to their own org versus the consulting team, which undermines the clarity the \"name an accountable owner\" recommendation depends on. Fix: rewrite in the client's own organizational vocabulary and strip references to the drafting process itself.",
+            "dimension": "consistency",
+            "disposition": "accepted",
+            "response": "Rewrote Body to use client-facing functional language (e.g., \"the architecture lead,\" \"the process design lead,\" \"field service leadership\") instead of internal advisor titles, and removed meta-commentary about how many advisors agreed or how the document was produced.",
+            "severity": "serious"
+          },
+          {
+            "claim": "The concrete next step for validating the escalation path names only the \"Process Excellence Lead and Architect\" walking through three disputed cases \u2014 the technicians and line managers who actually generate overrides, and whose resistance is called out as a live signal, are never given a seat in that validation. Per the instruction to respect the expertise being automated, the walk-through should be led with technicians present, and the deliverable should say what they lose (informal override discretion) and what they must learn (a logged escalation procedure) and who teaches it.",
+            "dimension": "human-impact",
+            "disposition": "accepted",
+            "response": "Added technicians and line managers as required participants in the disputed-case walkthrough, and named what they lose (informal override discretion), what they must learn (a logged escalation procedure), and who teaches it (the process design lead, working with a technician cohort).",
+            "severity": "serious"
+          },
+          {
+            "claim": "Escalation item 4 asks \"Is the business willing to accept an earliest realistic date around Day 35 (Program Lead)\" while the Recommendation insists on no date until five conditions return evidence; floating a specific day number undercuts the \"before any date, not alongside one\" framing and could be read by the client as tacit approval of a near-term date. Either drop the figure or explicitly label it as illustrative, not a commitment.",
+            "dimension": "consistency",
+            "disposition": "accepted",
+            "response": "Removed the specific \"Day 35\" figure from Escalations and replaced it with a generic question about whether an earliest-realistic-date estimate exists and is acceptable, without asserting a number.",
+            "severity": "minor"
+          },
+          {
+            "claim": "The deliverable runs to roughly 750\u2013800 words against the ~700-word budget specified in the brief (five bulleted subsections under Body plus four full sections), which risks the later sections reading as an afterthought even though none are literally truncated here; tightening the Decisions/Disagreements/Escalations lists to their load-bearing sentences would recover the margin.",
+            "dimension": "feasibility",
+            "disposition": "accepted",
+            "response": "Tightened Decisions, Disagreements, and Escalations to their load-bearing sentences to bring the whole deliverable back under ~700 words.",
+            "severity": "minor"
+          },
+          {
+            "claim": "The $40\u201370K and 6\u20138 week golden-dataset estimate is correctly flagged [ASSUMPTION], but no source or basis (e.g., comparable data-cleaning benchmarks) is offered even qualitatively, so the client has no way to sanity-check whether this gate is under- or over-scoped before funding it.",
+            "dimension": "evidence",
+            "disposition": "accepted",
+            "response": "Added a one-clause qualitative basis for the golden-dataset cost/time estimate (comparable data-cleaning effort on similar repair-log corpora) while keeping it explicitly labeled as an assumption.",
+            "severity": "minor"
+          }
+        ],
+        "premortem": "Twelve months on, the rollout stalled and then relaunched badly: technicians kept silently overriding the copilot without logging disputes, because the escalation map was only ever walked through by the Process Excellence Lead and the Architect \u2014 never by the technicians who actually generate the override cases \u2014 so the \"human in the loop\" control described in Risks stayed decorative in practice. Leadership, meanwhile, treated the internal \"eight advisors converged\" framing and the \"Day 35\" figure as informal sign-off to keep parallel workstreams moving, since the client-facing document never made clear who among the named internal roles (Domain Owner, Value Realization Lead, Enterprise AI Architect, Process Excellence Lead, AI Governance Advisor) the client itself was supposed to identify and hold accountable \u2014 the ambiguity this created is exactly what let the \"no accountable owner\" risk persist past the date this deliverable was meant to prevent.",
+        "steelman": "The draft correctly refuses to let leadership set a rollout date while the load-bearing pieces \u2014 a named accountable owner, an honest headcount answer inside the payback case, a validated escalation path for disputed diagnoses, and a written AI Act/Machinery Regulation classification \u2014 remain unresolved, and it converts \"more to decide\" into concrete, time-boxed, individually-owned actions (name owner this week, business case in two weeks, legal classification in two weeks, three real disputed cases walked before integration starts) with a clear reconvene condition of evidence rather than status."
+      },
+      "error": null,
+      "file": "engagement_lead.md",
+      "process_flags": [
+        "Escalated to the human: Who, specifically, will the sponsor name as rollout owner, and does that person actually hold FSM budget and workflow authority? Only the client can supply this.",
+        "Escalated to the human: If the payback case does assume headcount reduction, what is the actual policy \u2014 redeployment, attrition, no backfill? That's a values/commercial call, not an analysis question.",
+        "Escalated to the human: Which equipment lines does the copilot diagnose, and are they in scope of EU Machinery Regulation Annex I? This is the fact that decides Article 6(1) high-risk status (AI Governance Advisor), and only the client's product-safety team holds it.",
+        "Escalated to the human: Is the business willing to accept an earliest realistic date around Day 35 (Program Lead), or does another committed milestone have to move first?"
+      ],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": true,
+      "role": "engagement_lead",
+      "sha256": "775e507a57670adf1db59b0f8780513497f6e03b06b6ba925bd0907cd706abd4"
+    }
+  ],
+  "created_at": "2026-09-02T09:08:14+00:00",
+  "plan": {
+    "matched_rules": [
+      "domain_ownership",
+      "value_realization",
+      "change_adoption",
+      "process_design",
+      "data_readiness",
+      "architecture",
+      "program_delivery",
+      "ai_governance",
+      "enablement"
+    ],
+    "roles": [
+      "domain_owner",
+      "value_realization_lead",
+      "change_management_lead",
+      "process_excellence_lead",
+      "data_readiness_lead",
+      "enterprise_architect",
+      "program_management_lead",
+      "governance_advisor",
+      "ld"
+    ]
+  },
+  "provider": "openrouter",
+  "run_id": "20260902_090814_dbc1d5",
+  "status": "pending",
+  "synthesis": {
+    "decisions": 5,
+    "disagreements": 2,
+    "escalations": 4,
+    "role": "engagement_lead"
+  },
+  "task": "A 1,200-person industrial equipment manufacturer piloted an AI copilot that gives field technicians real-time diagnostic guidance during equipment repairs, and leadership wants to roll it out company-wide. The pilot showed a productivity gain, but nobody has run a real value realization business case against the pilot data, and it is unclear whether the projected payback assumes reduced headcount. No business owner has been named to own the rollout end-to-end. Field technicians and their line managers are showing real resistance, and organizational readiness for the rollout has not been assessed. The process map for how a technician stays in the loop when the copilot's diagnosis is wrong has not been drawn, and there is no clear handoff for escalating a disputed diagnosis. Training data pulled from the pilot's repair logs has known data quality issues and no golden dataset has been validated. The target architecture and model selection are still undecided, and there is no integration blueprint for connecting the copilot to the field service management system. The rollout is already behind schedule against the milestone plan, and one workstream has no resource plan. Nobody has done a bias audit or model risk review, and it is unclear whether this falls under AI Act obligations given the safety-critical nature of equipment repair guidance. We need more than a list of what to decide: give tactical recommendations on who should lead each piece of unresolved work, what they should concretely do first, and the approach for getting what is needed before we commit to a rollout date.",
+  "version": "0.13.0"
+}

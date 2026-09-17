@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from huminloop import gate, orchestrator
+from huminloop import gate, orchestrator, render
 from huminloop.render import (
     RenderError,
     _register_group,
@@ -339,3 +339,42 @@ def test_render_the_committed_synthesis_example(tmp_path):
     next_register_idx = page.index("<h3>", escalations_idx + 1)
     escalations_html = page[escalations_idx:next_register_idx]
     assert "classification memo" not in escalations_html
+
+
+# ---------------------------------------------------------------------------
+# Helpers both render surfaces share, so they cannot answer differently (eng review T12).
+# ---------------------------------------------------------------------------
+
+
+def test_initials_skip_the_words_nobody_initialises():
+    """The dashboard's own version was `title.split()[:2]`, which read "Head of Data" as HO."""
+    assert render.initials("Head of Data") == "HD"
+    assert render.initials("Learning and Development") == "LD"
+    assert render.initials("Strategist") == "S"
+    # A title that is nothing but stopwords still gets a badge rather than an empty circle.
+    assert render.initials("of the") == "OF"
+
+
+def test_pushback_rows_order_is_the_only_difference_between_the_surfaces():
+    artifacts = [
+        {
+            "role": "data_scientist",
+            "critique": {
+                "points": [
+                    {"severity": "minor", "dimension": "clarity", "claim": "m"},
+                    {"severity": "blocking", "dimension": "evidence", "claim": "b"},
+                ]
+            },
+        }
+    ]
+    story = render.pushback_rows(artifacts)
+    scan = render.pushback_rows(artifacts, by_severity=True)
+    assert [r["claim"] for r in story] == ["m", "b"]  # the order it happened
+    assert [r["claim"] for r in scan] == ["b", "m"]  # worst first
+    assert story[0]["role_label"] == "data scientist"
+    assert story[0]["disposition"] == "unanswered"  # one default, not two copies of it
+
+
+def test_staffing_tolerates_a_manifest_from_before_it_existed():
+    assert render.staffing({}) == ([], [])
+    assert render.staffing({"staffing": {"dispatched": [{"title": "X"}]}}) == ([{"title": "X"}], [])

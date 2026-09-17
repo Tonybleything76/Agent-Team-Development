@@ -396,6 +396,32 @@ class RenderError(Exception):
     pass
 
 
+# A rejected run is deliberately not renderable by any surface: DESIGN.md's "Not yet decided"
+# settles the pending and approved states only, and inventing a look for a rejected run would be
+# shipping a design this project has not made.
+RENDERABLE_STATES = ("approved", "pending")
+
+
+def precheck(manifest: dict, run_dir: Path) -> None:
+    """The two gates every render surface passes, before it renders anything.
+
+    Lives here, called by both `render_run` and `render_dashboard`, because a second renderer
+    that re-derives these by hand is a second renderer that can drift out of agreement with the
+    first — and it did: the dashboard shipped with neither gate, so a tampered artifact and a
+    rejected run both rendered clean. A render is a client-facing surface; it attests to the
+    bytes on disk exactly as the approval gate does.
+    """
+    status = manifest.get("status")
+    if status not in RENDERABLE_STATES:
+        raise RenderError(
+            f"run '{manifest.get('run_id')}' is {status!r}; only "
+            f"{' or '.join(RENDERABLE_STATES)} runs can be rendered"
+        )
+    # Re-derives each artifact's review from the bytes on disk, so no render can show a
+    # governance verdict that no longer matches what is actually there.
+    verify_artifacts(run_dir, manifest)
+
+
 def esc(text: str | None) -> str:
     return html.escape(text or "", quote=True)
 
@@ -481,7 +507,7 @@ def _render_prose(body: str) -> str:
     return "".join(f"<p>{mdlite(p.strip())}</p>" for p in body.split("\n\n") if p.strip())
 
 
-def _parse_milestones(body: str) -> list[str]:
+def parse_milestones(body: str) -> list[str]:
     """The Lead's Next Steps as discrete milestones, not a paragraph blob — same numbered-line
     detection as _render_next_steps, but returning plain strings so the caller can give each
     one its own visually distinct block."""
@@ -645,10 +671,56 @@ _TEAM_COLORS = (
 _STOPWORDS = {"and", "the", "of", "for"}
 
 
-def _initials(title: str) -> str:
+def initials(title: str) -> str:
+    """Two letters for an avatar, skipping the words nobody initialises.
+
+    Public because the dashboard needs the same answer: it had its own
+    `title.split()[:2]` version, which turned "Head of Data" into HO where this returns HD.
+    Two renderers of the same run disagreeing about a person's initials is a small bug that
+    reads as a broken page.
+    """
     words = [w for w in re.split(r"[\s/&]+", title) if w and w.lower() not in _STOPWORDS]
     letters = "".join(w[0] for w in words[:2]).upper()
     return letters or title[:2].upper()
+
+
+_SEVERITY_ORDER = {"blocking": 0, "serious": 1, "minor": 2}
+
+
+def pushback_rows(artifacts: list[dict], *, by_severity: bool = False) -> list[dict]:
+    """Every critique point in a run, flattened and normalised once.
+
+    Both render surfaces walked this structure themselves, with the same `or "unanswered"`
+    default written twice. The one real difference is order, so it is a parameter: the
+    narrative page keeps them in the order they happened, because it is a story; the dashboard
+    sorts worst-first, because it is a scan.
+    """
+    rows = [
+        {
+            "role": a["role"],
+            "role_label": a["role"].replace("_", " "),
+            "severity": p.get("severity", ""),
+            "dimension": p.get("dimension", ""),
+            "claim": p.get("claim", ""),
+            "response": p.get("response", ""),
+            "disposition": p.get("disposition") or "unanswered",
+        }
+        for a in artifacts
+        for p in (a.get("critique") or {}).get("points") or []
+    ]
+    if by_severity:
+        rows.sort(key=lambda r: _SEVERITY_ORDER.get(r["severity"], 3))
+    return rows
+
+
+def staffing(plan: dict) -> tuple[list[dict], list[dict]]:
+    """Who was dispatched and who stayed on the bench.
+
+    Tolerates a pre-v0.22 manifest, which carries no `staffing` at all: both lists come back
+    empty rather than raising, so an old run still renders.
+    """
+    st = plan.get("staffing") or {}
+    return list(st.get("dispatched") or []), list(st.get("absent") or [])
 
 
 def _toc(artifacts: list[dict]) -> str:
@@ -663,7 +735,7 @@ def _toc(artifacts: list[dict]) -> str:
         color = _TEAM_COLORS[i % len(_TEAM_COLORS)]
         items.append(
             f'<li><a href="{href}">'
-            f'<span class="avatar" style="background:{color}">{esc(_initials(r.title))}</span>'
+            f'<span class="avatar" style="background:{color}">{esc(initials(r.title))}</span>'
             f'<span class="toc-name">{esc(r.title)}</span>'
             f'<span class="toc-remit">{esc(r.instruction)}</span>'
             "</a></li>"
@@ -893,8 +965,7 @@ def _staffing_section(plan: dict) -> str:
     Deterministic: the router can name the rule and the word that summoned each advisor, and
     the words that would have summoned the ones who never appeared.
     """
-    staffing = plan.get("staffing") or {}
-    dispatched, absent = staffing.get("dispatched") or [], staffing.get("absent") or []
+    dispatched, absent = staffing(plan)
     if not dispatched:
         return ""
     rows = "".join(
@@ -925,22 +996,15 @@ def _pushback_section(artifacts: list[dict]) -> str:
     The story below carries these in context, but a reviewer deciding whether they agree with
     the direction should not have to reassemble the argument from three separate accounts.
     """
-    rows = []
-    for a in artifacts:
-        critique = a.get("critique") or {}
-        for point in critique.get("points") or []:
-            disposition = point.get("disposition") or "unanswered"
-            cls = "kept" if disposition == "accepted" else "held"
-            rows.append(
-                f'<div class="pb {cls}">'
-                f'<div class="pb-head"><span class="pb-role">{esc(a["role"].replace("_", " "))}'
-                f'</span><span class="pb-dim">{esc(point.get("severity", ""))} / '
-                f"{esc(point.get('dimension', ''))}</span>"
-                f'<span class="pb-verdict">{esc(disposition)}</span></div>'
-                f'<p class="pb-claim">{mdlite(point.get("claim", ""))}</p>'
-                f'<p class="pb-resp">{mdlite(point.get("response", "") or "No response recorded.")}'
-                "</p></div>"
-            )
+    rows = [
+        f'<div class="pb {"kept" if p["disposition"] == "accepted" else "held"}">'
+        f'<div class="pb-head"><span class="pb-role">{esc(p["role_label"])}'
+        f'</span><span class="pb-dim">{esc(p["severity"])} / {esc(p["dimension"])}</span>'
+        f'<span class="pb-verdict">{esc(p["disposition"])}</span></div>'
+        f'<p class="pb-claim">{mdlite(p["claim"])}</p>'
+        f'<p class="pb-resp">{mdlite(p["response"] or "No response recorded.")}</p></div>'
+        for p in pushback_rows(artifacts)
+    ]
     if not rows:
         return ""
     return (
@@ -996,7 +1060,7 @@ def _synthesis_section(artifact: dict, text: str) -> str:
     )
     next_steps = sections.get("next steps", "")
     if next_steps:
-        milestones = _parse_milestones(next_steps)
+        milestones = parse_milestones(next_steps)
         items = "".join(
             f'<li class="milestone"><span class="num">{i}</span><p>{mdlite(m)}</p></li>'
             for i, m in enumerate(milestones, 1)
@@ -1041,16 +1105,8 @@ def render_run(manifest: dict, run_dir: Path) -> str:
     consulting lead reviews *before* deciding, so it carries the same debate and the same Team's
     Plan, with the decision section replaced by a call to act rather than a record of one.
     """
-    status = manifest.get("status")
-    if status not in ("approved", "pending"):
-        raise RenderError(
-            f"run '{manifest.get('run_id')}' is {status!r}; only approved or pending runs can "
-            "be rendered"
-        )
-    # Same integrity check either side of the decision: verify_artifacts re-derives each
-    # artifact's review from the bytes on disk, so a pending render can't show a plan whose
-    # governance verdict no longer matches what's actually there any more than an approved one.
-    verify_artifacts(run_dir, manifest)
+    # Same gates either side of the decision, and the same gates the dashboard passes.
+    precheck(manifest, run_dir)
 
     artifacts = manifest.get("artifacts") or []
     texts = {

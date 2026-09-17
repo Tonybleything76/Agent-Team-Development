@@ -1,4 +1,5 @@
 import argparse
+import getpass
 import json
 import logging
 import os
@@ -11,6 +12,7 @@ from .governance import strip_controls
 from .llm import PROVIDERS, get_llm
 from .render import RenderError, render_run
 from .roles import ROLES
+from .router import Router
 from .storage import (
     ARTIFACT_DIR_ENV,
     DEFAULT_ARTIFACT_DIR,
@@ -20,6 +22,7 @@ from .storage import (
     STATES,
     StorageError,
     artifact_root,
+    base_root,
     find_run,
     log_path,
     read_manifest,
@@ -83,9 +86,84 @@ def load_dotenv(path: Path) -> None:
         os.environ[key] = value
 
 
+# Every seat that reasons about the work now carries the context (see llm.build_prompt and
+# its siblings): the draft, the critic's read of it, and the author's revision, for each
+# specialist and again for the Engagement Lead. An upper bound, because the revision only
+# happens when the critic actually returned points.
+_CALLS_PER_ROLE_WITH_CRITIQUE = 3
+
+
+def _context_spend(task: str, critique: bool) -> tuple[list[str], int]:
+    """Which roles this task routes to, and how many calls would carry the context.
+
+    The router is keyword-based and deterministic, so asking it costs nothing and gives the
+    real plan rather than an estimate — the same free dry-run the approved design doc puts
+    before any spend confirmation.
+    """
+    roles = Router().route(task).roles
+    per_role = _CALLS_PER_ROLE_WITH_CRITIQUE if critique else 1
+    return roles, (len(roles) + 1) * per_role  # +1: the Engagement Lead
+
+
+def _context_summary(ctx: engagement.LoadedContext, roles: list[str], calls: int) -> str:
+    """What a human needs in front of them to answer "may this be sent" honestly.
+
+    Not just which files: how big, from which directory on disk, to how many seats, over how
+    many paid calls. "Yes" to one call and "yes" to thirty are different answers, and the
+    person giving it should not have to work out which one they are giving.
+    """
+    lines = [
+        f"This run would send {len(ctx.sent_files)} file(s) ({ctx.chars:,} characters) "
+        f"from {ctx.source_dir}",
+        f"to {len(roles) + 1} seat(s) ({', '.join(roles)}, engagement_lead), "
+        f"over up to {calls} provider call(s).",
+        "",
+    ]
+    for r in ctx.read:
+        # Both the filename and a symlink's target come off the filesystem and can carry ANSI
+        # escapes. This is the exact text a human reads before answering y/N, so a crafted
+        # name could scroll rows of it out of view. `_cmd_show` already sanitises model output
+        # for the same reason; the consent prompt is a worse place to omit it.
+        detail = f" -> {strip_controls(r['resolves_to'])}" if r.get("resolves_to") else ""
+        lines.append(f"  {strip_controls(r['file']):<40} {strip_controls(r['state'])}{detail}")
+    return "\n".join(lines)
+
+
+def _clear_context(args, ctx: engagement.LoadedContext) -> engagement.LoadedContext:
+    """Answer "may this client material go to the provider" before the first call is made.
+
+    The approved design doc names this as a hard constraint and nothing in the shipped code
+    asked. It is asked here, where a human is, and recorded on the run (see
+    LoadedContext.cleared_by). Clearing a run for the provider clears nothing else: publishing
+    the rendered result anywhere is a separate question, asked separately, at that time.
+    """
+    if not ctx.block:
+        return ctx
+    by = (args.cleared_by or "").strip() or getpass.getuser()
+    if args.context_cleared:
+        return ctx.cleared_by(by, "--context-cleared")
+    roles, calls = _context_spend(args.task, args.critique)
+    if not sys.stdin.isatty():
+        # Nobody is there to answer. Refusing is the only safe reading of silence.
+        raise ValueError(
+            f"{_context_summary(ctx, roles, calls)}\n"
+            "Nothing was cleared and nothing is interactive here. Re-run with "
+            "--context-cleared (and --cleared-by <name>) to send it, or move the files out of "
+            "the context folder."
+        )
+    print(_context_summary(ctx, roles, calls))
+    answer = input(f"Send this client material to the provider, on {by}'s name? [y/N] ")
+    if answer.strip().lower() not in ("y", "yes"):
+        raise ValueError("context not cleared; nothing was sent")
+    return ctx.cleared_by(by, "prompt")
+
+
 def _cmd_run(args) -> int:
+    # Assembled before the provider exists, and carried into the run rather than re-read there:
+    # the bytes a human clears and the bytes that go out have to be the same bytes.
+    ctx = _clear_context(args, engagement.prepare_context(base_root()))
     llm = get_llm(args.provider)
-    rec = orchestrator.run(args.task, llm=llm, critique=args.critique)
+    rec = orchestrator.run(args.task, llm=llm, critique=args.critique, context=ctx)
     print(f"run_id: {rec.run_id}  provider: {rec.provider}")
     print(f"plan:   {rec.plan['roles']}  (rules: {rec.plan['matched_rules'] or 'default'})")
     for a in rec.artifacts:
@@ -177,6 +255,45 @@ def _cmd_render(args) -> int:
     return 0
 
 
+# What to actually type, per pending_action. The command answers "what now" with a command,
+# not with a word the reader then has to translate.
+_NEXT_COMMAND = {
+    "wait": "still running; poll `huminloop status {run_id} --json` until it leaves running",
+    "resynthesize": "huminloop resynthesize {run_id}",
+    "approve": 'huminloop approve {run_id} --by "<name>"',
+    "reject": 'huminloop reject {run_id} --by "<name>" --reason "<why>"',
+    "done": "nothing; this run is decided",
+}
+
+
+def _cmd_status(args) -> int:
+    s = gate.status(args.run_id)
+    if args.json:
+        # The one contract anything scripting this should read. Never parse the prose below:
+        # a status word that changes wording between releases breaks a caller silently.
+        print(json.dumps(s, indent=2, sort_keys=True))
+        return 0
+    print(f"run {s['run_id']}  status: {s['status']}")
+    if s["needs_resynthesize"]:
+        print("  the Engagement Lead's synthesis came back empty; resynthesize can fix it")
+    if s["interrupted"]:
+        print("  this run died before it finished; it cannot be approved")
+    if s["flagged_roles"]:
+        print(f"  flagged for your attention: {', '.join(s['flagged_roles'])}")
+    if s["unrevised_roles"]:
+        # Named plainly, with no fix offered, because none exists. Silence here would read as
+        # "everything was challenged", which is the opposite of what happened.
+        print(
+            f"  never challenged (the critic call returned nothing): "
+            f"{', '.join(s['unrevised_roles'])} — no recovery command exists for this"
+        )
+    # .get(), not [] — a sixth action added to gate.PENDING_ACTIONS must not crash the one
+    # command a human runs to ask what to do next. The test asserts the keys stay in step.
+    nxt = _NEXT_COMMAND.get(s["pending_action"], "see `huminloop status {run_id} --json`")
+    print(f"  next: {nxt.format(run_id=s['run_id'])}")
+    return 0
+
+
 def _cmd_show(args) -> int:
     found = find_run(artifact_root(None), args.run_id)
     if not found:
@@ -264,6 +381,13 @@ def _cmd_engagement(args) -> int:
         print(f"no engagements in {engagement.engagements_dir()}")
         return 0
     for e in rows:
+        if e.get("status") == "corrupt":
+            # Named and marked rather than omitted: a row that disappears reads as "you never
+            # created it", which is the one thing it definitely does not mean.
+            # stdout, inline with the rest, exactly as `pending` prints a corrupt run: a
+            # broken engagement is a row in the list, not a side channel.
+            print(f"{e['slug']:<24} CORRUPT     {e['error']}")
+            continue
         ctx = len(engagement.context_files(engagement.path_for(e["slug"])))
         print(f"{e['slug']:<24} {e['created_at'][:10]}  {ctx} context file(s)  {e['name']}")
     return 0
@@ -289,7 +413,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "--engagement",
-        help="work inside this client engagement in ~/Cowork/Engagements (created on first use)",
+        help="work inside an existing client engagement in ~/Cowork/Engagements "
+        '(create one with `huminloop engagement new "<name>"`)',
     )
     p.add_argument(
         "--env-file",
@@ -307,6 +432,16 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_false",
         help="skip the critique round (faster and cheaper; the draft is what you get)",
     )
+    s.add_argument(
+        "--context-cleared",
+        action="store_true",
+        help="confirm this engagement's context/ may be sent to the model provider "
+        "(for scripts; interactively you are asked)",
+    )
+    s.add_argument(
+        "--cleared-by",
+        help="name recorded as having cleared the context (default: the OS user)",
+    )
     s.set_defaults(fn=_cmd_run)
 
     s = sub.add_parser(
@@ -322,6 +457,15 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("pending", help="list runs awaiting a human decision")
     s.add_argument("--state", default="pending", choices=STATES)
     s.set_defaults(fn=_cmd_pending)
+
+    s = sub.add_parser(
+        "status", help="what this run needs right now (--json for anything scripting it)"
+    )
+    s.add_argument("run_id")
+    s.add_argument(
+        "--json", action="store_true", help="machine-readable; the contract callers should read"
+    )
+    s.set_defaults(fn=_cmd_status)
 
     s = sub.add_parser("show", help="print a run's manifest and artifacts")
     s.add_argument("run_id")
@@ -394,17 +538,30 @@ def main(argv: list[str] | None = None) -> int:
         load_dotenv(Path(args.env_file))
         root = args.root
         if getattr(args, "engagement", None):
+            if root:
+                # They mean different roots. Silently letting one win would run client work
+                # into a directory the operator did not name.
+                raise ValueError(
+                    "--root and --engagement both set a run root; pass one or the other"
+                )
             # An engagement folder *is* a run root: same out/ and logs/ layout, plus the parts
             # that outlive a single run (context, documents, the brief).
-            slug = engagement.slugify(args.engagement)
-            root = str(engagement.resolve_root(slug, create_missing=True, name=args.engagement))
+            root = str(engagement.resolve_root(engagement.slugify(args.engagement)))
         if root:
             # --root wins over anything .env says, including absolute ARTIFACT_DIR/LOG_DIR.
             os.environ[ROOT_ENV] = root
             os.environ[ARTIFACT_DIR_ENV] = DEFAULT_ARTIFACT_DIR
             os.environ[LOG_DIR_ENV] = DEFAULT_LOG_DIR
         return args.fn(args)
-    except (gate.GateError, RenderError, StorageError, ValueError, RuntimeError, OSError) as exc:
+    except (
+        gate.GateError,
+        engagement.EngagementError,
+        RenderError,
+        StorageError,
+        ValueError,
+        RuntimeError,
+        OSError,
+    ) as exc:
         if args.verbose:
             raise
         print(f"error: {exc}", file=sys.stderr)

@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 
 from .governance import flagged_roles, review_text
+from .orchestrator import CRITIC_ROLE, SYNTHESIS_ROLE
 from .storage import (
     MANIFEST_NAME,
     StorageError,
@@ -59,6 +60,115 @@ def verify_artifacts(d: Path, manifest: dict) -> None:
                 f"manifest disagrees with {a['file']} (recorded ok={recorded}, "
                 f"recomputed ok={recomputed.ok}); refusing to decide"
             )
+
+
+# ---------------------------------------------------------------------------
+# The `status` contract: one answer to "what does this run need right now".
+#
+# Five surfaces (`pending`, `show`, `render`, `serve`, and the gate itself) each worked this
+# out for themselves, which is five chances to disagree. The approved design doc proposed the
+# shape below as a first cut and left the exact enums to implementation; they are settled here.
+#
+# `reject` is the one addition to the doc's four-value `pending_action`. Without it an
+# interrupted run reports `approve`, and `approve` then refuses it — the command would be
+# handing out an answer the very next command contradicts, which is the failure this exists to
+# end. Reject is that run's only legal move, so the enum says so.
+# ---------------------------------------------------------------------------
+RUN_STATUSES = ("running", "pending", "approved", "rejected")
+PENDING_ACTIONS = ("wait", "resynthesize", "approve", "reject", "done")
+# Statuses a manifest carries when a run died before it finished. The directory still says
+# pending; nothing is alive; approve refuses it by name.
+INTERRUPTED_STATUSES = ("running", "incomplete")
+_DECISION_ACTION = {"approved": "approve", "rejected": "reject"}
+
+
+def status(run_id: str, root: Path | None = None) -> dict:
+    """What this run needs right now, as recorded fact rather than caller inference.
+
+    `needs_resynthesize` is narrow on purpose: it is true exactly when `resynthesize` would
+    both be accepted and be the thing to do — pattern (a), the Engagement Lead's own synthesis
+    call coming back empty. It mirrors that function's preconditions rather than guessing at
+    them, so "the status command said yes and the command then refused" cannot happen.
+
+    `unrevised_roles` is pattern (b): a specialist's *critic* call returned empty, so that
+    artifact was never challenged and never revised. There is no recovery command for it. The
+    two are reported separately and never merged — claiming `resynthesize` covers pattern (b)
+    would offer a fix that does nothing. Today pattern (b) is otherwise invisible: such an
+    artifact has no error, no process flags, and a clean review, so `flagged_roles` never
+    mentions it.
+
+    `flagged_roles` and `needs_resynthesize` are independent and can both be set: a flagged run
+    is one a human must look at, not one that is blocked from reaching approval.
+
+    Raises rather than inventing a state: an unknown run_id or an unreadable manifest is an
+    error to surface, never something a caller should wait out.
+    """
+    root = artifact_root(root)
+    try:
+        validate_run_id(run_id)
+        found = find_run(root, run_id)
+    except StorageError as exc:
+        raise GateError(str(exc)) from exc
+    if not found:
+        raise GateError(f"run '{run_id}' not found under {root}")
+    state, d = found
+    try:
+        manifest = read_manifest(d)
+    except StorageError as exc:
+        raise GateError(str(exc)) from exc
+
+    artifacts = manifest.get("artifacts") or []
+    live = lock_holder_alive(d)
+    recorded = str(manifest.get("status") or "")
+    interrupted = state == "pending" and not live and recorded in INTERRUPTED_STATUSES
+
+    lead_succeeded = any(a.get("role") == SYNTHESIS_ROLE and not a.get("error") for a in artifacts)
+    # Excludes the lead, exactly as resynthesize() does before deciding it has something to work
+    # from: a lead artifact is what it produces, never an input to producing one.
+    specialists_survived = any(
+        not a.get("error") for a in artifacts if a.get("role") != SYNTHESIS_ROLE
+    )
+    needs_resynthesize = bool(
+        state == "pending" and not live and not lead_succeeded and specialists_survived
+    )
+
+    # Only meaningful when this run critiqued at all: --no-critique leaves every artifact
+    # without one, and that is a choice the operator made, not a critic that failed.
+    critiqued = any(a.get("critique") for a in artifacts)
+    unrevised_roles = [
+        a["role"]
+        for a in artifacts
+        if critiqued
+        and not a.get("error")
+        and not a.get("critique")
+        and a.get("role") != CRITIC_ROLE  # the critic is never its own critic
+    ]
+
+    decision = manifest.get("decision") or {}
+    if state in ("approved", "rejected"):
+        action = "done"
+    elif live:
+        action = "wait"
+    elif decision.get("state") in _DECISION_ACTION:
+        # A decision is recorded but the move did not complete; re-running that same command
+        # finishes it, and no other decision is allowed to.
+        action = _DECISION_ACTION[decision["state"]]
+    elif needs_resynthesize:
+        action = "resynthesize"
+    elif interrupted:
+        action = "reject"
+    else:
+        action = "approve"
+
+    return {
+        "run_id": manifest["run_id"],
+        "status": "running" if live else state,
+        "needs_resynthesize": needs_resynthesize,
+        "flagged_roles": flagged_roles(artifacts),
+        "unrevised_roles": unrevised_roles,
+        "interrupted": interrupted,
+        "pending_action": action,
+    }
 
 
 def list_runs(state: str = "pending", root: Path | None = None) -> list[dict]:
