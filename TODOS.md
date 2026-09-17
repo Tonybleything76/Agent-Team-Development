@@ -207,3 +207,33 @@ currently makes the approval gate depend on the whole run engine for two strings
 
 **Effort:** M
 **Priority:** P2
+
+### Deferred from the adversarial re-review (2026-09-17)
+
+Three findings against the pre-landing fixes themselves. The five defects that pass found are
+fixed; these need a decision.
+
+**The clearance record certifies itself.** `cleared_snapshot` checks the snapshot against a
+sha256 stored in the same `manifest.json` that whoever edited the snapshot also controls, and
+`gate.verify_artifacts` covers only `manifest["artifacts"]` — never `context_clearance`,
+`context_read`, or `out/<run>/context/context.md`. Reproduced: rewrite the snapshot, rewrite
+the hash, and the material is served still attributed to the original approver. The clearance
+also carries no `run_id`, so it is portable between runs. Fixing it properly means binding the
+clearance to the run, extending `verify_artifacts` to cover the snapshot, and writing the
+clearance into `logs/runs.jsonl`, which is the one append-only record here.
+**Effort:** M  **Priority:** P1
+
+**The audit record keys on basenames.** `context_files()` enumerates with `rglob`, but every
+row records `path.name`, so `context/notes.md` and `context/sub/notes.md` are indistinguishable
+in `context_read`, in `clearance["files"]`, in the consent prompt, on the dashboard chips, and
+in the `### notes.md` headers the model reads. A refused file can share a basename with a file
+that was read. The fix is to record the path relative to `context/`, which also touches the
+eval's unrecorded-files check.
+**Effort:** S  **Priority:** P1
+
+**Nothing surfaces the clearance.** It is written to the manifest and justified as existing so
+it can be proven later, but no reader shows it: not the report, not the dashboard, not
+`status`. Only `show`'s raw JSON dump exposes it. A human approving a run cannot see who
+cleared the client material it was built from, while both surfaces do show the unverified
+`context_read` chips.
+**Effort:** S  **Priority:** P1
