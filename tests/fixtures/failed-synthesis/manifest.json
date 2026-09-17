@@ -200,7 +200,7 @@
       "unreachable": []
     }
   },
-  "provider": "openrouter",
+  "provider": "dryrun",
   "run_id": "20260917_145051_55e78c",
   "status": "pending",
   "synthesis": null,
