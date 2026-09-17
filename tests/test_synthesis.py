@@ -450,3 +450,23 @@ def test_resynthesize_refuses_when_the_cleared_snapshot_is_gone(tmp_path, monkey
     finally:
         if sabotage == "unreadable":
             snap.chmod(0o644)
+
+
+def test_resynthesize_refuses_a_lost_snapshot_even_with_no_clearance_recorded(tmp_path):
+    """The guard originally keyed on `clearance` alone, so the hole stayed open through the
+    null-clearance branch: context_read still advertised the files as read while the lead was
+    rewritten having been given nothing."""
+    from huminloop.engagement import EngagementError
+
+    failing = RecordingLLM(fail_roles=("engagement_lead",))
+    rec = orchestrator.run("Define KPIs and a dashboard", llm=failing, critique=False)
+    d = artifact_root() / "pending" / rec.run_id
+    m = json.loads((d / "manifest.json").read_text())
+    m["context_read"] = [{"chars": 35, "file": "client.md", "state": "read"}]
+    m["context_clearance"] = None
+    (d / "manifest.json").write_text(json.dumps(m))
+
+    retry = RecordingLLM()
+    with pytest.raises(EngagementError, match="snapshot is missing or empty"):
+        orchestrator.resynthesize(rec.run_id, llm=retry)
+    assert retry.calls == []

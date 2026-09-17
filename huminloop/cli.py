@@ -8,7 +8,7 @@ from pathlib import Path
 
 from . import __version__, engagement, gate, orchestrator, stats
 from .dashboard import render_dashboard
-from .governance import one_line, strip_controls
+from .governance import LINE_MAX_CHARS, one_line, strip_controls
 from .llm import PROVIDERS, get_llm
 from .render import RenderError, render_run
 from .roles import ROLES
@@ -127,7 +127,10 @@ def _context_summary(ctx: engagement.LoadedContext, roles: list[str], calls: int
         # one_line, not strip_controls: the latter keeps newlines by design, so a filename
         # containing one forged extra rows in this very list. Reproduced 2026-09-17.
         detail = f" -> {one_line(r['resolves_to'])}" if r.get("resolves_to") else ""
-        lines.append(f"  {one_line(r['file']):<40} {one_line(r['state'])}{detail}")
+        # The filename shares a row with the state column, so it is bounded; the source
+        # directory above stands alone and is never cut.
+        name = one_line(r["file"], LINE_MAX_CHARS)
+        lines.append(f"  {name:<40} {one_line(r['state'])}{detail}")
     return "\n".join(lines)
 
 

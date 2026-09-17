@@ -19,7 +19,7 @@ from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 
-from .governance import ENGAGEMENT_FENCE, fenced
+from .governance import ENGAGEMENT_FENCE, fenced, one_line
 
 ENGAGEMENTS_ENV = "HUMINLOOP_ENGAGEMENTS"
 DEFAULT_ENGAGEMENTS_DIR = Path.home() / "Cowork" / "Engagements"
@@ -299,12 +299,17 @@ def load_context(root: Path, budget: int = CONTEXT_BUDGET_CHARS) -> tuple[str, l
             continue
         text = chunk.strip()
         if not text:
-            # Blank is blank whatever the byte count. Requiring `not over_budget` too meant a
-            # whitespace-only file bigger than the remaining budget took the truncation path
-            # instead: it recorded characters it never sent, emitted an empty "### name"
-            # section, and ate the budget the next real file needed. A wrong number in the
-            # audit record is worse than a missing one, because it reads as fact.
-            included.append({"file": path.name, "chars": 0, "state": "empty"})
+            # `_overflows` already knows whether real content lies past what we read, and the
+            # first version of this branch threw that answer away: a client file that merely
+            # opened with blank lines was recorded as empty, and its content never reached the
+            # team. Blank is blank only when nothing follows it.
+            included.append(
+                {
+                    "file": path.name,
+                    "chars": 0,
+                    "state": "dropped (budget)" if over_budget else "empty",
+                }
+            )
             continue
         state = "read"
         if over_budget or len(text) > remaining:
@@ -368,7 +373,7 @@ class LoadedContext:
         """
         c = self.clearance
         return bool(
-            c
+            isinstance(c, dict)
             and c.get("sha256") == hashlib.sha256(self.block.encode("utf-8")).hexdigest()
             and list(c.get("files") or []) == self.sent_files
         )
@@ -437,7 +442,9 @@ def read_snapshot(run_out: Path) -> str:
         return ""
 
 
-def cleared_snapshot(run_out: Path, clearance: dict | None) -> str:
+def cleared_snapshot(
+    run_out: Path, clearance: dict | None, context_read: list[dict] | None = None
+) -> str:
     """The run's context, proven to be exactly the bytes a named human cleared.
 
     `run()` refuses to send uncleared client material, but it was the only door with a lock on
@@ -450,16 +457,29 @@ def cleared_snapshot(run_out: Path, clearance: dict | None) -> str:
     The snapshot sits outside `gate.verify_artifacts` — it is evidence the team was given, not
     an artifact the team produced — so the clearance record's own sha256 is what pins it.
     """
+    if clearance is not None and not isinstance(clearance, dict):
+        # Straight off a manifest, so it can be any JSON. Fail with the error the CLI prints
+        # cleanly rather than an AttributeError traceback from .get().
+        raise EngagementError(
+            f"{run_out.name} has a context_clearance that is not an object; manifest is corrupt"
+        )
     block = read_snapshot(run_out)
+    # The run's own record of what it was given. Keying the guard on `clearance` alone left the
+    # original hole open through the null-clearance branch: with context_clearance absent and
+    # the snapshot removed, this returned "" and the lead was rewritten having been given
+    # nothing, while context_read still advertised the files as read.
+    sent = [r for r in (context_read or []) if r.get("state") in SENT_STATES]
     if not block:
-        if clearance:
+        if clearance or sent:
             # Failing open here would be the silent omission this function exists to stop: the
             # manifest still asserts a named human cleared N files, and the lead would quietly
             # rewrite the client-facing recommendation having been given nothing.
+            by = one_line(str((clearance or {}).get("by") or "nobody"))
+            count = len(sent) or len((clearance or {}).get("files") or [])
             raise EngagementError(
-                f"{run_out.name} records a clearance by {clearance.get('by', '?')} for "
-                f"{len(clearance.get('files') or [])} file(s), but its context snapshot is "
-                "missing or empty; refusing to resynthesize without the material it says it had"
+                f"{run_out.name} says it was given {count} context file(s) (cleared by {by}), "
+                "but its snapshot is missing or empty; refusing to resynthesize without the "
+                "material it says it had"
             )
         return ""
     if not clearance:
@@ -469,7 +489,8 @@ def cleared_snapshot(run_out: Path, clearance: dict | None) -> str:
     digest = hashlib.sha256(block.encode("utf-8")).hexdigest()
     if digest != clearance.get("sha256"):
         raise EngagementError(
-            f"{run_out.name}'s context has changed since {clearance.get('by', 'it was')} cleared "
-            "it; re-run rather than sending material nobody approved"
+            f"{run_out.name}'s context has changed since "
+            f"{one_line(str(clearance.get('by') or 'it was'))} cleared it; re-run rather than "
+            "sending material nobody approved"
         )
     return block

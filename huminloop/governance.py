@@ -66,13 +66,35 @@ FENCE_NOTICE_FORGED = "[fence marker notice in the source text]"
 # prose: POSIX allows a newline inside one, so a single crafted file can forge whole extra rows
 # in any one-row-per-line display -- including the consent prompt a human reads before allowing
 # client material to be sent.
-_LINE_UNSAFE_RE = re.compile(r"[\x00-\x1f\x7f-\x9f]")
+# C0/C1 controls, plus the non-C1 characters that still break or reorder a rendered row:
+# U+2028/U+2029 line and paragraph separators (legal in a POSIX filename), the bidi
+# overrides and isolates, the zero-width marks, and BOM. The C1 range alone let a filename
+# containing U+2028 forge a whole extra row with no sign anything had happened.
+_LINE_UNSAFE_RE = re.compile(
+    "[\x00-\x1f\x7f-\x9f\u200b-\u200f\u2028\u2029\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff]"
+)
+# A sensible width for a value sharing a row with other columns. Not applied by default: a
+# directory path on a line of its own must never be cut, or the prompt stops telling the
+# operator where the material actually came from.
+LINE_MAX_CHARS = 120
 
 
-def one_line(text: str) -> str:
-    """Text safe to put on one row of a list, and honest about having been cleaned."""
-    cleaned = _LINE_UNSAFE_RE.sub("", text)
-    return cleaned if cleaned == text else cleaned + "  [control characters removed]"
+def one_line(text: str, limit: int | None = None) -> str:
+    """Text safe to put on one row of a list, and unable to lie about being safe.
+
+    An earlier version stripped the offending characters and appended "[control characters
+    removed]". A filename can simply contain that sentence, and the cleaned and the faked case
+    were byte-identical — the same "plant the system's own notice" hole this module fixes for
+    fence markers. So a name that is not already plain is shown through `ascii()` instead:
+    quoted and escaped, so the oddity is visible in the name itself and nothing has to be
+    taken on trust.
+    """
+    if _LINE_UNSAFE_RE.search(text):
+        text = ascii(text)  # quotes it and escapes every offending character visibly
+    if limit and len(text) > limit:
+        # Stated, not silent: the row says it was cut rather than just ending early.
+        return text[: limit - 3] + "..."
+    return text
 
 
 def fenced(body: str, marker: str) -> str:

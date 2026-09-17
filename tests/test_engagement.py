@@ -527,3 +527,42 @@ def test_an_endless_blank_tail_gives_up_and_says_truncated(eng_dir, monkeypatch)
     (root / "context" / "c.txt").write_text("HEAD" + " " * 4000)
     _, read = engagement.load_context(root, budget=100)
     assert read[0]["state"] == "truncated"  # conservative: we stopped looking, so we say so
+
+
+def test_a_file_whose_blank_prefix_exceeds_the_budget_is_dropped_not_called_empty(eng_dir):
+    """`_overflows` knew real content lay beyond what was read and the caller threw that
+    answer away: a client file that merely opened with blank lines was recorded as empty and
+    its content never reached the team. Regression introduced 2026-09-17, caught the same day."""
+    root = engagement.create("Acme")
+    for name, mtime, body in (
+        ("old_notes.md", 1_700_000_000, "\n" * 40 + "400 field technicians."),
+        ("new.md", 1_700_000_200, "y" * 23998),
+    ):
+        f = root / "context" / name
+        f.write_text(body)
+        os.utime(f, (mtime, mtime))
+
+    _, read = engagement.load_context(root)  # default budget
+    states = {r["file"]: r["state"] for r in read}
+    assert states["new.md"] == "read"
+    assert states["old_notes.md"] == "dropped (budget)"  # not "empty" -- it has content
+    assert "empty" not in states.values()
+
+
+def test_a_genuinely_blank_file_is_still_empty(eng_dir):
+    """The other side of that fix: don't start calling real blanks 'dropped'."""
+    root = engagement.create("Acme")
+    (root / "context" / "blank.md").write_text("   \n\n  ")
+    _, read = engagement.load_context(root)
+    assert [(r["file"], r["state"]) for r in read] == [("blank.md", "empty")]
+
+
+def test_a_corrupt_clearance_is_a_clean_error_not_a_traceback(eng_dir):
+    """context_clearance comes off a manifest, so it can be any JSON."""
+    root = engagement.create("Acme")
+    (root / "context" / "d.md").write_text("client material")
+    ctx = engagement.prepare_context(root)
+    for junk in ("cleared", ["tony"], 7, ("a",)):
+        assert dataclasses.replace(ctx, clearance=junk).is_cleared is False
+    with pytest.raises(engagement.EngagementError, match="not an object"):
+        engagement.cleared_snapshot(root, "cleared")

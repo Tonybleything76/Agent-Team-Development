@@ -12,7 +12,7 @@ from .critique import (
     parse_critique,
 )
 from .engagement import LoadedContext, cleared_snapshot, prepare_context, snapshot_context
-from .governance import REQUIRED_SECTIONS, Review, flagged_roles, review_text
+from .governance import REQUIRED_SECTIONS, Review, flagged_roles, one_line, review_text
 from .llm import (
     LLMClient,
     ProviderConfigError,
@@ -375,7 +375,8 @@ def run(
         # code path forgot to ask.
         raise ValueError(
             f"engagement context is present but not cleared to send: {len(context.sent_files)} "
-            f"file(s) from {context.source_dir}. A named human must clear these exact bytes "
+            f"file(s) from {one_line(context.source_dir)}. A named human must clear these "
+            "exact bytes "
             "first (a clearance that does not match them does not count)"
         )
     engagement_context, context_read = context.block, context.read
@@ -588,7 +589,7 @@ def resynthesize(
     # snapshot existed have none, and get "" rather than today's folder contents. Checked
     # against the recorded clearance, because this is a second door into the provider and a
     # gate only the first door enforces is not a gate.
-    engagement_context = cleared_snapshot(out, record.context_clearance)
+    engagement_context = cleared_snapshot(out, record.context_clearance, record.context_read)
     write_lock(out)
     try:
         _do_synthesis(record, record.task, llm, out, run_id, log_file, critique, engagement_context)

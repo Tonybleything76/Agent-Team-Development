@@ -62,8 +62,9 @@ that contributed nothing, so read its `state`, not its length.
   unreadable or emptied, while the manifest still recorded that a named human had cleared it —
   the lead would have quietly rewritten the client-facing recommendation with nothing.
 - The gate on the first, paid pass only checked that *some* clearance existed, not that it
-  covered the bytes being sent; the recovery path was the stricter of the two. Both now use the
-  same proof.
+  covered the bytes being sent. It now verifies the sha256 and the file list. The recovery
+  path (`resynthesize`) verifies the sha256 but not the file list, so the two doors still
+  differ on that field — see the note below.
 - A ten-character document with a long blank tail was reported as truncated, handed the model a
   false truncation note, and charged the budget for text nobody sent.
 
@@ -74,7 +75,24 @@ that contributed nothing, so read its `state`, not its length.
 - `DESIGN.md` records why both surfaces exist and what each owes. `README` shows the context
   flow and the clearance gate.
 
-Tests 252 → 357, 100% coverage of every line this release adds. Evals gain a gated
+### What the clearance gate does and does not guarantee
+
+Worth stating plainly, because a control you over-trust is worse than one you know the edges
+of. It **does** stop engagement context reaching a model provider without a recorded human
+decision, on both the initial run and `resynthesize`, and it records who, when, and a sha256
+of the exact bytes so the decision can be produced afterwards.
+
+It does **not** authenticate that human: `--cleared-by` is free text and the fallback reads the
+environment, so the name is self-asserted, exactly as `gate.py` has always said of approvals.
+It does not protect the record from someone who can already write inside the run directory —
+the sha256 it checks against lives in the same `manifest.json`, `gate.verify_artifacts` covers
+only the artifacts, and the clearance carries no `run_id`. The fence defuses known markers
+byte-for-byte but not near-misses or unicode lookalikes. A hard link still reaches outside the
+engagement where a symlink is refused. The audit record keys on basenames, so two files with
+the same name in different subdirectories are not distinguishable. Each of these is written up
+with a reproduction in `TODOS.md` rather than left for you to discover.
+
+Tests 252 → 377, 100% coverage of every line this release adds. Evals gain a gated
 `specialists_receiving_engagement_context` count and four fence-survival cases; both guards
 were verified by reverting their fixes and watching them fail.
 

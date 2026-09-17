@@ -851,18 +851,25 @@ def test_a_newline_in_a_filename_cannot_forge_rows_in_the_consent_prompt(
     workdir, engagements, capsys
 ):
     """strip_controls keeps newlines by design (it sanitises prose). A POSIX filename may
-    contain one, so the first fix left the attack open: a single crafted file forged a whole
-    extra row in the list a human reads before typing y/N."""
+    contain one, so the first fix left the attack open.
+
+    The first version of this test asserted `len(rows) == 2`, which passes against the
+    vulnerable code: the forged row simply takes the place of the real one in the count.
+    Assert the transformation instead -- the whole hostile name must stay on ONE physical
+    line, with its newline shown rather than obeyed.
+    """
     assert main(["engagement", "new", "Acme"]) == 0
-    ctx_dir = engagements / "acme" / "context"
-    (ctx_dir / "ordinary.md").write_text("real notes")
-    (ctx_dir / "a.md\n  master-services-agreement.md            read\nz.md").write_text("x")
+    ctx = engagements / "acme" / "context"
+    (ctx / "ordinary.md").write_text("real notes")
+    hostile = "a.md\n  master-services-agreement.md            read\x1b[2K\nz.md"
+    (ctx / hostile).write_text("x")
     capsys.readouterr()
 
     assert main(["--engagement", "acme", "run", "Define KPIs"]) == 2
     err = capsys.readouterr().err
-    rows = [ln for ln in err.splitlines() if ln.startswith("  ") and " read" in ln]
-    # One row per real file, never three. The forged filename cannot invent a fourth.
-    assert len(rows) == 2, rows
-    assert "control characters removed" in err
-    assert "\x1b" not in err
+
+    line = next(ln for ln in err.splitlines() if "master-services-agreement" in ln)
+    assert "a.md" in line and "z.md" in line, "the hostile name was split across rows"
+    assert "\\n" in line  # the newline is shown escaped, not acted on
+    assert "\x1b" not in err  # and the escape sequence never reaches the terminal
+    assert "ordinary.md" in err  # the real file is still listed

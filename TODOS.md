@@ -237,3 +237,40 @@ it can be proven later, but no reader shows it: not the report, not the dashboar
 cleared the client material it was built from, while both surfaces do show the unverified
 `context_read` chips.
 **Effort:** S  **Priority:** P1
+
+### Deferred from the third adversarial round (2026-09-17)
+
+Round 3 reviewed round 2's fixes and found ten issues. Five were fixed; these five were not,
+and the 0.23.0 CHANGELOG now states each as a limit of the clearance gate rather than leaving
+it to be discovered.
+
+**`is_cleared` proves the bytes, not the human.** It checks `sha256` and `files` and ignores
+`by`, `at`, `method`, `bytes` and `source_dir`, all of which are written into the manifest as
+the permanent record. A clearance of `{"by": "", "at": "not-a-time", "method": "I made this
+up", "source_dir": "/somewhere/else"}` with a correct hash passes the gate and is recorded
+verbatim. Fix: require a non-empty `by`, a parseable `at`, a `method` from a known set, and
+`bytes`/`source_dir` consistent with the block. **Effort:** S **Priority:** P1
+
+**The two doors still differ on the file list.** `run()` uses `is_cleared` (sha256 + files);
+`resynthesize` uses `cleared_snapshot` (sha256 only), so a clearance naming entirely different
+files is accepted on the recovery path and rewritten into the manifest as the standing record.
+Fix: have `cleared_snapshot` reconstruct the predicate from the snapshot plus `context_read`
+and call `is_cleared`. **Effort:** S **Priority:** P1
+
+**`FENCE_NOTICE_FORGED` is itself never defused.** The identity no-op was moved rather than
+eliminated: a document can plant the terminal token and assert, in the system's own vocabulary,
+that a notice was found. Lower impact than the original (the forged claim is weaker) but the
+same unbounded shape. Fix: one idempotent self-describing token, or a per-run nonce so a
+planted copy never matches the emitted one. **Effort:** S **Priority:** P2
+
+**`_contained` reports every resolve failure as `unresolvable`.** A symlink loop or a target
+behind an unreadable directory that points outside the engagement now reads as benign
+housekeeping, and the reviewer loses the target path. Neither can leak (the open fails), so
+this is presentation. Fix: distinguish ENOENT from ELOOP/EACCES and keep `resolves_to` for the
+latter. **Effort:** S **Priority:** P2
+
+**Two weak assertions survive.** `tests/test_engagement.py`'s blank-file budget tests still
+pass with `_overflows` reverted to `len(chunk) > remaining`; they cover the blank-file branch
+correctly but do not pin the overflow logic. Only
+`test_a_short_file_with_a_long_blank_tail_is_not_called_truncated` does.
+**Effort:** S **Priority:** P2
