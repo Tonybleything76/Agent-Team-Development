@@ -31,12 +31,46 @@ palette validator) rather than colors picked by eye.
 
 ## What this system is for
 
-One page type: the rendered run, as a document to be **read start to finish**, not a dashboard to
-be scanned. It answers, in order: who was dispatched (a table of contents, not a persistent
-nav); what each of them concluded on their own and why, with citations; the real pushback each
-one took and why; why they revised (or didn't) in response; where they disagreed with each
-other; and the plan the Engagement Lead built once everyone had finished. The ending — the human
-decision — comes at the end, not spoiled in the header before any of the story has been told.
+**The narrative report** (`huminloop render`) is what this document specifies: the rendered run
+as a document to be **read start to finish**, not scanned. It answers, in order: who was
+dispatched (a table of contents, not a persistent nav); what each of them concluded on their own
+and why, with citations; the real pushback each one took and why; why they revised (or didn't) in
+response; where they disagreed with each other; and the plan the Engagement Lead built once
+everyone had finished. The ending — the human decision — comes at the end, not spoiled in the
+header before any of the story has been told.
+
+### Two surfaces, and why (added 2026-09-17)
+
+Until v0.22.0 this section opened "One page type", and Pivot 2 below records a dashboard being
+built and then deliberately reverted. v0.22.0 nonetheless shipped a second surface,
+`huminloop render --dashboard`, without amending this file. The 2026-09-16 engineering review
+put the contradiction to a decision rather than leaving the code and the document disagreeing.
+
+**The decision: both surfaces stay.** They answer different questions for different moments, and
+the revert in Pivot 2 was right about the question it was asked.
+
+| | `render` | `render --dashboard` |
+|---|---|---|
+| Question | "What happened, and do I agree with it?" | "What do I do now?" |
+| Moment | Reading the run through before deciding | A working session, often with the client present |
+| Shape | One column, read top to bottom, decision last | Seven tabs, dense, everything findable without scrolling |
+| Audience | The person signing their name to it | The person running the meeting |
+
+Pivot 2 did not establish that dashboards are wrong. It established that a dashboard is the wrong
+shape for *the artifact you read to decide* — the recommendation reduced to badges, the argument
+reduced to stat tiles. That finding stands, and the narrative report is still the surface this
+document specifies and still the default `render` produces. What v0.22.0 added is a different
+artifact answering a different question, not a second attempt at the same one.
+
+**What both surfaces owe, equally.** A render is client-facing output, so neither surface is a
+lighter-weight way to show a run. Both call `render.precheck()`: the status guard (approved or
+pending only — a rejected run has no settled design, see "Not yet decided") and
+`gate.verify_artifacts`, which re-derives every artifact's governance verdict from the bytes on
+disk. The dashboard shipped with neither, so a tampered artifact and a rejected run both rendered
+clean; that is fixed, and the shared function is what keeps the two from drifting apart again.
+Presentation-neutral helpers (`initials`, `pushback_rows`, `staffing`, `parse_milestones`) are
+public in `render.py` and shared for the same reason — the dashboard's own `initials` had already
+diverged, reading "Head of Data" as HO where the report read HD.
 
 ## Color
 
