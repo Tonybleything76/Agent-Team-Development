@@ -9,22 +9,30 @@ read at all (not valid JSON, an artifact entry that is not a mapping or has no `
 
 **Changed.** `reject` is accepted on a run whose artifacts fail verification, and records the
 failure as `verification_error` in the decision. `approve` stays refused. A reject may
-supersede a recorded but unfinished approval only when that run's bytes fail the check; the
-approval stays in `decisions` and the new entry names it under `supersedes`. Supersession
-takes its own claim file, so only one reject can supersede a given approval.
+supersede a recorded but unfinished approval only when that approval can no longer be
+completed: its bytes fail the check, or its run is marked interrupted. The approval stays in
+`decisions` and the new entry names it under `supersedes`. Supersession takes its own claim
+file, so only one reject can supersede a given approval.
 
 **Changed.** Verification no longer trusts the manifest to say how strict it is. An artifact
 with no recorded `sha256`, a `file` that resolves outside the run directory (absolute path,
 `..`, or symlink), or an entry whose `file` or `review` has the wrong type now fails the check.
 Every run the orchestrator writes already carries a digest; a manifest without one was edited.
 An artifact that carries both an `error` and a `file` fails too, since the orchestrator never
-writes both. A recorded `decision` is trusted only when it is a mapping whose `state` is
-`approved` or `rejected` and whose `by`, `at` and `note` are text; `decisions` only when it is a
-list of mappings. Anything else fails the check, one rule serves `status`, `approve`, `reject`,
-`reopen` and the inbox, and a write keeps the malformed value under `decision_malformed` or
-`decisions_malformed` (`annotations_malformed` for annotations); nothing is erased. Artifact
-bytes are hashed as written, so a deliverable containing carriage returns verifies. Verification messages no longer end in "refusing to decide": they are recorded inside
-successful rejects, and only `approve` adds "refusing to approve".
+writes both.
+
+**Changed.** A recorded `decision` is trusted only when it is a mapping whose `state` is
+`approved` or `rejected`, whose `by` and `at` are non-empty text, and whose `note` is text or
+null; `decisions` only when it is a list of mappings. One rule, `gate.recorded_decision`,
+serves `status`, `approve`, `reject`, `reopen`, `pending`, `show` and the inbox. Anything else
+fails the check, and a write keeps the malformed value under `decision_malformed`,
+`decisions_malformed` or `annotations_malformed`; nothing is erased.
+
+**Changed.** Artifacts are written as the exact bytes that were hashed, and verification
+accepts a file whose only difference from its digest is `\r\n` for `\n`, as a Windows
+text-mode write or a git `autocrlf` checkout produces. A deliverable that really contains
+carriage returns verifies too. Verification messages no longer end in "refusing to decide":
+they are recorded inside successful rejects, and only `approve` adds "refusing to approve".
 
 ### Fixed
 
@@ -58,10 +66,17 @@ successful rejects, and only `approve` adds "refusing to approve".
   lost, the manifest and the log named different people, and the loser crashed with a raw
   `FileNotFoundError`.
 - **A recorded decision whose `state` was a number, a list, null, missing or unknown was a dead
-  end.** `status` recommended `approve` or `reject`, and the gate refused both. So was a recorded
-  approval on a run whose `status` was edited to `incomplete`: `status` said approve and
-  `approve` refused it as interrupted. Both now recommend `reject`, which supersedes the
+  end.** `status` recommended `approve` or `reject`, and the gate refused both. It now
+  recommends `reject`, which sets the forged decision aside under `decision_malformed`. So was
+  a recorded approval on a run whose `status` was edited to `incomplete`: `status` said approve
+  and `approve` refused it as interrupted. It now recommends `reject`, which supersedes the
   approval.
+- **A recorded decision that named nobody could be completed**, moving a run with no named
+  approver. A decision now needs a non-empty `by` and `at` to be trusted.
+- **Completing a recorded decision did not write a set-aside to disk**, so the decided run kept
+  the malformed history that had failed verification.
+- **The terminal `pending` list and `show` crashed** on the same edited history the inbox was
+  fixed for.
 - **`reopen` and `annotate` crashed on edited history**, so a decided run whose decision was
   edited showed a reopen form that failed. Malformed values are set aside and the move
   completes.

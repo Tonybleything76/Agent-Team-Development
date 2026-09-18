@@ -309,7 +309,7 @@ def _do_synthesis(
                 log_file,
             )
     s_path = out / f"{SYNTHESIS_ROLE}.md"
-    s_path.write_text(s_text, encoding="utf-8")
+    s_path.write_text(s_text, encoding="utf-8", newline="")
     regs = parse_registers(s_text)
     record.artifacts.append(
         ArtifactRecord(
@@ -468,7 +468,7 @@ def run(
             if plan.used_default:
                 flags = [*flags, DEFAULT_PLAN_FLAG]
             path = out / f"{role_key}.md"
-            path.write_text(text, encoding="utf-8")
+            path.write_text(text, encoding="utf-8", newline="")
             review_dict = asdict(review) | {"verdict": review.verdict}
             record.artifacts.append(
                 ArtifactRecord(

@@ -402,3 +402,12 @@ def test_a_flag_field_that_is_a_bare_string_shows_whole():
     """Without the list check a string was iterated character by character."""
     m = {"artifacts": [{"role": "analyst", "process_flags": "odd"}]}
     assert server.other_flags(m) == ["analyst: odd"]
+
+
+def test_the_fallback_does_not_claim_a_forged_reject_is_kept(workdir, capsys, state, live):
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    base = {"state": "rejected", "by": 5, "at": "2026-09-18T00:00:00+00:00"}
+    _set_manifest(rid, decision=base)
+    code, page = _http(live, "GET", f"/run/{rid}")
+    assert code == 200 and "already recorded" not in page

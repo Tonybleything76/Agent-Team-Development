@@ -69,15 +69,9 @@ def _row(manifest: dict, state: str) -> str:
     run_id = manifest.get("run_id", "?")
     task = esc(str(manifest.get("task") or "")[:120])
     # One edited manifest must not take down the list for every run: count only what has the
-    # shape the gate writes.
-    annotations = manifest.get("annotations")
-    history = manifest.get("decisions")
-    notes = len(annotations) if isinstance(annotations, list) else 0
-    reopens = sum(
-        1
-        for d in (history if isinstance(history, list) else [])
-        if isinstance(d, dict) and d.get("state") == "reopened"
-    )
+    # shape the gate writes, by the gate's own rule.
+    notes = len(gate.annotations(manifest))
+    reopens = sum(1 for d in gate.history(manifest) if d.get("state") == "reopened")
     asks = len(escalations(manifest))
     chips = ""
     if asks:

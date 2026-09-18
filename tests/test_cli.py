@@ -1367,6 +1367,13 @@ _CRASHERS = {
         rid, lambda m: m.update(decision={"by": "x"})
     ),
     "decision name is a number": lambda rid: _edit_decision(rid, by=5),
+    "decision time is a number": lambda rid: _edit_decision(rid, at=5),
+    "decision note is a list": lambda rid: _edit_decision(rid, note=["x"]),
+    # Round 3: a recorded decision naming nobody would move the run with no named approver.
+    "decision names nobody": lambda rid: _edit_manifest(
+        rid, lambda m: m.update(decision={"state": "approved"})
+    ),
+    "decision name is blank": lambda rid: _edit_decision(rid, by="  "),
     "decisions holds a non-mapping": lambda rid: _edit_manifest(
         rid, lambda m: m.update(decisions=["x"])
     ),
@@ -1494,7 +1501,7 @@ def test_a_deliverable_with_carriage_returns_verifies(workdir, capsys):
     def edit(m):
         a = _first_file(m)
         text = (d / a["file"]).read_text().replace("\n", "\r\n")
-        (d / a["file"]).write_bytes(text.encode("utf-8"))  # as the orchestrator writes it
+        (d / a["file"]).write_bytes(text.encode("utf-8"))  # content that truly has \r\n
         a.update(sha256=sha256_text(text), review={"ok": review_text(text).ok})
 
     _edit_manifest(rid, edit)
@@ -1541,3 +1548,117 @@ def test_an_interrupt_during_the_write_does_not_leave_a_claim(workdir, capsys, m
     assert not (d / gate.DECISION_CLAIM).exists()
     monkeypatch.setattr(gate, "write_manifest", real)
     gate.approve(rid, by="Tony")
+
+
+# Round 3.
+
+
+def test_a_windows_text_mode_write_still_verifies(workdir, capsys, monkeypatch):
+    """Hashing raw bytes failed every run written in text mode on Windows (\\n became \\r\\n)."""
+    import pathlib
+
+    real = pathlib.Path.write_text
+
+    def windows(self, data, encoding=None, errors=None, newline=None):
+        if newline is None:
+            data, newline = data.replace("\n", "\r\n"), ""
+        return real(self, data, encoding=encoding, errors=errors, newline=newline)
+
+    monkeypatch.setattr(pathlib.Path, "write_text", windows)
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    monkeypatch.setattr(pathlib.Path, "write_text", real)
+    rid = _run_id_from(capsys.readouterr().out)
+    s = _status_json(rid, capsys)
+    assert s["artifacts_verified"] is True, s["verification_error"]
+    # And the writer, not only the fallback, gets it right: the bytes are the ones hashed.
+    d = _artifact_root() / "pending" / rid
+    for a in json.loads((d / "manifest.json").read_text())["artifacts"]:
+        if a.get("file"):
+            assert sha256_text((d / a["file"]).read_bytes().decode("utf-8")) == a["sha256"]
+
+
+def test_an_autocrlf_checkout_still_verifies(workdir, capsys):
+    """Line endings converted after the digest was taken are not a change of content."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    for f in (_artifact_root() / "pending" / rid).glob("*.md"):
+        f.write_bytes(f.read_bytes().replace(b"\n", b"\r\n"))
+    s = _status_json(rid, capsys)
+    assert s["artifacts_verified"] is True, s["verification_error"]
+
+
+def test_the_orchestrator_writes_the_bytes_it_hashed(workdir, capsys):
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    d = _artifact_root() / "pending" / rid
+    for a in json.loads((d / "manifest.json").read_text())["artifacts"]:
+        if a.get("file"):
+            raw = (d / a["file"]).read_bytes().decode("utf-8")
+            assert sha256_text(raw) == a["sha256"], a["file"]
+
+
+def test_completing_a_recorded_reject_writes_the_set_aside(workdir, capsys, failing_rename):
+    """The set-aside happened in memory only, so the decided run kept the bad history."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    brk, restore = failing_rename
+    brk()
+    with pytest.raises(OSError):
+        gate.reject(rid, by="Tony", reason="first look")
+    restore()
+    _edit_manifest(rid, lambda m: m["decisions"].append("x"))
+    gate.reject(rid, by="Tony", reason="first look")
+    m = json.loads((_artifact_root() / "rejected" / rid / "manifest.json").read_text())
+    assert m["decisions_malformed"][-1] == "x"
+    assert all(isinstance(h, dict) for h in m.get("decisions", []))
+
+
+def test_reopen_never_supersedes_a_forged_decision(workdir, capsys):
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    gate.reject(rid, by="Tony", reason="no")
+    mf = _artifact_root() / "rejected" / rid / "manifest.json"
+    forged = {"decision": {"state": "blocked", "by": "Mallory"}}
+    mf.write_text(json.dumps(json.loads(mf.read_text()) | forged))
+    gate.reopen(rid, by="Tony", reason="again")
+    m = json.loads((_artifact_root() / "pending" / rid / "manifest.json").read_text())
+    assert m["decisions"][-1]["supersedes"] is None
+
+
+def test_force_on_an_unflagged_run_is_not_recorded_as_forced(workdir, capsys):
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    m = gate.approve(rid, by="Tony", note="n", force=True)
+    assert m["decision"]["forced"] is False
+
+
+def test_reject_sets_aside_a_history_with_a_non_mapping(workdir, capsys):
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    _edit_manifest(rid, lambda m: m.update(decisions=["x"]))
+    gate.reject(rid, by="Tony", reason="edited")
+    m = json.loads((_artifact_root() / "rejected" / rid / "manifest.json").read_text())
+    assert m["decisions_malformed"] == ["x"]
+    assert all(isinstance(h, dict) for h in m["decisions"])
+
+
+@pytest.mark.parametrize(
+    "fields",
+    [{"decisions": ["x"]}, {"annotations": 5}, {"annotations": ["x", {"by": "T"}]}],
+    ids=["history-entry", "annotations-number", "annotation-entries"],
+)
+def test_the_terminal_list_and_show_survive_edited_history(workdir, capsys, fields):
+    """`pending` crashed for every run on the shapes the web inbox was fixed for."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    _edit_manifest(rid, lambda m: m.update(fields))
+    assert main(["pending"]) == 0 and rid in capsys.readouterr().out
+    assert main(["show", rid]) == 0
+
+
+def test_the_pending_list_does_not_call_a_forged_decision_recorded(workdir, capsys):
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    _edit_manifest(rid, lambda m: m.update(decision="x", status="approved"))
+    (row,) = [m for m in gate.list_runs("pending") if m["run_id"] == rid]
+    assert "decision recorded" not in row["status"]
