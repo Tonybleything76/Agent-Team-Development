@@ -422,8 +422,10 @@ def precheck(manifest: dict, run_dir: Path) -> None:
     verify_artifacts(run_dir, manifest)
 
 
-def esc(text: str | None) -> str:
-    return html.escape(text or "", quote=True)
+def esc(text: object) -> str:
+    # Manifest values reach here, and the manifest is editable: a number where a name belongs
+    # crashed html.escape and dropped the page. Stringify rather than trust the type.
+    return html.escape(str(text) if text else "", quote=True)
 
 
 _BOLD_RE = re.compile(r"\*\*(.+?)\*\*")

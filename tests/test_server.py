@@ -273,3 +273,74 @@ def test_the_fallback_says_why_truthfully(workdir, capsys, failing_rename, state
     restore()
     _, page = _http(live, "GET", f"/run/{rid}")
     assert "A reject by Tony is already recorded" in page and "original reason" in page
+
+
+def test_the_fallback_escapes_the_name_on_a_recorded_reject(
+    workdir, capsys, failing_rename, state, live
+):
+    """The recorded decider's name comes from the manifest and is printed on the page."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    brk, restore = failing_rename
+    brk()
+    with pytest.raises(OSError):
+        gate.reject(rid, by="<b>Tony</b>", reason="first look")
+    restore()
+    art = next((artifact_root() / "pending" / rid).glob("*.md"))
+    art.write_text(art.read_text() + "\nedited\n")  # the renderer refuses; the fallback prints
+    code, page = _http(live, "GET", f"/run/{rid}")
+    assert code == 200 and "A reject by &lt;b&gt;Tony&lt;/b&gt; is already recorded" in page
+    assert "<b>Tony</b>" not in page
+
+
+def test_a_non_string_flag_does_not_take_down_the_inbox(workdir, capsys, state, live):
+    """One `process_flags: [5]` crashed the list page for every run."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    mf = artifact_root() / "pending" / rid / "manifest.json"
+    m = json.loads(mf.read_text())
+    m["artifacts"][0]["process_flags"] = [5]
+    mf.write_text(json.dumps(m))
+    code, page = _http(live, "GET", "/")
+    assert code == 200 and rid in page
+    code, page = _http(live, "GET", f"/run/{rid}")
+    assert code == 200 and "reject" in _offered(page, rid)
+
+
+def test_a_non_string_recorded_name_still_gets_a_page(workdir, capsys, failing_rename, state, live):
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    brk, restore = failing_rename
+    brk()
+    with pytest.raises(OSError):
+        gate.reject(rid, by="Tony", reason="first look")
+    restore()
+    _set_manifest(
+        rid,
+        decision=json.loads((artifact_root() / "pending" / rid / "manifest.json").read_text())[
+            "decision"
+        ]
+        | {"by": 5},
+    )
+    code, page = _http(live, "GET", f"/run/{rid}")
+    assert code == 200 and "reject" in _offered(page, rid)
+
+
+def test_a_malformed_decision_still_gets_a_reject_form(workdir, capsys, state, live):
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    _set_manifest(rid, decision="approved")
+    code, page = _http(live, "GET", f"/run/{rid}")
+    assert code == 200 and _offered(page, rid) == {"reject"}
+    form = {"token": state.token, "by": "Tony", "reason": "malformed"}
+    assert _http(live, "POST", f"/run/{rid}/reject", form)[0] == 303
+
+
+def test_an_edited_run_is_told_it_failed_verification(workdir, capsys, state, live):
+    """The most common refused run had no test pinning its explanation."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    art = next((artifact_root() / "pending" / rid).glob("*.md"))
+    art.write_text(art.read_text() + "\nedited\n")
+    _, page = _http(live, "GET", f"/run/{rid}")
+    assert "cannot be verified" in page and "did not finish" not in page

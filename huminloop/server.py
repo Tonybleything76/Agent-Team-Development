@@ -14,6 +14,7 @@ in the same browser cannot post decisions on your behalf. The gate records *that
 decided; it still does not authenticate *who*, and a localhost server does not change that.
 """
 
+import logging
 import secrets
 import threading
 import webbrowser
@@ -25,6 +26,7 @@ from . import gate
 from .render import RenderError, esc, render_run
 from .storage import StorageError, artifact_root, find_run, read_manifest
 
+log = logging.getLogger(__name__)
 ALLOWED_HOSTS = {"localhost", "127.0.0.1", "[::1]"}
 ESCALATION_PREFIX = "Escalated to the human:"
 MAX_BODY = 64 * 1024
@@ -38,10 +40,17 @@ class ReviewState:
         self.token = secrets.token_urlsafe(24)
 
 
+def _flags(artifact: dict) -> list[str]:
+    # The manifest is editable. One non-string flag crashed the inbox list for every run, so
+    # each is stringified; an odd value still shows up rather than disappearing.
+    flags = artifact.get("process_flags") or []
+    return [str(f) for f in flags] if isinstance(flags, list) else [str(flags)]
+
+
 def escalations(manifest: dict) -> list[str]:
     out = []
     for artifact in manifest.get("artifacts", []):
-        for flag in artifact.get("process_flags") or []:
+        for flag in _flags(artifact):
             if flag.startswith(ESCALATION_PREFIX):
                 out.append(flag[len(ESCALATION_PREFIX) :].strip())
     return out
@@ -50,7 +59,7 @@ def escalations(manifest: dict) -> list[str]:
 def other_flags(manifest: dict) -> list[str]:
     out = []
     for artifact in manifest.get("artifacts", []):
-        for flag in artifact.get("process_flags") or []:
+        for flag in _flags(artifact):
             if not flag.startswith(ESCALATION_PREFIX):
                 out.append(f"{artifact['role']}: {flag}")
     return out
@@ -196,9 +205,10 @@ def _recorded_decision(state: ReviewState, run_id: str) -> dict:
     if not found:
         return {}
     try:
-        return read_manifest(found[1]).get("decision") or {}
+        decision = read_manifest(found[1]).get("decision")
     except StorageError:
         return {}
+    return decision if isinstance(decision, dict) else {}
 
 
 def _unrenderable_page(
@@ -277,6 +287,8 @@ def run_page(state: ReviewState, run_id: str, error: str | None = None) -> tuple
     except Exception as exc:  # noqa: BLE001
         # A manifest edited into a shape the renderer never expected (a `plan` that is a
         # string) used to drop the connection, leaving the web no way to reject the run.
+        # Logged, because the same fallback would otherwise hide a real renderer bug.
+        log.exception("run %s could not be rendered; serving the fallback page", run_id)
         return _unrenderable_page(
             state, run_id, f"the page could not be built ({type(exc).__name__})", error
         )

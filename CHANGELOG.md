@@ -3,8 +3,9 @@
 ## Unreleased
 
 A run whose files fail verification now has a way out of the queue, from the terminal and
-from the review inbox alike. One case still has none: a manifest that is not valid JSON, which
-`status`, `reject` and the inbox all refuse to read.
+from the review inbox alike. One case still has none: a manifest the storage layer refuses to
+read at all (not valid JSON, an artifact entry that is not a mapping or has no `role`, or a
+`run_id` that does not match its directory). `status`, `reject` and the inbox all refuse it.
 
 **Changed.** `reject` is accepted on a run whose artifacts fail verification, and records the
 failure as `verification_error` in the decision. `approve` stays refused. A reject may
@@ -16,6 +17,11 @@ takes its own claim file, so only one reject can supersede a given approval.
 with no recorded `sha256`, a `file` that resolves outside the run directory (absolute path,
 `..`, or symlink), or an entry whose `file` or `review` has the wrong type now fails the check.
 Every run the orchestrator writes already carries a digest; a manifest without one was edited.
+An artifact that carries both an `error` and a `file` fails too, since the orchestrator never
+writes both, and a `decision` or `decisions` of the wrong shape fails rather than crashing. A
+reject keeps a malformed value under `decision_malformed` or `decisions_malformed`; nothing is
+erased. Verification messages no longer end in "refusing to decide": they are recorded inside
+successful rejects, and only `approve` adds "refusing to approve".
 
 ### Fixed
 
@@ -45,7 +51,22 @@ Every run the orchestrator writes already carries a digest; a manifest without o
   lost, the manifest and the log named different people, and the loser crashed with a raw
   `FileNotFoundError`.
 - **A manifest field of the wrong type crashed `status`, `reject` and the inbox alike**, so the
-  run had no command the gate would accept. It is now a failed check that `reject` records.
+  run had no command the gate would accept. That covered `file`, `review` (including a falsey
+  non-mapping such as `""`), `sha256`, `decision` and `decisions`, and a `file` the filesystem
+  cannot resolve: a null byte, a name too long, or a symlink loop, which raises RuntimeError on
+  Python 3.12. Each is now a failed check that `reject` records.
+- **Setting `error` on an artifact that has a file skipped every check on it.** `approve
+  --force` then accepted bytes replaced after the run.
+- **A claim file outlived a failed attempt.** If writing the manifest failed after the claim was
+  taken, every later decision was refused as "being decided by another process", including the
+  reject `status` recommends. The claim is now removed when the attempt fails. A crash hard
+  enough to skip that cleanup still leaves the file, and it must be deleted by hand.
+- **The log did not record that a reject superseded an approval.** That evidence lived only in
+  the manifest, the file an attacker can edit. The log event now carries `supersedes` and
+  `verification_error`.
+- **One non-string entry in `process_flags` took down the whole review inbox**, and a
+  non-string name on a recorded decision took down its page. Manifest values are now
+  stringified before escaping.
 
 ## 0.23.0 — 2026-09-17
 

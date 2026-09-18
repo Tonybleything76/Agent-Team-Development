@@ -10,7 +10,7 @@ from huminloop import gate
 from huminloop.cli import main
 from huminloop.llm import Completion
 from huminloop.storage import artifact_root as _artifact_root
-from huminloop.storage import log_path
+from huminloop.storage import log_path, sha256_text
 
 
 def test_full_cli_flow(workdir, capsys):
@@ -1244,3 +1244,174 @@ def test_only_one_reject_may_supersede_a_recorded_approval(workdir, capsys, fail
     # Reopening clears it, or the next supersede on this run would be refused forever.
     gate.reopen(rid, by="Ann", reason="look again")
     assert not (d / gate.SUPERSEDE_CLAIM).exists()
+
+
+def test_a_recorded_reject_on_edited_bytes_is_completed_not_superseded(
+    workdir, capsys, failing_rename
+):
+    """Supersession is only for a recorded approval; a recorded reject is finished as written."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    _record_then_edit("reject")(rid, failing_rename)
+    assert main(["reject", rid, "--by", "Dana", "--reason", "second look"]) == 0
+    m = json.loads((_artifact_root() / "rejected" / rid / "manifest.json").read_text())
+    assert [d["state"] for d in m["decisions"]] == ["rejected"]
+    assert m["decision"]["by"] == "Tony" and m["decision"]["note"] == "first look"
+    assert "supersedes" not in m["decision"]
+    last = json.loads(log_path().read_text().splitlines()[-1])
+    assert last["event"] == "rejected" and last["completed_by"] == "Dana"
+
+
+def test_a_supersede_names_who_it_replaced_and_when(workdir, capsys, failing_rename):
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    _record_then_edit("approve")(rid, failing_rename)
+    assert main(["reject", rid, "--by", "Dana", "--reason", "edited after approval"]) == 0
+    m = json.loads((_artifact_root() / "rejected" / rid / "manifest.json").read_text())
+    approval = m["decisions"][0]
+    assert m["decision"]["supersedes"] == {
+        "state": "approved",
+        "by": approval["by"],
+        "at": approval["at"],
+    }
+    assert approval["by"] == "Tony" and approval["at"]
+
+
+def test_a_recorded_approval_whose_bytes_still_verify_is_finished_by_approve(
+    workdir, capsys, failing_rename
+):
+    """Only failed bytes turn a recorded approval into a reject; intact ones complete it."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    break_rename, restore = failing_rename
+    break_rename()
+    with pytest.raises(OSError):
+        gate.approve(rid, by="Tony")
+    restore()
+    s = _status_json(rid, capsys)
+    assert s["artifacts_verified"] is True and s["pending_action"] == "approve"
+    assert main(["approve", rid, "--by", "Dana"]) == 0
+    capsys.readouterr()
+    assert _status_json(rid, capsys)["status"] == "approved"
+
+
+def test_an_empty_digest_is_reported_as_missing(workdir, capsys):
+    """An emptied `sha256` must name the edit, not blame the artifact's bytes."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    _edit_manifest(rid, lambda m: _first_file(m).update(sha256=""))
+    s = _status_json(rid, capsys)
+    assert s["artifacts_verified"] is False and "no recorded sha256" in s["verification_error"]
+    assert s["pending_action"] == "reject"
+
+
+# Second review round: one-field manifest edits that still crashed `status` and `reject` with an
+# exception other than GateError, and one that skipped verification outright.
+
+
+def _loop(rid):
+    art = next((_artifact_root() / "pending" / rid).glob("*.md"))
+    art.unlink()
+    art.symlink_to(art)  # RuntimeError from Path.resolve on 3.12, not OSError
+
+
+def _falsey_review_on_flagged_bytes(rid):
+    """`review: ""` used to read as `{}`; it only verified when the bytes' own review failed."""
+    d = _artifact_root() / "pending" / rid
+
+    def edit(m):
+        a = _first_file(m)
+        (d / a["file"]).write_text("not a deliverable")  # fails review: no sections
+        a.update(review="", sha256=sha256_text("not a deliverable"))
+
+    _edit_manifest(rid, edit)
+
+
+def _error_beside_edited_file(rid):
+    """`error` on the very artifact whose bytes were replaced skipped every check on it."""
+    d = _artifact_root() / "pending" / rid
+
+    def edit(m):
+        a = _first_file(m)
+        (d / a["file"]).write_text("replaced after the run")
+        a.update(error="boom")
+
+    _edit_manifest(rid, edit)
+
+
+_CRASHERS = {
+    "symlink loop": _loop,
+    "null byte in file": lambda rid: _edit_manifest(
+        rid, lambda m: _first_file(m).update(file="a\x00.md")
+    ),
+    "overlong file": lambda rid: _edit_manifest(
+        rid, lambda m: _first_file(m).update(file="x" * 300)
+    ),
+    "falsey review": _falsey_review_on_flagged_bytes,
+    "decision is a string": lambda rid: _edit_manifest(
+        rid, lambda m: m.update(decision="approved")
+    ),
+    "decisions is a dict": lambda rid: _edit_manifest(rid, lambda m: m.update(decisions={})),
+    "error beside a file": _error_beside_edited_file,
+}
+
+
+@pytest.mark.parametrize("name", list(_CRASHERS))
+def test_every_manifest_edit_leaves_reject_as_a_way_out(workdir, capsys, name):
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    _CRASHERS[name](rid)
+    s = _status_json(rid, capsys)
+    assert s["artifacts_verified"] is False and s["pending_action"] == "reject", s
+    with pytest.raises(gate.GateError, match="refusing to approve"):
+        gate.approve(rid, by="Tony", note="override", force=True)
+    assert main(["reject", rid, "--by", "Tony", "--reason", name]) == 0, capsys.readouterr().err
+    m = json.loads((_artifact_root() / "rejected" / rid / "manifest.json").read_text())
+    assert m["decision"]["verification_error"]
+
+
+def test_a_malformed_decision_is_kept_not_erased(workdir, capsys):
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    _edit_manifest(rid, lambda m: m.update(decision="approved", decisions={"x": 1}))
+    gate.reject(rid, by="Tony", reason="malformed")
+    m = json.loads((_artifact_root() / "rejected" / rid / "manifest.json").read_text())
+    assert m["decision_malformed"] == "approved" and m["decisions_malformed"] == {"x": 1}
+    assert [d["state"] for d in m["decisions"]] == ["rejected"]
+
+
+@pytest.mark.parametrize("decision", ["approve", "reject"])
+def test_a_failed_write_does_not_leave_a_claim_behind(
+    workdir, capsys, failing_rename, monkeypatch, decision
+):
+    """A claim that outlived a failed attempt refused every later decision, forever."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    d = _artifact_root() / "pending" / rid
+    if decision == "reject":
+        _record_then_edit("approve")(rid, failing_rename)  # the supersede path
+    real = gate.write_manifest
+    monkeypatch.setattr(gate, "write_manifest", lambda *a: (_ for _ in ()).throw(OSError("full")))
+    with pytest.raises(OSError):
+        if decision == "approve":
+            gate.approve(rid, by="Tony")
+        else:
+            gate.reject(rid, by="Ann", reason="edited")
+    monkeypatch.setattr(gate, "write_manifest", real)
+    assert not (d / gate.DECISION_CLAIM).exists() or decision == "reject"
+    assert not (d / gate.SUPERSEDE_CLAIM).exists()
+    if decision == "approve":
+        gate.approve(rid, by="Tony")
+    else:
+        gate.reject(rid, by="Ann", reason="edited")
+
+
+def test_the_log_records_a_supersede(workdir, capsys, failing_rename):
+    """The manifest is the editable file; the override has to be visible in the log too."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    _record_then_edit("approve")(rid, failing_rename)
+    gate.reject(rid, by="Dana", reason="edited after approval")
+    last = json.loads(log_path().read_text().splitlines()[-1])
+    assert last["supersedes"]["state"] == "approved" and last["supersedes"]["by"] == "Tony"
+    assert "changed since the run" in last["verification_error"]
