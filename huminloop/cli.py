@@ -284,7 +284,9 @@ def _cmd_status(args) -> int:
     if s["interrupted"]:
         print("  this run died before it finished; it cannot be approved")
     if not s["artifacts_verified"]:
-        print(f"  the bytes on disk no longer match the manifest: {s['verification_error']}")
+        # Not always tampering: a run still in progress or one with no manifest cannot be
+        # checked at all, and the error says which.
+        print(f"  artifacts not verified: {s['verification_error']}")
     if s["flagged_roles"]:
         print(f"  flagged for your attention: {', '.join(s['flagged_roles'])}")
     if s["unrevised_roles"]:

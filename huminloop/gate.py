@@ -89,6 +89,12 @@ def _status_response(run_id: str, **fields) -> dict:
     not the other, so a caller reading `artifacts_verified` on a run that died before its first
     manifest write got a KeyError — from the command whose whole purpose is being the one shape
     a caller can rely on. Defaults here are the answer for a run we know nothing about.
+
+    Every default that asserts something is the cautious value. The first version defaulted
+    `artifacts_verified` to True, so any path that did not override it — a run with no
+    manifest, a run still being written, a decided run — claimed a check nobody ran. An
+    approved deliverable edited after approval reported itself verified. The field is now true
+    only when a check actually ran and passed.
     """
     return {
         "run_id": run_id,
@@ -97,8 +103,8 @@ def _status_response(run_id: str, **fields) -> dict:
         "flagged_roles": [],
         "unrevised_roles": [],
         "interrupted": False,
-        "artifacts_verified": True,
-        "verification_error": "",
+        "artifacts_verified": False,
+        "verification_error": "not verified",
         "pending_action": "approve",
     } | fields
 
@@ -141,6 +147,7 @@ def status(run_id: str, root: Path | None = None) -> dict:
                 run_id,
                 status="running" if alive else "pending",
                 interrupted=not alive,
+                verification_error="no manifest was written, so there is nothing to verify against",
                 pending_action="wait" if alive else "reject",
             )
         raise GateError(f"run '{run_id}' not found under {root}")
@@ -181,12 +188,17 @@ def status(run_id: str, root: Path | None = None) -> dict:
     # whose artifact was edited since it ran is the command contradicting the very next
     # command — the failure `pending_action` exists to prevent, and one this branch already
     # fixed for interrupted runs and missed here.
-    tampered = ""
-    if state == "pending" and not live:
+    # Every settled run, decided ones included: an approved deliverable edited after approval is
+    # precisely what this record exists to reveal. A run still being written cannot be checked
+    # yet, and says so rather than borrowing a result.
+    if live:
+        verified, verify_error = False, "run is still in progress; artifacts cannot be checked yet"
+    else:
         try:
             verify_artifacts(d, manifest)
+            verified, verify_error = True, ""
         except GateError as exc:
-            tampered = str(exc)
+            verified, verify_error = False, str(exc)
 
     decision = manifest.get("decision") or {}
     if state in ("approved", "rejected"):
@@ -199,7 +211,7 @@ def status(run_id: str, root: Path | None = None) -> dict:
         action = _DECISION_ACTION[decision["state"]]
     elif needs_resynthesize:
         action = "resynthesize"
-    elif interrupted or tampered:
+    elif interrupted or not verified:
         # A tampered run cannot be approved and cannot be repaired by resynthesizing; the only
         # move the gate will accept is rejecting it and running again.
         action = "reject"
@@ -215,8 +227,8 @@ def status(run_id: str, root: Path | None = None) -> dict:
         interrupted=interrupted,
         # Empty when the bytes match the manifest. Named rather than folded into
         # `flagged_roles`, which is about what the team produced, not about tampering.
-        artifacts_verified=not tampered,
-        verification_error=tampered,
+        artifacts_verified=verified,
+        verification_error=verify_error,
         pending_action=action,
     )
 

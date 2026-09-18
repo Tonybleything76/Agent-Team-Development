@@ -897,7 +897,7 @@ def test_status_refuses_to_recommend_approving_a_tampered_run(workdir, capsys, t
     assert "changed since the run" in capsys.readouterr().err
     assert main(["status", run_id]) == 0
     out = capsys.readouterr().out
-    assert "no longer match the manifest" in out
+    assert "artifacts not verified" in out and "changed since the run" in out
     assert f"huminloop reject {run_id}" in out
 
 
@@ -978,3 +978,42 @@ def test_every_status_path_answers_with_the_same_shape(workdir, capsys, failing_
     assert shapes["no manifest"]["pending_action"] == "reject"
     assert shapes["tampered"]["artifacts_verified"] is False
     assert shapes["approved"]["pending_action"] == "done"
+
+    # `artifacts_verified` is a claim, so it may only be true where a check actually ran and
+    # passed. It defaulted to true once, and three paths claimed checks nobody ran.
+    assert shapes["clean pending"]["artifacts_verified"] is True
+    assert shapes["approved"]["artifacts_verified"] is True  # checked, and clean
+    assert shapes["no manifest"]["artifacts_verified"] is False
+    assert "no manifest" in shapes["no manifest"]["verification_error"]
+    for label, s in shapes.items():
+        # Never "unverified" without saying why, never "verified" while carrying an error.
+        assert bool(s["verification_error"]) is (not s["artifacts_verified"]), label
+
+
+def test_an_approved_run_edited_after_approval_is_not_reported_verified(workdir, capsys):
+    """`status` only checked pending runs, so an approved deliverable edited after approval --
+    exactly the tampering this record exists to reveal -- reported itself verified."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    run_id = _run_id_from(capsys.readouterr().out)
+    assert main(["approve", run_id, "--by", "Tony"]) == 0
+    capsys.readouterr()
+    art = next((_artifact_root() / "approved" / run_id).glob("*.md"))
+    art.write_text(art.read_text() + "\nedited after approval\n")
+
+    s = _status_json(run_id, capsys)
+    assert s["status"] == "approved"
+    assert s["pending_action"] == "done"  # decided is decided; the record just tells the truth
+    assert s["artifacts_verified"] is False
+    assert "changed since the run" in s["verification_error"]
+
+
+def test_a_live_run_is_not_reported_verified(workdir, capsys):
+    """A run still being written cannot be checked, and must say so rather than borrow a
+    result."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    run_id = _run_id_from(capsys.readouterr().out)
+    (_artifact_root() / "pending" / run_id / "run.lock").write_text(str(os.getpid()))
+    s = _status_json(run_id, capsys)
+    assert s["status"] == "running"
+    assert s["artifacts_verified"] is False
+    assert "in progress" in s["verification_error"]
