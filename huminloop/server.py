@@ -22,7 +22,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from . import gate
-from .render import esc, render_run
+from .render import RenderError, esc, render_run
 from .storage import StorageError, artifact_root, find_run, read_manifest
 
 ALLOWED_HOSTS = {"localhost", "127.0.0.1", "[::1]"}
@@ -178,16 +178,73 @@ def _actions_html(state: ReviewState, run_id: str, bucket: str, manifest: dict) 
     return "".join(parts)
 
 
+_NO_WEB_FORM = {
+    "wait": "The run is still being written. Reload this page when it finishes.",
+    "resynthesize": "The lead's synthesis is missing. Run `huminloop resynthesize {run_id}` "
+    "from the terminal, then reload this page.",
+}
+
+
+def _unrenderable_page(
+    state: ReviewState, run_id: str, reason: str, error: str | None
+) -> tuple[int, str]:
+    """A run the renderer refuses still needs a way out of the queue.
+
+    Rendering attests to the bytes on disk, so this page shows none of them: only why the run
+    cannot be shown, and the one move `gate.status` says the gate will accept. Offering any
+    other would repeat the contradiction `pending_action` exists to prevent.
+    """
+    try:
+        s = gate.status(run_id, root=state.root)
+    except gate.GateError as exc:
+        return 404, _shell("Not found", f'<p class="err">{esc(str(exc))}</p>')
+    action = s["pending_action"]
+    t = f'<input type="hidden" name="token" value="{esc(state.token)}">'
+    who = '<input type="text" name="by" placeholder="Your name" required>'
+    parts = [
+        '<p><a class="back" href="/">&larr; Review inbox</a></p>',
+        f"<h1>Run {esc(run_id)}</h1>",
+        f'<div class="err">{esc(error)}</div>' if error else "",
+        f"<p>This run cannot be shown: {esc(reason)}</p>",
+        '<div class="panel" id="decide"><h3>Your decision</h3>',
+    ]
+    if action == "reject":
+        parts.append(
+            "<p>Its contents cannot be verified, so it cannot be approved. Reject it and run the "
+            "task again; the reason it failed verification is recorded with your decision.</p>"
+            f'<form method="post" action="/run/{esc(run_id)}/reject">{t}{who}'
+            '<input type="text" name="reason" placeholder="Why" required>'
+            '<button class="warn" type="submit">Reject</button></form>'
+        )
+    elif action == "done":
+        parts.append(
+            f"<p>This run is <b>{esc(s['status'])}</b>. Reopening supersedes that decision "
+            "without erasing it.</p>"
+            f'<form method="post" action="/run/{esc(run_id)}/reopen">{t}{who}'
+            '<input type="text" name="reason" placeholder="Why you are reopening" required>'
+            '<button class="ghost" type="submit">Reopen</button></form>'
+        )
+    else:
+        parts.append(f"<p>{esc(_NO_WEB_FORM.get(action, action).format(run_id=run_id))}</p>")
+    parts.append("</div>")
+    return 200, _shell(f"Run {run_id}", "".join(parts))
+
+
 def run_page(state: ReviewState, run_id: str, error: str | None = None) -> tuple[int, str]:
     try:
         found = find_run(state.root, run_id)
     except StorageError as exc:
         return 400, _shell("Not found", f'<p class="err">{esc(str(exc))}</p>')
     if not found:
-        return 404, _shell("Not found", f"<p>Run {esc(run_id)} not found.</p>")
+        # `find_run` needs a manifest; a run that died before writing one still sits in the
+        # inbox, and `gate.status` knows what to do with it.
+        return _unrenderable_page(state, run_id, "no manifest was written", error)
     bucket, d = found
-    manifest = read_manifest(d)
-    page = render_run(manifest, d)
+    try:
+        manifest = read_manifest(d)
+        page = render_run(manifest, d)
+    except (gate.GateError, RenderError, StorageError) as exc:
+        return _unrenderable_page(state, run_id, str(exc), error)
     banner = f'<div class="err">{esc(error)}</div>' if error else ""
     nav = '<p><a class="back" href="/">&larr; Review inbox</a></p>'
     panel = _actions_html(state, run_id, bucket, manifest)

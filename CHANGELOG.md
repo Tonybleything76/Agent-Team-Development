@@ -1,5 +1,31 @@
 # Changelog
 
+## Unreleased
+
+A run whose files fail verification now always has a way out of the queue, from the terminal
+and from the review inbox alike.
+
+**Changed.** `reject` is accepted on a run whose artifacts fail verification, and records the
+failure as `verification_error` in the decision. `approve` stays refused. A reject may
+supersede a recorded but unfinished approval only when that run's bytes fail the check; the
+approval stays in `decisions` and the new entry names it under `supersedes`.
+
+### Fixed
+
+- **A tampered pending run had no legal move.** `status` recommended `reject`, and `reject`
+  refused it too, because every decision re-verified the bytes. A test now runs, for seven run
+  states, exactly the command `status` recommends and asserts that the gate accepts it.
+- **`status` recommended `approve` for a recorded, unfinished approval whose file was edited
+  afterwards.** `approve` then refused it. It now says `reject`.
+- **`status` exited 2 with a codec error** when an approved run's deliverable had been
+  overwritten with non-text bytes, instead of reporting `artifacts_verified: false`.
+- **The review inbox crashed on every rejected run, interrupted run and edited run**, and
+  answered 404 for a run with no manifest, so the web could not reject exactly the runs that
+  most need rejecting. Such a run now gets a page that shows why it cannot be displayed, none
+  of its content, and only the move `status` recommends: a reject form, a reopen form for a
+  decided run, or the terminal command when the move has no form. The same seven-state test
+  runs against a live server.
+
 ## 0.23.0 — 2026-09-17
 
 Every silent omission the engineering review found, closed. A run can no longer give you a

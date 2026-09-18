@@ -5,7 +5,9 @@ import json
 import pytest
 
 from huminloop import gate, orchestrator, server
+from huminloop.cli import main
 from huminloop.storage import artifact_root
+from tests.test_cli import _STATES, _run_id_from
 
 
 @pytest.fixture
@@ -91,3 +93,105 @@ def test_decisions_made_through_the_ui_land_in_the_same_audit_trail(state, fake_
     m = json.loads((d / "manifest.json").read_text())
     assert [x["state"] for x in m["decisions"]] == ["approved", "reopened"]
     assert m["annotations"][0]["note"] == "a reservation"
+
+
+# The CLI's status contract, held to the web surface too: for every state, the page must render
+# and must offer the one move `status` recommends, and posting that form must settle the run.
+# Before this, an edited, interrupted or manifest-less run crashed or 404'd the page, so the web
+# had no way to reject exactly the runs that most need rejecting.
+
+
+@pytest.fixture
+def live(state):
+    import threading
+    from http.server import ThreadingHTTPServer
+
+    handler = type("TestHandler", (server.Handler,), {"state": state})
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    yield httpd.server_address[1]
+    httpd.shutdown()
+    httpd.server_close()
+
+
+def _http(port, method, path, form=None):
+    import http.client
+    from urllib.parse import urlencode
+
+    conn = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
+    body = urlencode(form) if form else None
+    headers = {"Content-Type": "application/x-www-form-urlencoded"} if form else {}
+    conn.request(method, path, body=body, headers=headers)
+    resp = conn.getresponse()
+    return resp.status, resp.read().decode("utf-8")
+
+
+def _offered(page, rid):
+    import re
+
+    return set(re.findall(rf'<form method="post" action="/run/{rid}/(\w+)">', page))
+
+
+@pytest.mark.parametrize("name", list(_STATES))
+def test_the_page_offers_and_accepts_the_move_status_recommends(
+    workdir, capsys, failing_rename, state, live, name
+):
+    setup, expected = _STATES[name]
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    setup(rid, failing_rename)
+    assert gate.status(rid)["pending_action"] == expected
+
+    code, page = _http(live, "GET", f"/run/{rid}")
+    assert code == 200 and "Traceback" not in page
+    offered = _offered(page, rid)
+    assert expected in offered
+    if expected == "reject":
+        assert "approve" not in offered  # never offer a move the gate will refuse
+
+    form = {"token": state.token, "by": "Tony"}
+    form |= {"reason": "failed verification"} if expected == "reject" else {"note": ""}
+    code, body = _http(live, "POST", f"/run/{rid}/{expected}", form)
+    assert code == 303, body
+    assert gate.status(rid)["pending_action"] == "done"
+
+
+def test_an_unrenderable_run_page_shows_why_and_not_the_content(workdir, capsys, state, live):
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    art = next((artifact_root() / "pending" / rid).glob("*.md"))
+    art.write_text(art.read_text() + "\nSMUGGLED-IN-AFTER-THE-RUN\n")
+    code, page = _http(live, "GET", f"/run/{rid}")
+    assert code == 200
+    assert "changed since the run" in page
+    assert "SMUGGLED-IN-AFTER-THE-RUN" not in page  # a page that shows content vouches for it
+
+
+def test_a_rejected_run_page_renders(workdir, capsys, state, live):
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    assert main(["reject", rid, "--by", "Tony", "--reason", "no"]) == 0
+    code, page = _http(live, "GET", f"/run/{rid}")
+    assert code == 200 and "reopen" in _offered(page, rid)
+
+
+def test_a_move_the_web_cannot_make_names_the_command_that_can(
+    workdir, capsys, monkeypatch, state, live
+):
+    """An interrupted run whose lead failed: `status` says resynthesize, which has no form."""
+    import huminloop.cli as cli
+    from tests.conftest import RecordingLLM
+
+    monkeypatch.setattr(
+        cli, "get_llm", lambda provider=None: RecordingLLM(fail_roles=("engagement_lead",))
+    )
+    assert main(["run", "Draft an RFP response and SOW"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    mf = artifact_root() / "pending" / rid / "manifest.json"
+    mf.write_text(json.dumps(json.loads(mf.read_text()) | {"status": "running"}))
+    assert gate.status(rid)["pending_action"] == "resynthesize"
+
+    code, page = _http(live, "GET", f"/run/{rid}")
+    assert code == 200
+    assert f"huminloop resynthesize {rid}" in page
+    assert _offered(page, rid) == set()
