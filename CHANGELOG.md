@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.23.1 — 2026-09-18
 
 A run whose files fail verification now has a way out of the queue, from the terminal and
 from the review inbox alike. One case still has none: a manifest the storage layer refuses to

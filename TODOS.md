@@ -115,6 +115,39 @@ eng-review branch — found by that branch's own pre-landing review. The fix is 
 **Effort:** S
 **Priority:** P1
 
+## Gate integrity: the manifest certifies itself
+
+Three `/ship` review rounds on `fix-tampered-run-dead-end` (v0.23.1) kept finding new
+hand-edits of `manifest.json` that the gate trusts. The root cause is one design fact: the
+digest, the review verdict and the list of artifacts that verification checks all live in the
+same file an attacker edits. Patching each edit does not converge. The fix is to anchor what a
+run produced somewhere the manifest cannot rewrite, such as an append-only log written at run
+time and checked by `verify_artifacts`. These are the reproduced cases it must close.
+
+### Recomputing digests inside the manifest defeats the byte check
+Replace an artifact's bytes, write `sha256_text(new)` and `review_text(new).ok` into the
+manifest, and `status` says approve and `approve` succeeds with no trace. **Priority:** P1
+
+### A duplicate-role entry can point approval at bytes the page never showed
+`render_run` keys texts by role, so a second entry with the same role and a matching digest is
+verified and approved but never displayed. **Priority:** P1
+
+### Deleting a flagged artifact entry removes its flag
+Only listed entries are verified and flagged; the file stays on disk unchecked. The same holds
+for stripping `process_flags`. **Priority:** P1
+
+### A hand-written recorded approval skips the flag check
+`_decide` completes a recorded decision without re-running the `--force` check; the approver it
+records is whoever the manifest names. **Priority:** P1
+
+### Reject then reopen clears the interrupted marker
+`reopen` sets `status` to `pending`, so an interrupted run, once rejected and reopened, is
+recommended for and accepts `approve`. On main before v0.23.1. **Priority:** P1
+
+### A hard crash between claim and write leaves the claim file
+Exceptions now remove it; a kill or power loss still leaves `.deciding` or `.superseding`, and
+every later decision is refused until it is deleted by hand. **Priority:** P2
+
 ## Deferred from the 2026-09-17 pre-landing review
 
 These were found by `/ship`'s own review of the eng-review branch and deliberately not fixed
