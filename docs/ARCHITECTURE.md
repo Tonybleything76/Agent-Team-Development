@@ -13,9 +13,9 @@
 | Engagement | `huminloop/engagement.py` | The durable object a run belongs to: a folder in `~/Cowork/Engagements/<slug>/` holding the brief, `context/`, `documents/`, every run, and a `CLAUDE.md`. An engagement folder *is* a run root. |
 | Dashboard | `huminloop/dashboard.py` | `render --dashboard`: a tabbed working surface (Overview, Needs you, Team, Debate, Plan, Next steps, Documents) for using a run with a client, as opposed to reading about it. Passes the same `render.precheck` the narrative report does — status guard plus artifact verification — because a second view of a run is not a lower bar for showing one. |
 | Run status | `huminloop/gate.py::status` | `huminloop status <run_id> --json`: the one machine-readable answer to "what does this run need right now" — `pending_action`, `needs_resynthesize`, `flagged_roles`, `unrevised_roles`, `interrupted`. `needs_resynthesize` mirrors `resynthesize`'s own preconditions and the artifact check mirrors the gate's, so the command cannot contradict the next one; a specialist whose critic call returned nothing is reported separately as `unrevised_roles`, with no fix offered, because none exists. |
-| Review inbox | `huminloop/server.py` | `huminloop serve`: a loopback-only browser inbox over the same `gate` functions. Adds no rules; surfaces escalations first, since those are why the gate stops you. |
+| Review inbox | `huminloop/server.py` | `huminloop serve`: a loopback-only browser inbox over the same `gate` functions. Adds no rules; surfaces escalations first, since those are why the gate stops you. A run the renderer refuses (failed check, unfinished, no manifest) gets a page that shows none of its content, only the move `status` recommends. |
 | Run statistics | `huminloop/stats.py` | Aggregates the run log; flags total agreement, total dismissal, and forced approvals as things to look at. |
-| Human gate | `huminloop/gate.py` | pending → approved/rejected by a named person; re-reads every artifact and re-derives governance from the bytes before recording a decision (digest + verdict must match the manifest); refuses governance-flagged or errored runs without `--force` + note; validates `run_id`; claims the decision with an exclusive marker so concurrent decisions cannot both "succeed". |
+| Human gate | `huminloop/gate.py` | pending → approved/rejected by a named person; re-reads every artifact and re-derives governance from the bytes before recording a decision (digest + verdict must match the manifest to approve; a reject of a run that fails the check is accepted and records the failure as `verification_error`); refuses governance-flagged or errored runs without `--force` + note; validates `run_id`; claims the decision with an exclusive marker so concurrent decisions cannot both "succeed" (a reject superseding an unfinished approval takes its own, `.superseding`). |
 | Storage | `huminloop/storage.py` | `out/<state>/<run_id>/{manifest.json,<role>.md}` and `logs/runs.jsonl`. |
 | Critique loop | `huminloop/critique.py` | A critic challenges each draft (steelman, pre-mortem, findings on named dimensions); the author answers every point and reissues. The critic never edits. Unresolved blocking critique becomes a process flag. |
 | Personas | `huminloop/personas/` | Per-role markdown appended to the system prompt: how the role works, its output contract, what it refuses. Optional per role; absent means fall back to the remit. |
@@ -51,12 +51,17 @@ missing or corrupt manifest instead of hiding them.
 ## Data shapes
 
 `manifest.json` (one per run): `run_id, task, provider, plan{roles, matched_rules}, artifacts[{role,
-file, review{ok, issues, verdict}, error}], status (running → pending → approved|rejected),
+file, sha256, review{ok, issues, verdict}, error}], status (running → pending → approved|rejected),
 created_at, version, decision{state, by, note, at, forced, flagged_roles}` (decision appears
-after approve/reject; `forced` is true when a human overrode governance flags).
+after approve/reject; `forced` is true when a human overrode governance flags; a reject of a run
+that failed verification adds `verification_error`, and one that superseded an unfinished
+approval adds `supersedes`). A decision, history or annotations value of the wrong shape is set
+aside under `decision_malformed`, `decisions_malformed` or `annotations_malformed` by the next
+gate write, never erased.
 
 `logs/runs.jsonl` events: `run_start, artifact, specialist_error, run_end, approved, rejected`
-(decision events carry `by`, `note`, `forced`).
+(decision events carry `by`, `note`, `forced`, plus `supersedes` and `verification_error` when
+the decision has them).
 
 ## Engagements, and why context matters more than layout
 
@@ -156,9 +161,13 @@ possible — sometimes the critic is wrong — but it always costs someone their
 The gate exists so a human decision is a recorded fact, so the things that could forge or
 mislead that decision are treated as defects, not polish:
 
-- **Artifacts are digested when produced and re-verified at decision time.** Editing
-  `manifest.json`, swapping an `.md` file between `show` and `approve`, or deleting one is
-  refused. Approval attests to the bytes a reviewer could actually have read.
+- **Artifacts are digested when produced and re-verified at decision time.** Swapping an `.md`
+  file between `show` and `approve`, deleting one, or editing its recorded digest or verdict in
+  `manifest.json` fails the check, and `approve` refuses it. `reject` still accepts such a run
+  and records why the check failed, so it has a way out of the queue unless its manifest cannot
+  be read at all. Approval attests to the bytes a reviewer could actually have read. The limit:
+  the digest lives in the manifest it protects, so an edit that replaces the bytes and writes a
+  matching digest still passes (see `TODOS.md`, "Gate integrity: the manifest certifies itself").
 - **Model output is never printed raw.** Governance flags control characters and `huminloop show`
   strips them, so an artifact cannot repaint the reviewer's terminal just before they approve.
 - **A `.env` may only set variables this application owns.** Otherwise a file in whatever
