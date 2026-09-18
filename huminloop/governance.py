@@ -125,10 +125,16 @@ def flagged_roles(artifacts: list[dict]) -> list[str]:
     `process_flags` records what the bytes cannot show — a truncated generation, a blocking
     critique the author dismissed — and counts just as much toward needing a human's --force.
     """
+
+    def clean_review(a: dict) -> bool:
+        # A review that is not a mapping was edited; it counts as flagged, never as a crash.
+        review = a.get("review")
+        return isinstance(review, dict) and bool(review.get("ok"))
+
     return [
         a["role"]
         for a in artifacts
-        if a.get("error") or not (a.get("review") or {}).get("ok") or a.get("process_flags")
+        if a.get("error") or not clean_review(a) or a.get("process_flags")
     ]
 
 

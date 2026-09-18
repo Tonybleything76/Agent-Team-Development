@@ -27,6 +27,9 @@ from .storage import (
 
 log = logging.getLogger(__name__)
 DECISION_CLAIM = ".deciding"
+# A reject superseding a recorded approval cannot take DECISION_CLAIM: that approval already
+# holds it. Without a claim of its own, two supersedes both wrote the manifest and one was lost.
+SUPERSEDE_CLAIM = ".superseding"
 
 
 class GateError(Exception):
@@ -47,7 +50,25 @@ def verify_artifacts(d: Path, manifest: dict) -> None:
             # Every artifact is either a file on disk or a recorded error. Neither means the
             # manifest was edited: clearing `error` alone would otherwise skip verification.
             raise GateError(f"artifact for {a.get('role')!r} has neither a file nor an error")
+        # The manifest is editable, so every field it supplies is checked for shape before use.
+        # A wrong type used to escape as AttributeError/TypeError, which `reject` could not
+        # catch, leaving the run with no command the gate would accept.
+        if not isinstance(a["file"], str) or not isinstance(a.get("review") or {}, dict):
+            raise GateError(f"artifact for {a.get('role')!r} is malformed in the manifest")
+        if not isinstance(a.get("sha256"), str) or not a["sha256"]:
+            # Every run records a digest. A missing one is an edit, and treating it as "nothing to
+            # compare" let any bytes at all be approved.
+            raise GateError(f"artifact {a['file']} has no recorded sha256; refusing to decide")
         path = d / a["file"]
+        try:
+            # An absolute path, `..`, or a symlink would verify a file the run never wrote.
+            inside = path.resolve().is_relative_to(d.resolve())
+        except OSError:
+            inside = False
+        if not inside:
+            raise GateError(
+                f"artifact {a['file']} is outside the run directory; refusing to decide"
+            )
         if not path.is_file():
             raise GateError(f"artifact {a['file']} is missing; refusing to decide")
         try:
@@ -59,7 +80,7 @@ def verify_artifacts(d: Path, manifest: dict) -> None:
             raise GateError(
                 f"artifact {a['file']} cannot be read as text ({exc}); refusing to decide"
             ) from exc
-        if a.get("sha256") and sha256_text(text) != a["sha256"]:
+        if sha256_text(text) != a["sha256"]:
             raise GateError(f"artifact {a['file']} changed since the run; re-run before deciding")
         recomputed = review_text(text)
         recorded = (a.get("review") or {}).get("ok")
@@ -335,13 +356,13 @@ def _decide(
     if dst.exists():
         raise GateError(f"destination {dst} already exists; refusing to merge directories")
     if not prior or superseding:
-        if not prior:
-            try:
-                # Whoever creates this wins; the loser gets a clear error instead of both
-                # "succeeding" and leaving the directory and the manifest disagreeing.
-                os.close(os.open(src / DECISION_CLAIM, os.O_CREAT | os.O_EXCL | os.O_WRONLY))
-            except FileExistsError as exc:
-                raise GateError(f"run '{run_id}' is being decided by another process") from exc
+        try:
+            # Whoever creates this wins; the loser gets a clear error instead of both
+            # "succeeding" and leaving the directory and the manifest disagreeing.
+            claim = SUPERSEDE_CLAIM if superseding else DECISION_CLAIM
+            os.close(os.open(src / claim, os.O_CREAT | os.O_EXCL | os.O_WRONLY))
+        except FileExistsError as exc:
+            raise GateError(f"run '{run_id}' is being decided by another process") from exc
         entry = {
             "state": decision,
             "by": by.strip(),
@@ -456,6 +477,7 @@ def reopen(run_id: str, by: str, reason: str, *, root: Path | None = None, log_f
     os.rename(src, dst)
     # The old claim marker would otherwise block the next decision on this run.
     (dst / DECISION_CLAIM).unlink(missing_ok=True)
+    (dst / SUPERSEDE_CLAIM).unlink(missing_ok=True)
     append_log(
         {
             "event": "reopened",

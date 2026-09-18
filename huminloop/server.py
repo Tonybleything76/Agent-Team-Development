@@ -182,7 +182,23 @@ _NO_WEB_FORM = {
     "wait": "The run is still being written. Reload this page when it finishes.",
     "resynthesize": "The lead's synthesis is missing. Run `huminloop resynthesize {run_id}` "
     "from the terminal, then reload this page.",
+    # The gate would accept approve, but this page shows none of the content, and approving
+    # what you cannot see here is exactly what the renderer's refusal exists to prevent.
+    "approve": "The gate would accept an approval, but this page cannot show what you would "
+    "be approving. Read it with `huminloop show {run_id}`, then run "
+    "`huminloop approve {run_id} --by <your name>` from the terminal.",
 }
+
+
+def _recorded_decision(state: ReviewState, run_id: str) -> dict:
+    """The recorded but unfinished decision, if any. Best effort: the page is a fallback."""
+    found = find_run(state.root, run_id)
+    if not found:
+        return {}
+    try:
+        return read_manifest(found[1]).get("decision") or {}
+    except StorageError:
+        return {}
 
 
 def _unrenderable_page(
@@ -209,9 +225,22 @@ def _unrenderable_page(
         '<div class="panel" id="decide"><h3>Your decision</h3>',
     ]
     if action == "reject":
+        recorded = _recorded_decision(state, run_id)
+        if recorded.get("state") == "rejected":
+            # Completing a recorded reject keeps that decision; the gate does not take a new one.
+            why = (
+                f"A reject by {esc(recorded.get('by'))} is already recorded but the move did not "
+                "finish. Submitting completes that decision; its original reason is the one kept."
+            )
+        elif not s["artifacts_verified"] and not s["interrupted"]:
+            why = (
+                "Its contents cannot be verified, so it cannot be approved. Reject it and run the "
+                "task again; the reason it failed verification is recorded with your decision."
+            )
+        else:
+            why = "It did not finish, so it cannot be approved. Reject it and run the task again."
         parts.append(
-            "<p>Its contents cannot be verified, so it cannot be approved. Reject it and run the "
-            "task again; the reason it failed verification is recorded with your decision.</p>"
+            f"<p>{why}</p>"
             f'<form method="post" action="/run/{esc(run_id)}/reject">{t}{who}'
             '<input type="text" name="reason" placeholder="Why" required>'
             '<button class="warn" type="submit">Reject</button></form>'
@@ -245,6 +274,12 @@ def run_page(state: ReviewState, run_id: str, error: str | None = None) -> tuple
         page = render_run(manifest, d)
     except (gate.GateError, RenderError, StorageError) as exc:
         return _unrenderable_page(state, run_id, str(exc), error)
+    except Exception as exc:  # noqa: BLE001
+        # A manifest edited into a shape the renderer never expected (a `plan` that is a
+        # string) used to drop the connection, leaving the web no way to reject the run.
+        return _unrenderable_page(
+            state, run_id, f"the page could not be built ({type(exc).__name__})", error
+        )
     banner = f'<div class="err">{esc(error)}</div>' if error else ""
     nav = '<p><a class="back" href="/">&larr; Review inbox</a></p>'
     panel = _actions_html(state, run_id, bucket, manifest)

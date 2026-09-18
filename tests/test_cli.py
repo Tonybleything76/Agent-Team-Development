@@ -1150,3 +1150,97 @@ def test_status_of_an_approved_run_whose_file_is_no_longer_text(workdir, capsys)
     assert s["artifacts_verified"] is False
     assert "cannot be read as text" in s["verification_error"]
     assert s["pending_action"] == "done"
+
+
+# The manifest is editable, so every field verification reads from it is part of the attack
+# surface. Each of these used to verify, or to crash every command, instead of failing the check.
+
+
+def _edit_manifest(rid, fn):
+    mf = _artifact_root() / "pending" / rid / "manifest.json"
+    m = json.loads(mf.read_text())
+    fn(m)
+    mf.write_text(json.dumps(m))
+
+
+def _first_file(m):
+    return next(a for a in m["artifacts"] if a.get("file"))
+
+
+def test_a_manifest_without_digests_does_not_verify(workdir, capsys):
+    """Dropping `sha256` used to switch the byte check off entirely."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    _edit_manifest(rid, lambda m: [a.pop("sha256", None) for a in m["artifacts"]])
+    s = _status_json(rid, capsys)
+    assert s["artifacts_verified"] is False and "no recorded sha256" in s["verification_error"]
+    assert s["pending_action"] == "reject"
+    with pytest.raises(gate.GateError, match="no recorded sha256"):
+        gate.approve(rid, by="Tony")
+
+
+@pytest.mark.parametrize("how", ["absolute", "dotdot", "symlink"])
+def test_an_artifact_outside_the_run_does_not_verify(workdir, capsys, tmp_path, how):
+    """A file the run never wrote, with a matching digest, must still be refused."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    d = _artifact_root() / "pending" / rid
+    first = _first_file(json.loads((d / "manifest.json").read_text()))
+    outside = tmp_path / "outside.md"
+    outside.write_text((d / first["file"]).read_text())  # same bytes, same digest
+    if how == "symlink":
+        (d / first["file"]).unlink()
+        (d / first["file"]).symlink_to(outside)
+    else:
+        target = str(outside) if how == "absolute" else os.path.relpath(outside, d)
+        _edit_manifest(rid, lambda m: _first_file(m).update(file=target))
+    with pytest.raises(gate.GateError, match="outside the run directory"):
+        gate.approve(rid, by="Tony")
+    assert _status_json(rid, capsys)["pending_action"] == "reject"
+    assert main(["reject", rid, "--by", "Tony", "--reason", "outside"]) == 0
+
+
+@pytest.mark.parametrize(
+    "edit",
+    [lambda a: a.update(review="x"), lambda a: a.update(file=5)],
+    ids=["review-not-a-mapping", "file-not-a-string"],
+)
+def test_a_malformed_artifact_entry_can_still_be_rejected(workdir, capsys, edit):
+    """These raised AttributeError/TypeError from status and reject alike: no way out."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    _edit_manifest(rid, lambda m: edit(_first_file(m)))
+    s = _status_json(rid, capsys)
+    assert s["pending_action"] == "reject" and "malformed" in s["verification_error"]
+    assert main(["reject", rid, "--by", "Tony", "--reason", "malformed"]) == 0
+
+
+def test_an_unreadable_artifact_fails_the_check(workdir, capsys):
+    if os.geteuid() == 0:
+        pytest.skip("root reads anything")
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    art = next((_artifact_root() / "pending" / rid).glob("*.md"))
+    art.chmod(0)
+    try:
+        s = _status_json(rid, capsys)
+        assert "cannot be read as text" in s["verification_error"]
+        assert s["pending_action"] == "reject"
+    finally:
+        art.chmod(0o644)
+
+
+def test_only_one_reject_may_supersede_a_recorded_approval(workdir, capsys, failing_rename):
+    """Two supersedes both wrote the manifest; one decision vanished and the log disagreed."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    _record_then_edit("approve")(rid, failing_rename)
+    d = _artifact_root() / "pending" / rid
+    (d / gate.SUPERSEDE_CLAIM).touch()  # another process is mid-supersede
+    with pytest.raises(gate.GateError, match="being decided by another process"):
+        gate.reject(rid, by="Bea", reason="edited")
+    (d / gate.SUPERSEDE_CLAIM).unlink()
+    gate.reject(rid, by="Ann", reason="edited")
+    # Reopening clears it, or the next supersede on this run would be refused forever.
+    gate.reopen(rid, by="Ann", reason="look again")
+    assert not (d / gate.SUPERSEDE_CLAIM).exists()

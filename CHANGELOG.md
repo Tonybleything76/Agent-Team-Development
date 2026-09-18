@@ -2,13 +2,20 @@
 
 ## Unreleased
 
-A run whose files fail verification now always has a way out of the queue, from the terminal
-and from the review inbox alike.
+A run whose files fail verification now has a way out of the queue, from the terminal and
+from the review inbox alike. One case still has none: a manifest that is not valid JSON, which
+`status`, `reject` and the inbox all refuse to read.
 
 **Changed.** `reject` is accepted on a run whose artifacts fail verification, and records the
 failure as `verification_error` in the decision. `approve` stays refused. A reject may
 supersede a recorded but unfinished approval only when that run's bytes fail the check; the
-approval stays in `decisions` and the new entry names it under `supersedes`.
+approval stays in `decisions` and the new entry names it under `supersedes`. Supersession
+takes its own claim file, so only one reject can supersede a given approval.
+
+**Changed.** Verification no longer trusts the manifest to say how strict it is. An artifact
+with no recorded `sha256`, a `file` that resolves outside the run directory (absolute path,
+`..`, or symlink), or an entry whose `file` or `review` has the wrong type now fails the check.
+Every run the orchestrator writes already carries a digest; a manifest without one was edited.
 
 ### Fixed
 
@@ -23,8 +30,22 @@ approval stays in `decisions` and the new entry names it under `supersedes`.
   answered 404 for a run with no manifest, so the web could not reject exactly the runs that
   most need rejecting. Such a run now gets a page that shows why it cannot be displayed, none
   of its content, and only the move `status` recommends: a reject form, a reopen form for a
-  decided run, or the terminal command when the move has no form. The same seven-state test
-  runs against a live server.
+  decided run, or the terminal command when the move has no form, including `approve`, which
+  this page cannot vouch for because it shows nothing. It says why truthfully: a failed check,
+  an unfinished run, or a recorded reject waiting to complete. A manifest shaped in a way the
+  renderer never expected gets the same page instead of a dropped connection. The same
+  seven-state test runs against a live server.
+
+### Security
+
+- **Deleting `sha256` from a manifest switched off the byte check.** With it gone, and `file`
+  pointed at an absolute path, `approve` accepted bytes the run never wrote, from anywhere on
+  disk, and the report displayed them. Reproduced before the fix; now refused.
+- **Two rejects superseding one recorded approval both wrote the manifest.** One decision was
+  lost, the manifest and the log named different people, and the loser crashed with a raw
+  `FileNotFoundError`.
+- **A manifest field of the wrong type crashed `status`, `reject` and the inbox alike**, so the
+  run had no command the gate would accept. It is now a failed check that `reject` records.
 
 ## 0.23.0 — 2026-09-17
 

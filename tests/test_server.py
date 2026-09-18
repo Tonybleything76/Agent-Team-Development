@@ -195,3 +195,81 @@ def test_a_move_the_web_cannot_make_names_the_command_that_can(
     assert code == 200
     assert f"huminloop resynthesize {rid}" in page
     assert _offered(page, rid) == set()
+
+
+def _set_manifest(rid, **fields):
+    mf = artifact_root() / "pending" / rid / "manifest.json"
+    mf.write_text(json.dumps(json.loads(mf.read_text()) | fields))
+
+
+def test_the_fallback_escapes_every_manifest_field_it_prints(workdir, capsys, state, live):
+    """The manifest is attacker-editable; the reason the page prints comes from it."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    _set_manifest(rid, status="<script>alert(1)</script>")
+    code, page = _http(live, "GET", f"/run/{rid}")
+    assert code == 200 and "<script>alert(1)</script>" not in page
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in page
+    code, page = _http(live, "POST", f"/run/{rid}/reject", {"token": "bad"})
+    assert "<script>alert(1)</script>" not in page and "Stale or missing form token" in page
+
+    # A gate error on POST quotes the manifest too, and comes back through the error banner.
+    mf = artifact_root() / "pending" / rid / "manifest.json"
+    m = json.loads(mf.read_text())
+    next(a for a in m["artifacts"] if a.get("file"))["file"] = "<img src=x onerror=alert(2)>.md"
+    mf.write_text(json.dumps(m))
+    form = {"token": state.token, "by": "Tony", "note": ""}
+    code, page = _http(live, "POST", f"/run/{rid}/approve", form)
+    assert "<img src=x" not in page and "&lt;img src=x" in page  # the error banner
+
+
+def test_an_unrenderable_run_the_gate_would_approve_names_the_command(workdir, capsys, state, live):
+    """It printed the bare word "approve": no form, no command, no way forward."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    _set_manifest(rid, status="complete")
+    assert gate.status(rid)["pending_action"] == "approve"
+    code, page = _http(live, "GET", f"/run/{rid}")
+    assert code == 200 and _offered(page, rid) == set()
+    assert f"huminloop approve {rid}" in page and f"huminloop show {rid}" in page
+
+
+def test_a_manifest_the_renderer_chokes_on_still_gets_a_page(workdir, capsys, state, live):
+    """A `plan` that is a string raised AttributeError and dropped the connection."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    _set_manifest(rid, plan="x")
+    code, page = _http(live, "GET", f"/run/{rid}")
+    assert code == 200 and "could not be built" in page and "Traceback" not in page
+
+
+def test_a_live_run_page_says_to_wait(workdir, capsys, state, live):
+    from huminloop.storage import write_lock
+
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    _set_manifest(rid, status="running")
+    write_lock(artifact_root() / "pending" / rid)  # this process is alive
+    assert gate.status(rid)["pending_action"] == "wait"
+    code, page = _http(live, "GET", f"/run/{rid}")
+    assert "still being written" in page and _offered(page, rid) == set()
+
+
+def test_the_fallback_says_why_truthfully(workdir, capsys, failing_rename, state, live):
+    """It told every refused run its contents failed verification, whatever the reason."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    _set_manifest(rid, status="running")
+    assert gate.status(rid)["artifacts_verified"] is True
+    _, page = _http(live, "GET", f"/run/{rid}")
+    assert "did not finish" in page and "cannot be verified" not in page
+
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    brk, restore = failing_rename
+    brk()
+    with pytest.raises(OSError):
+        gate.reject(rid, by="Tony", reason="first look")
+    restore()
+    _, page = _http(live, "GET", f"/run/{rid}")
+    assert "A reject by Tony is already recorded" in page and "original reason" in page
