@@ -1,5 +1,105 @@
 # Changelog
 
+## 0.23.0 — 2026-09-17
+
+Every silent omission the engineering review found, closed. A run can no longer give you a
+wrong answer about what it read, what it sent, or what it needs from you next.
+
+**Breaking.** `render --dashboard` refuses a rejected run, matching `render`. `--engagement`
+with an unknown slug is an error naming the near miss instead of creating a new folder.
+`--root` and `--engagement` together is an error. `orchestrator.run()` raises for library
+callers when an engagement has uncleared context. `context_read` now carries a row for files
+that contributed nothing, so read its `state`, not its length.
+
+### Added
+
+- **`huminloop status <run_id> --json`** answers "what does this run need right now" as one
+  machine-readable fact: `pending_action`, `needs_resynthesize`, `flagged_roles`,
+  `unrevised_roles`, `interrupted`, `artifacts_verified`. Five surfaces each had their own idea
+  of this. It verifies the bytes the way the gate does, so it will not recommend approving a
+  run whose artifact was edited since it ran, and reports `artifacts_verified: false` — with
+  the reason — whenever it could not check, rather than assuming the files are intact, and it reports a run directory that never got a
+  manifest instead of calling it missing — `pending` already listed those. Without `--json` it
+  prints the exact command to run next.
+- **A clearance gate before any client material reaches a provider.** You see the files, their
+  size, the directory on disk, which seats will receive them and how many calls that costs,
+  then answer. `--context-cleared` and `--cleared-by` for scripts; a non-interactive run with
+  uncleared context refuses rather than guessing. Who cleared it, when, over exactly which
+  bytes (sha256) is written into the manifest, so it can be proven afterwards.
+- **Engagement context now reaches every seat that reasons about the work** — each draft, the
+  critic's read of it, the author's revision, and the Engagement Lead's synthesis. The critic
+  no longer files evidence challenges without the evidence, and the recommendation the client
+  reads is no longer written by the one role that never saw their material.
+- Each run keeps its own snapshot of the material it was given, so a `resynthesize` an hour
+  later integrates what the specialists actually saw rather than whatever the folder holds now.
+
+### Fixed
+
+- **`render --dashboard` rendered a tampered artifact and a rejected run.** Both renderers now
+  pass the same precheck: the status guard plus a re-derivation of every artifact's governance
+  verdict from the bytes on disk.
+- **A symlink in `context/` read and sent a file from outside the engagement**, and the record
+  showed only the innocent local basename. Context is confined to the engagement, and a refused
+  file is recorded with where it actually pointed.
+- **Files disappeared from the record entirely** when unreadable or empty. Every candidate file
+  now earns a row: read, truncated, dropped, empty, unreadable, unresolvable or refused, each
+  visually distinct on the dashboard and labelled with a word, never colour alone.
+- **`resynthesize` overwrote the audit record with an empty list**, destroying a run's account
+  of what client material it was given — in the command meant to rescue it.
+- **`resynthesize` could send client material nobody cleared.** It read the snapshot straight
+  off disk with no gate, so a run that never had context would ship a file dropped into its
+  directory afterwards, and material edited after approval went out under the original
+  approver's name. Now proven against the clearance's own sha256.
+- **A document could close the fence it was quoted inside, or forge the other one.** Both
+  markers are defused wherever untrusted text is wrapped, so neither client material nor a
+  teammate's draft can break out and read as instructions.
+- A blank file larger than the remaining budget recorded characters it never sent and ate the
+  budget the next real file needed.
+- A mistyped `--engagement` silently created a phantom engagement and the run vanished from
+  `pending`. An engagement whose manifest has gone bad is now listed as corrupt rather than
+  making the whole list read "no engagements".
+- A huge file in `context/` was read end to end only to discover twenty characters of it fit.
+- The clearance prompt printed filenames unsanitised, so a crafted name could scroll the rows
+  you read before answering out of view. A filename may also contain a newline, which the prose
+  sanitiser preserves by design, so one file could forge entire extra rows in that list.
+- `resynthesize` returned empty rather than raising when a run's context snapshot was missing,
+  unreadable or emptied, while the manifest still recorded that a named human had cleared it —
+  the lead would have quietly rewritten the client-facing recommendation with nothing.
+- The gate on the first, paid pass only checked that *some* clearance existed, not that it
+  covered the bytes being sent. It now verifies the sha256 and the file list. The recovery
+  path (`resynthesize`) verifies the sha256 but not the file list, so the two doors still
+  differ on that field — see the note below.
+- A ten-character document with a long blank tail was reported as truncated, handed the model a
+  false truncation note, and charged the budget for text nobody sent.
+
+### Changed
+
+- The two render surfaces share their helpers rather than each keeping a copy; the dashboard's
+  own `initials` had already drifted, reading "Head of Data" as HO where the report read HD.
+- `DESIGN.md` records why both surfaces exist and what each owes. `README` shows the context
+  flow and the clearance gate.
+
+### What the clearance gate does and does not guarantee
+
+Worth stating plainly, because a control you over-trust is worse than one you know the edges
+of. It **does** stop engagement context reaching a model provider without a recorded human
+decision, on both the initial run and `resynthesize`, and it records who, when, and a sha256
+of the exact bytes so the decision can be produced afterwards.
+
+It does **not** authenticate that human: `--cleared-by` is free text and the fallback reads the
+environment, so the name is self-asserted, exactly as `gate.py` has always said of approvals.
+It does not protect the record from someone who can already write inside the run directory —
+the sha256 it checks against lives in the same `manifest.json`, `gate.verify_artifacts` covers
+only the artifacts, and the clearance carries no `run_id`. The fence defuses known markers
+byte-for-byte but not near-misses or unicode lookalikes. A hard link still reaches outside the
+engagement where a symlink is refused. The audit record keys on basenames, so two files with
+the same name in different subdirectories are not distinguishable. Each of these is written up
+with a reproduction in `TODOS.md` rather than left for you to discover.
+
+Tests 252 → 384, 100% coverage of every line this release adds. Evals gain a gated
+`specialists_receiving_engagement_context` count and four fence-survival cases; both guards
+were verified by reverting their fixes and watching them fail.
+
 ## 0.22.0 — 2026-09-10
 
 Engagements, context that feeds forward, and a dashboard you use rather than read.

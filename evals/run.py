@@ -14,10 +14,12 @@ import argparse
 import json
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 from huminloop import __version__
-from huminloop.governance import review_text
+from huminloop.engagement import CONTEXT_FENCE, load_context
+from huminloop.governance import fenced, review_text
 from huminloop.llm import DryRunLLM, build_prompt
 from huminloop.orchestrator import produce
 from huminloop.personas import load_house_brief, load_persona, persona_keys
@@ -42,6 +44,11 @@ GATED_COUNTS = (
     "personas_well_formed",
     "specialist_personas_written",
     "specialists_receiving_house_brief",
+    # Added 2026-09-17 (eng review T11). Every eval called build_prompt with three arguments,
+    # so nothing here exercised the engagement-context section at all: a change that silently
+    # stopped client material reaching the team would have left every number untouched.
+    "specialists_receiving_engagement_context",
+    "context_cases",
 )
 # Transformation coverage carries its own anti-shrink guard rather than being folded into
 # GATED_COUNTS, which is left exactly as it was. Deleting tagged cases already drives the rate
@@ -65,6 +72,14 @@ HOW_MEASURED = {
     "specialist_personas_written": "personas belonging to dispatchable specialists",
     "supervisor_personas_written": "personas belonging to supervisors (the Engagement Lead)",
     "specialists_receiving_house_brief": "specialists whose prompt carries the shared house brief",
+    "specialists_receiving_engagement_context": (
+        "specialists whose prompt actually carries the engagement context it was given"
+    ),
+    "context_fence_survival_rate": (
+        "share of context cases where the assembled block carries exactly one fence pair and "
+        "loses none of the source text — a client document containing the marker must not be "
+        "able to close the fence early"
+    ),
     "transformation_route_coverage": (
         "share of cases tagged category=transformation whose full ordered plan equals the "
         "expected one; per-case, not 'contains an advisor'"
@@ -207,6 +222,12 @@ def eval_personas() -> tuple[dict, list[dict]]:
     ok = sum(r["in_prompt"] and r["sections_ok"] for r in rows)
     # The house brief must reach every specialist, personified or not.
     housed = sum(house in build_prompt(get_role(k), "eval task", "")[0] for k in SPECIALISTS)
+    # And so must the engagement context, when there is any. Four arguments on purpose: the
+    # three-argument call every other line here makes is exactly what left this untested.
+    probe = fenced(CONTEXT_PROBE, CONTEXT_FENCE)
+    with_context = sum(
+        CONTEXT_PROBE in build_prompt(get_role(k), "eval task", "", probe)[1] for k in SPECIALISTS
+    )
     # persona_coverage answers "how many specialists have a point of view", so a supervisor
     # persona (the Engagement Lead) must not inflate the numerator against a specialist
     # denominator. Counted and reported separately instead.
@@ -218,6 +239,51 @@ def eval_personas() -> tuple[dict, list[dict]]:
         "supervisor_personas_written": len(rows) - len(specialist_personas),
         "persona_coverage": len(specialist_personas) / len(SPECIALISTS),
         "specialists_receiving_house_brief": housed,
+        "specialists_receiving_engagement_context": with_context,
+    }, rows
+
+
+# A fact no persona or house brief would ever produce on its own, so finding it in a prompt
+# proves the engagement context reached it rather than something merely reading alike.
+CONTEXT_PROBE = "Union rules cap training at 4 hours per technician per quarter."
+
+
+def eval_context(cases: list[dict]) -> tuple[dict, list[dict]]:
+    """Does client material survive the trip into a prompt, intact and still quoted?
+
+    Two failures are checked together because they look identical from outside: text that never
+    arrives, and text that arrives having broken out of its fence. The first is a silent
+    omission; the second silently turns a client's document into instructions to the model.
+    """
+    rows, ok = [], 0
+    for c in cases:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "context").mkdir()
+            for name, text in c["files"].items():
+                (root / "context" / name).write_text(text, encoding="utf-8")
+            block, read = load_context(root)
+        markers = block.count(CONTEXT_FENCE)
+        missing = [t for t in c["expect_present"] if t not in block]
+        # Every file must still appear in the audit record, whatever became of its bytes.
+        unrecorded = [n for n in c["files"] if n not in {r["file"] for r in read}]
+        passed = markers == c["expect_markers"] and not missing and not unrecorded
+        ok += passed
+        rows.append(
+            {
+                "id": c["id"],
+                "note": c.get("note", ""),
+                "expected": c["expect_markers"],
+                "got": markers,
+                "missing_text": missing,
+                "unrecorded_files": unrecorded,
+                "exact": passed,
+                "borderline": False,
+            }
+        )
+    return {
+        "context_fence_survival_rate": ok / max(len(cases), 1),
+        "context_cases": len(cases),
     }, rows
 
 
@@ -244,13 +310,15 @@ def main(argv=None) -> int:
     r_metrics, r_rows = eval_router(cases["router"])
     g_metrics, g_rows = eval_governance(cases["governance"])
     p_metrics, p_rows = eval_personas()
+    c_metrics, c_rows = eval_context(cases["context"])
     e_metrics = eval_dry_run_end_to_end()
-    metrics = {**r_metrics, **g_metrics, **p_metrics, **e_metrics}
+    metrics = {**r_metrics, **g_metrics, **p_metrics, **c_metrics, **e_metrics}
     borderline = [x for x in r_rows + g_rows if x["borderline"]]
     failures = (
         [x for x in r_rows if not x["exact"]]
         + [x for x in g_rows if not (x["verdict_ok"] and x["issues_ok"])]
         + [x for x in p_rows if not (x["in_prompt"] and x["sections_ok"])]
+        + [x for x in c_rows if not x["exact"]]
     )
 
     result = {
@@ -263,6 +331,7 @@ def main(argv=None) -> int:
         "router_rows": r_rows,
         "governance_rows": g_rows,
         "persona_rows": p_rows,
+        "context_rows": c_rows,
     }
     RESULTS.mkdir(exist_ok=True)
     (RESULTS / "latest.json").write_text(json.dumps(result, indent=2))

@@ -47,3 +47,6 @@ evals/results/latest.json
 
 # Claude Code worktrees (separate checkouts, never tracked)
 .claude/
+
+# pytest-cov output
+.coverage

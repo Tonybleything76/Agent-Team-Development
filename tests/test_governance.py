@@ -1,3 +1,6 @@
+import pytest
+
+from huminloop import governance
 from huminloop.governance import review_text
 
 GOOD = (
@@ -140,3 +143,56 @@ def test_bold_section_word_in_prose_is_not_a_heading():
         "Citations: https://x.io/a\nRisks: TBD\nNext Steps: pilot in Q3\n"
     )
     assert "Placeholder content in section: risks" in review_text(text).issues
+
+
+# ---------------------------------------------------------------------------
+# one_line: safe to print on one row, and unable to lie about being safe.
+# ---------------------------------------------------------------------------
+
+_ROW_BREAKERS = [
+    "\x00",
+    "\t",
+    "\n",
+    "\x0b",
+    "\x0c",
+    "\x1b",
+    "\x85",
+    "​",
+    " ",
+    " ",
+    "‮",
+    "⁦",
+    "﻿",
+]
+
+
+@pytest.mark.parametrize("ch", _ROW_BREAKERS, ids=[hex(ord(c)) for c in _ROW_BREAKERS])
+def test_one_line_neutralises_everything_that_can_break_a_row(ch):
+    """The first version used the C1 class only, so U+2028 -- legal in a POSIX filename --
+    forged a whole extra row with no sign anything had happened."""
+    out = governance.one_line(f"a{ch}b.md")
+    assert not governance._LINE_UNSAFE_RE.search(out)  # nothing survives to break the row
+    assert out != f"a{ch}b.md"  # and the reader can see it was not a plain name
+
+
+def test_a_filename_cannot_forge_the_cleaned_notice():
+    """The old form appended "[control characters removed]", which a filename can contain --
+    the same plant-the-system's-own-notice hole fenced() closes for markers."""
+    faked = governance.one_line("notes.md  [control characters removed]")
+    real = governance.one_line("notes.md\x01")
+    assert faked != real
+    assert faked == "notes.md  [control characters removed]"  # shown as the plain text it is
+    assert real.startswith("'") and "\\x01" in real  # genuinely odd names are quoted
+
+
+def test_one_line_caps_only_when_a_limit_is_asked_for():
+    """A filename shares a row with other columns and is bounded. A directory path stands on
+    its own line and must never be cut, or the prompt stops saying where the material is."""
+    assert governance.one_line("z" * 500) == "z" * 500  # unbounded by default
+    capped = governance.one_line("z" * 500, governance.LINE_MAX_CHARS)
+    assert len(capped) == governance.LINE_MAX_CHARS
+    assert capped.endswith("...")  # stated, not silently truncated
+
+
+def test_one_line_leaves_an_ordinary_name_exactly_alone():
+    assert governance.one_line("2026-09-10-discovery-notes.md") == "2026-09-10-discovery-notes.md"

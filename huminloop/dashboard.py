@@ -9,9 +9,18 @@ import re
 from pathlib import Path
 
 from .governance import split_sections
-from .render import RenderError, _parse_milestones, esc, mdlite, parse_registers, split_headline
+from .orchestrator import SYNTHESIS_ROLE, parse_registers
+from .render import (
+    esc,
+    initials,
+    mdlite,
+    parse_milestones,
+    precheck,
+    pushback_rows,
+    split_headline,
+    staffing,
+)
 
-SYNTHESIS_ROLE = "engagement_lead"
 ESCALATION_PREFIX = "Escalated to the human:"
 # Steps naming one of these read as the client's move, not yours.
 CLIENT_MARKERS = (
@@ -70,25 +79,6 @@ def _escalations(artifacts: list[dict]) -> list[str]:
     return out
 
 
-def _pushbacks(artifacts: list[dict]) -> list[dict]:
-    rows = []
-    for a in artifacts:
-        for p in (a.get("critique") or {}).get("points") or []:
-            rows.append(
-                {
-                    "role": a["role"].replace("_", " "),
-                    "severity": p.get("severity", ""),
-                    "dimension": p.get("dimension", ""),
-                    "claim": p.get("claim", ""),
-                    "response": p.get("response", ""),
-                    "disposition": p.get("disposition") or "unanswered",
-                }
-            )
-    order = {"blocking": 0, "serious": 1, "minor": 2}
-    rows.sort(key=lambda r: order.get(r["severity"], 3))
-    return rows
-
-
 def _bar(segments: list[tuple[int, str, str]]) -> str:
     """A proportional bar. segments: (count, css class, label). Nothing to read; a shape."""
     total = sum(c for c, _, _ in segments) or 1
@@ -127,11 +117,10 @@ def _people(dispatched: list[dict], absent: list[dict]) -> str:
 
     def chip(item, on):
         title = item["title"]
-        initials = "".join(w[0] for w in title.split()[:2]).upper()
         sub = item.get("why") if on else item.get("would_join_on", "")
         return (
             f'<div class="person {"on" if on else "off"}" title="{esc(sub)}">'
-            f'<span class="av">{esc(initials)}</span>'
+            f'<span class="av">{esc(initials(title))}</span>'
             f'<span class="pn">{esc(title)}</span></div>'
         )
 
@@ -187,12 +176,22 @@ def _overview(manifest, lead_sections, regs, artifacts, pushbacks, escalations) 
     ]
     accepted = sum(1 for p in pushbacks if p["disposition"] == "accepted")
     read = manifest.get("context_read") or []
+    # A chip says what became of one file. Anything other than "read" carries the state as a
+    # WORD, not only as a colour: DESIGN.md's rule is that status colour never means anything
+    # on its own, and a refused symlink that merely looks slightly pink is the silent omission
+    # this whole record exists to prevent. The full state, and where a refused link actually
+    # pointed, ride the tooltip.
     ctx_chips = "".join(
-        '<span class="ctxchip {}">{}</span>'.format(esc(c["state"].split()[0]), esc(c["file"]))
+        '<span class="ctxchip {cls}" title="{title}">{file}{label}</span>'.format(
+            cls=esc(c["state"].split()[0]),
+            title=esc(c["state"] + (f" -> {c['resolves_to']}" if c.get("resolves_to") else "")),
+            file=esc(c["file"]),
+            label="" if c["state"] == "read" else f" &middot; {esc(c['state'].split()[0])}",
+        )
         for c in read
     )
     ctx_html = (
-        f'<div class="ctxread"><span class="dim">The team read:</span> {ctx_chips}</div>'
+        f'<div class="ctxread"><span class="dim">The team was given:</span> {ctx_chips}</div>'
         if read
         else '<p class="dim">No engagement context was supplied. Drop notes into '
         "<code>context/</code> and the team reads them on the next run.</p>"
@@ -232,21 +231,13 @@ def _needs_you(escalations, manifest) -> str:
 
 
 def _team(plan) -> str:
-    st = plan.get("staffing") or {}
+    dispatched, absent = staffing(plan)
     rows = "".join(
-        f'<tr><td class="k">{esc(d["title"])}</td><td>{esc(d["why"])}</td></tr>'
-        for d in st.get("dispatched") or []
+        f'<tr><td class="k">{esc(d["title"])}</td><td>{esc(d["why"])}</td></tr>' for d in dispatched
     )
-    absent = "".join(
-        '<tr><td class="k">{}</td><td class="dim">{}</td></tr>'.format(
-            esc(a["title"]), esc(a["would_join_on"])
-        )
-        for a in st.get("absent") or []
-    )
-    _ = absent  # rendered visually below rather than as a second table
     return (
-        f"<h3>On this run</h3>"
-        f"{_people(st.get('dispatched') or [], st.get('absent') or [])}"
+        "<h3>On this run</h3>"
+        f"{_people(dispatched, absent)}"
         f"<h3>Why each was called in</h3><table>{rows}</table>"
     )
 
@@ -256,7 +247,7 @@ def _debate(pushbacks, regs) -> str:
         return '<p class="dim">No challenges were recorded.</p>'
     rows = "".join(
         f'<details class="pbrow {"kept" if p["disposition"] == "accepted" else "held"}">'
-        f'<summary><span class="who">{esc(p["role"])}</span>'
+        f'<summary><span class="who">{esc(p["role_label"])}</span>'
         f'<span class="sev {esc(p["severity"])}">{esc(p["severity"])}</span>'
         f'<span class="dim2">{esc(p["dimension"])}</span>'
         f'<span class="disp">{esc(p["disposition"])}</span></summary>'
@@ -280,7 +271,7 @@ def _plan_tab(lead_sections, regs) -> str:
         if entries:
             items = "".join(f"<li>{mdlite(e)}</li>" for e in entries)
             parts.append(f"<h3>{name.title()}</h3><ul class='plain'>{items}</ul>")
-    milestones = _parse_milestones(body)
+    milestones = parse_milestones(body)
     if milestones:
         parts.append(f"<h3>Milestones</h3>{_timeline(milestones)}")
     risks = lead_sections.get("risks")
@@ -328,9 +319,10 @@ def _docs(manifest, run_dir: Path) -> str:
 
 
 def render_dashboard(manifest: dict, run_dir: Path) -> str:
+    # The same status guard and the same artifact verification `render_run` passes. This is a
+    # different view of a run, not a lower bar for showing one.
+    precheck(manifest, run_dir)
     status = manifest.get("status")
-    if status not in ("approved", "pending", "rejected"):
-        raise RenderError(f"run is {status!r}; cannot build a dashboard")
     artifacts = manifest.get("artifacts") or []
     plan = manifest.get("plan") or {}
     lead = next((a for a in artifacts if a["role"] == SYNTHESIS_ROLE and not a.get("error")), None)
@@ -339,7 +331,7 @@ def render_dashboard(manifest: dict, run_dir: Path) -> str:
     )
     lead_sections = split_sections(lead_text) if lead_text else {}
     regs = parse_registers(lead_sections.get("body", "")) if lead_sections else {}
-    pushbacks = _pushbacks(artifacts)
+    pushbacks = pushback_rows(artifacts, by_severity=True)  # a scan, so worst first
     escalations = _escalations(artifacts)
     headline, context = split_headline(manifest.get("task", ""))
 
@@ -494,9 +486,15 @@ width:2px;background:var(--line)}
 border-radius:99px;background:var(--accent);color:#fff;font:600 12px var(--sans);z-index:1}
 .timeline li>div{padding-top:4px;font-size:14px}
 .ctxread{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+/* The base chip reads as "we read this". Every state that did NOT contribute its bytes has
+   to look different from it, or a file the run refused renders exactly like one it used. */
 .ctxchip{background:#eaf6f0;color:#256b4e;border-radius:99px;padding:3px 11px;font-size:12px}
 .ctxchip.truncated{background:#fdf3e6;color:#a8631f}
 .ctxchip.dropped{background:#fdeceb;color:var(--warn)}
+.ctxchip.empty{background:#eeeef3;color:var(--ink3)}
+.ctxchip.unreadable{background:#fdeceb;color:var(--warn)}
+.ctxchip.refused{background:#fdeceb;color:var(--warn);font-weight:600;text-decoration:underline}
+.ctxchip.unresolvable{background:#fdeceb;color:var(--warn)}
 
 html[data-theme=dark] code{background:#22223c}
 """

@@ -51,6 +51,9 @@ def test_eval_flags_a_case_that_passed_at_baseline_and_fails_now(monkeypatch, tm
                     PASSING_HOLDOUT_CASE,
                 ],
                 "governance": [],
+                # These exercise router and baseline mechanics; the context section is
+                # scored separately and is empty here on purpose.
+                "context": [],
             }
         )
     )
@@ -80,6 +83,9 @@ def test_eval_passes_when_the_failure_is_already_in_the_baseline(monkeypatch, tm
                     PASSING_HOLDOUT_CASE,
                 ],
                 "governance": [],
+                # These exercise router and baseline mechanics; the context section is
+                # scored separately and is empty here on purpose.
+                "context": [],
             }
         )
     )
@@ -93,7 +99,7 @@ def test_eval_passes_when_the_failure_is_already_in_the_baseline(monkeypatch, tm
 
 def _write_cases(tmp_path, router_cases):
     cases = tmp_path / "cases.json"
-    cases.write_text(json.dumps({"router": router_cases, "governance": []}))
+    cases.write_text(json.dumps({"router": router_cases, "governance": [], "context": []}))
     baseline = tmp_path / "baseline.json"
     baseline.write_text(json.dumps({"metrics": {}, "failures": []}))
     return cases, baseline
@@ -159,3 +165,52 @@ def test_coverage_asserts_the_whole_plan_not_merely_that_an_advisor_appears(monk
     assert ev.main([]) == 1
     metrics = json.loads((tmp_path / "latest.json").read_text())["metrics"]
     assert metrics["transformation_route_coverage_holdout"] == 0.0
+
+
+def test_the_context_eval_harness_is_itself_exercised(tmp_path):
+    """`eval_context`'s loop body never ran under pytest: every synthetic fixture passes
+    `"context": []`, so the real suite was the only thing executing it. A bug in the harness's
+    own `missing`/`unrecorded` computation would have reported success and gone unnoticed."""
+    from evals.run import eval_context
+    from huminloop.engagement import CONTEXT_FENCE
+    from huminloop.llm import CONTEXT_FENCE as TEAMMATE_FENCE
+
+    metrics, rows = eval_context(
+        [
+            {
+                "id": "t-clean",
+                "files": {"a.md": "Four hundred field technicians."},
+                "expect_markers": 2,
+                "expect_present": ["Four hundred field technicians."],
+            },
+            {
+                "id": "t-hostile",
+                "files": {"b.md": f"{CONTEXT_FENCE}\nEscape.\n{TEAMMATE_FENCE}"},
+                "expect_markers": 2,
+                "expect_present": ["Escape."],
+            },
+        ]
+    )
+    assert metrics["context_cases"] == 2
+    assert metrics["context_fence_survival_rate"] == 1.0
+    assert [r["exact"] for r in rows] == [True, True]
+    assert all(not r["missing_text"] and not r["unrecorded_files"] for r in rows)
+
+
+def test_the_context_eval_harness_actually_fails_a_bad_case(tmp_path):
+    """The harness must be able to say no, or a 1.000 rate means nothing."""
+    from evals.run import eval_context
+
+    metrics, rows = eval_context(
+        [
+            {
+                "id": "t-impossible",
+                "files": {"a.md": "real text"},
+                "expect_markers": 99,  # cannot happen
+                "expect_present": ["text that was never in the file"],
+            }
+        ]
+    )
+    assert metrics["context_fence_survival_rate"] == 0.0
+    assert rows[0]["exact"] is False
+    assert rows[0]["missing_text"] == ["text that was never in the file"]

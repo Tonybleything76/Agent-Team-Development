@@ -9,6 +9,7 @@ it. Tests that claim otherwise would be theatre.
 
 import json
 import os
+from pathlib import Path
 
 import pytest
 
@@ -303,3 +304,187 @@ def test_resynthesize_refuses_a_decided_run(workdir, fake_llm):
     gate.reject(rec.run_id, "Tony Bleything", "testing resynthesize's decided-run guard")
     with pytest.raises(StorageError, match="rejected, not pending"):
         orchestrator.resynthesize(rec.run_id, llm=fake_llm)
+
+
+# ---------------------------------------------------------------------------
+# What a resynthesize must not destroy, and what it must not silently re-read.
+# ---------------------------------------------------------------------------
+
+
+def _engagement_run(tmp_path, monkeypatch, llm, task="Draft an RFP response and SOW"):
+    """A run inside an engagement that has real context, cleared and sent."""
+    from huminloop import engagement
+
+    monkeypatch.setenv(engagement.ENGAGEMENTS_ENV, str(tmp_path / "Engagements"))
+    root = engagement.create("Acme")
+    (root / "context" / "discovery.md").write_text("400 field techs. Union caps training hours.")
+    monkeypatch.setenv("HUMINLOOP_ROOT", str(root))
+    monkeypatch.setenv("ARTIFACT_DIR", "out")
+    monkeypatch.setenv("LOG_DIR", "logs")
+    ctx = engagement.prepare_context(root).cleared_by("Tony", "test")
+    return root, orchestrator.run(task, llm=llm, context=ctx)
+
+
+def test_resynthesize_keeps_the_record_of_what_the_team_was_given(tmp_path, monkeypatch):
+    """It used to rebuild the record without context_read, and write_manifest then overwrote a
+    real audit record with []: the run's account of what client material it saw, destroyed by
+    the command meant to rescue it."""
+    failing = RecordingLLM(fail_roles=("engagement_lead",))
+    root, rec = _engagement_run(tmp_path, monkeypatch, failing)
+    assert [c["file"] for c in rec.context_read] == ["discovery.md"]
+
+    again = orchestrator.resynthesize(rec.run_id, llm=RecordingLLM())
+    assert [c["file"] for c in again.context_read] == ["discovery.md"]
+    assert again.context_clearance["by"] == "Tony"
+
+    on_disk = json.loads((artifact_root() / "pending" / rec.run_id / "manifest.json").read_text())
+    assert [c["file"] for c in on_disk["context_read"]] == ["discovery.md"]
+    assert on_disk["context_clearance"]["by"] == "Tony"
+
+
+def test_a_run_snapshots_the_context_it_was_given(tmp_path, monkeypatch):
+    from huminloop import engagement
+
+    root, rec = _engagement_run(tmp_path, monkeypatch, RecordingLLM())
+    snapshot = artifact_root() / "pending" / rec.run_id / "context" / "context.md"
+    assert snapshot.is_file()
+    assert "Union caps training hours" in snapshot.read_text()
+    # And it is evidence, not an artifact: `show` and the Documents tab glob *.md at the top
+    # level of the run directory and must not pick it up.
+    assert "context.md" not in [p.name for p in (snapshot.parent.parent).glob("*.md")]
+    assert engagement.read_snapshot(snapshot.parent.parent) == snapshot.read_text()
+
+
+def test_the_snapshot_survives_the_context_folder_changing_underneath(tmp_path, monkeypatch):
+    """A resynthesize an hour later must not integrate different client material than the
+    specialists saw."""
+    from huminloop import engagement
+
+    failing = RecordingLLM(fail_roles=("engagement_lead",))
+    root, rec = _engagement_run(tmp_path, monkeypatch, failing)
+    (root / "context" / "discovery.md").write_text("Completely different client, different facts.")
+
+    d = artifact_root() / "pending" / rec.run_id
+    assert "Union caps training hours" in engagement.read_snapshot(d)
+    assert "Completely different" not in engagement.read_snapshot(d)
+
+
+# ---------------------------------------------------------------------------
+# resynthesize is a second door into the provider (found 2026-09-17, pre-landing review).
+# ---------------------------------------------------------------------------
+
+
+def test_resynthesize_refuses_a_snapshot_nobody_cleared(workdir):
+    """A run that never had engagement context would accept a context.md dropped into its
+    directory afterwards and send it, with context_clearance still null in the manifest."""
+    from huminloop.engagement import EngagementError
+
+    failing = RecordingLLM(fail_roles=("engagement_lead",))
+    rec = orchestrator.run("Define KPIs and a dashboard", llm=failing, critique=False)
+    d = artifact_root() / "pending" / rec.run_id
+    assert json.loads((d / "manifest.json").read_text())["context_clearance"] is None
+
+    (d / "context").mkdir(exist_ok=True)
+    (d / "context" / "context.md").write_text("SMUGGLED client material nobody approved")
+
+    retry = RecordingLLM()
+    with pytest.raises(EngagementError, match="nobody cleared"):
+        orchestrator.resynthesize(rec.run_id, llm=retry)
+    assert retry.calls == []  # refused before the provider, not after
+
+
+def test_resynthesize_refuses_a_snapshot_edited_since_it_was_cleared(tmp_path, monkeypatch):
+    """Otherwise material changed after approval goes out under the approver's name."""
+    from huminloop.engagement import EngagementError
+
+    failing = RecordingLLM(fail_roles=("engagement_lead",))
+    root, rec = _engagement_run(tmp_path, monkeypatch, failing)
+    d = artifact_root() / "pending" / rec.run_id
+    (d / "context" / "context.md").write_text("TAMPERED after Tony signed for it")
+
+    retry = RecordingLLM()
+    with pytest.raises(EngagementError, match="changed since Tony cleared it"):
+        orchestrator.resynthesize(rec.run_id, llm=retry)
+    assert retry.calls == []
+
+
+def test_an_untampered_resynthesize_still_carries_the_cleared_material(tmp_path, monkeypatch):
+    """The gate must not break the path it exists to protect."""
+    failing = RecordingLLM(fail_roles=("engagement_lead",))
+    root, rec = _engagement_run(tmp_path, monkeypatch, failing)
+    retry = RecordingLLM()
+    orchestrator.resynthesize(rec.run_id, llm=retry)
+    lead = next(
+        p for (_, p), r in zip(retry.calls, retry.roles, strict=True) if r == "engagement_lead"
+    )
+    assert "Union caps training hours" in lead
+
+
+@pytest.mark.parametrize("sabotage", ["delete", "empty", "unreadable"])
+def test_resynthesize_refuses_when_the_cleared_snapshot_is_gone(tmp_path, monkeypatch, sabotage):
+    """Failing open here is the silent omission the gate exists to stop: the manifest still
+    asserts a named human cleared the material, and the lead would quietly rewrite the
+    client-facing recommendation having been given none of it."""
+    import os as _os
+
+    from huminloop.engagement import EngagementError
+
+    if sabotage == "unreadable" and (_os.name != "posix" or _os.geteuid() == 0):
+        pytest.skip("chmod-based test requires an unprivileged POSIX user")
+
+    failing = RecordingLLM(fail_roles=("engagement_lead",))
+    root, rec = _engagement_run(tmp_path, monkeypatch, failing)
+    snap = artifact_root() / "pending" / rec.run_id / "context" / "context.md"
+
+    if sabotage == "delete":
+        snap.unlink()
+    elif sabotage == "empty":
+        snap.write_text("")
+    else:
+        snap.chmod(0o000)
+
+    retry = RecordingLLM()
+    try:
+        with pytest.raises(EngagementError, match="missing or empty"):
+            orchestrator.resynthesize(rec.run_id, llm=retry)
+        assert retry.calls == []
+    finally:
+        if sabotage == "unreadable":
+            snap.chmod(0o644)
+
+
+def test_resynthesize_refuses_a_lost_snapshot_even_with_no_clearance_recorded(workdir):
+    """The guard originally keyed on `clearance` alone, so the hole stayed open through the
+    null-clearance branch: context_read still advertised the files as read while the lead was
+    rewritten having been given nothing."""
+    from huminloop.engagement import EngagementError
+
+    failing = RecordingLLM(fail_roles=("engagement_lead",))
+    rec = orchestrator.run("Define KPIs and a dashboard", llm=failing, critique=False)
+    d = artifact_root() / "pending" / rec.run_id
+    m = json.loads((d / "manifest.json").read_text())
+    m["context_read"] = [{"chars": 35, "file": "client.md", "state": "read"}]
+    m["context_clearance"] = None
+    (d / "manifest.json").write_text(json.dumps(m))
+
+    retry = RecordingLLM()
+    with pytest.raises(EngagementError, match="snapshot is missing or empty"):
+        orchestrator.resynthesize(rec.run_id, llm=retry)
+    assert retry.calls == []
+
+
+def test_no_test_in_this_file_runs_the_orchestrator_outside_a_temp_root():
+    """A test without `workdir` leaves HUMINLOOP_ROOT unset, so `base_root()` falls back to
+    Path(".") -- the run writes into the repo and would read ./context/ if one existed. One
+    test in this file did exactly that. Pin it so the next one cannot."""
+    import re
+
+    src = Path(__file__).read_text()
+    offenders = []
+    for block in re.split(r"\n(?=def test_|@pytest)", src):
+        m = re.search(r"def (test_\w+)\(([^)]*)\)", block, re.S)
+        if not m or "orchestrator.run(" not in block:
+            continue
+        if "workdir" not in m.group(2) and "_engagement_run(" not in block:
+            offenders.append(m.group(1))
+    assert offenders == [], f"these run the orchestrator without an isolated root: {offenders}"

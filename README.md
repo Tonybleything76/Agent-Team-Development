@@ -27,14 +27,28 @@ CLI), and it says so.
 ## How it works
 
 ```
+<engagement>/context/ ──▶ clearance gate ──┐   a named human clears these exact bytes
+  the client's own material                │   before the first provider call, and the
+  (discovery notes, transcripts)           │   manifest records who, when, and a sha256
+                                           │
+                                           ▼
 task ──▶ Router ──▶ [specialist 1] ─▶ [specialist 2] ─▶ … ──▶ Governance check (each artifact)
-                          │                                          │
-                          │  each draft: a critic challenges it,     │
-                          │  the author answers every point          │
-                          │  and reissues                            │
+                          │  ▲                                       │
+                          │  │  each draft: a critic challenges it,  │
+                          │  │  the author answers every point       │
+                          │  │  and reissues                         │
+                          │  │                                       │
+                          │  └── the cleared context reaches every   │
+                          │      draft, every critique and every     │
+                          │      revision — the critic is not asked  │
+                          │      to challenge evidence it cannot see │
                           │                                          │
                           └── prior output passed on as ─────────────┘
                               untrusted reference
+                                                                     ▼
+                                              Engagement Lead synthesis ◀── reads every artifact
+                                              (and the same client material)     in full
+                                                                     │
                                                                      ▼
                                                         out/pending/<run_id>/  ◀── waits here
                                                                      │
@@ -43,22 +57,43 @@ task ──▶ Router ──▶ [specialist 1] ─▶ [specialist 2] ─▶ … 
                                                  out/approved/<run_id>/   |   out/rejected/<run_id>/
 ```
 
+At any point, `huminloop status <run_id> --json` answers "what does this run need right now" as
+machine-readable fact — `pending_action`, `needs_resynthesize`, `flagged_roles`,
+`artifacts_verified` — rather than leaving each caller to infer it from the manifest. It runs
+the same byte check the gate does, so it never recommends an action the next command refuses,
+and it only reports files as verified when it has actually checked them.
+
 1. **Router** (`huminloop/router.py`): deterministic keyword rules map a task to an ordered list of
    specialists. Deterministic on purpose — a plan must be explainable and testable. Unmatched tasks
    fall back to the Strategist.
-2. **Specialists** (`huminloop/roles.py`): a registry of 24 roles in three tiers — supervisor,
+2. **Engagement context** (`huminloop/engagement.py`): anything you drop in an engagement's
+   `context/` is read once, newest first, up to a 24,000-character budget, and given to every seat
+   that reasons about the work — each specialist's draft, the critic's read of it, the author's
+   revision, and the Engagement Lead's synthesis. Three rules hold it honest. Every candidate file
+   gets a row in the manifest's `context_read`, including the ones that contributed nothing
+   (truncated, dropped, unreadable, empty, or refused for resolving outside the engagement), so a
+   document you added can never simply vanish from the record. Nothing is sent until a named human
+   clears it — interactively, or with `--context-cleared` for scripts — and that clearance is
+   written into the manifest with the files, the byte count and a sha256 of the exact block, so
+   "was this cleared, by whom, over what" is answerable afterward. And the run keeps its own
+   snapshot of what it was given, so a `resynthesize` an hour later integrates the material the
+   specialists actually saw rather than whatever the folder holds by then.
+
+   Clearing a run for the provider clears nothing else: publishing, committing or exporting the
+   result is a separate question, asked separately, at that time.
+3. **Specialists** (`huminloop/roles.py`): a registry of 24 roles in three tiers — supervisor,
    client-facing, support. Each is a title and a remit; the orchestrator turns that into a system
    prompt. Adding a specialist is one `Role(...)` entry plus a routing rule. Each specialist sees
    the first 600 characters of every predecessor's artifact, fenced as untrusted reference material
    with an explicit instruction that agreeing is not their job.
-3. **Critique loop** (`huminloop/critique.py`): before an artifact is finalised, a critic (QA/QC)
+4. **Critique loop** (`huminloop/critique.py`): before an artifact is finalised, a critic (QA/QC)
    must steelman it, run a pre-mortem, and file findings against named dimensions — evidence,
    feasibility, human-impact, consistency, falsifiability — each with a severity. The critic never
    edits. The author answers every point, accepts or rejects each with a reason, and reissues, so
    authorship and accountability stay together. An unresolved *blocking* critique flags the run,
    which means releasing it needs a named human, `--force` and a written note. Dismissal is
    allowed; silent dismissal is not.
-4. **Governance** (`huminloop/governance.py`): every artifact must carry Objective, Body, Citations
+5. **Governance** (`huminloop/governance.py`): every artifact must carry Objective, Body, Citations
    (with an https URL inside that section), Risks and Next Steps — plain, markdown or bold
    headings — with no placeholder text (`TBD`, `...`, `-`), nothing shorter than three characters,
    and no email, phone (with separators), SSN-shaped or Luhn-valid card-shaped numbers. Rule-based,
@@ -66,7 +101,7 @@ task ──▶ Router ──▶ [specialist 1] ─▶ [specialist 2] ─▶ … 
    in the run manifest. Byte-derived `review` is kept separate from `process_flags` — findings the
    bytes cannot show, like truncation or a dismissed critique — so the gate can re-derive one from
    the artifact and still see the other.
-5. **The human gate** (`huminloop/gate.py`): every run lands in `out/pending/`. A run moves to
+6. **The human gate** (`huminloop/gate.py`): every run lands in `out/pending/`. A run moves to
    `out/approved/` only when someone runs `huminloop approve <run_id> --by "<name>"`. If Governance
    flagged anything — or a critique went unresolved, or a specialist errored — approval is refused
    unless you pass `--force` *and* a `--note` saying why, and the manifest records `forced: true`
@@ -74,7 +109,7 @@ task ──▶ Router ──▶ [specialist 1] ─▶ [specialist 2] ─▶ … 
    before the directory moves, so an interrupted decision is never lost, and every decision is
    appended to `logs/runs.jsonl` with who and when. `run_id`s are validated against the generated
    shape; nothing outside `out/` can be addressed.
-6. **LLM layer** (`huminloop/llm.py`): `LLM_PROVIDER=dryrun` (default) needs no key and produces
+7. **LLM layer** (`huminloop/llm.py`): `LLM_PROVIDER=dryrun` (default) needs no key and produces
    deterministic output so the whole loop — including the gate — runs in CI. `openrouter` is
    the recommended real provider: one key, any vendor's models, and the model is resolved per
    specialist role (`OPENROUTER_MODEL_<ROLE>` beats `OPENROUTER_MODEL` beats the package
@@ -130,15 +165,22 @@ uv sync                      # creates .venv from the pinned uv.lock
 uv run huminloop roles         # the team
 uv run huminloop run "Build an AI transformation roadmap and ROI model for a manufacturer"
 uv run huminloop pending       # what is waiting for a human
+uv run huminloop status <run_id>        # what this one run needs right now
+uv run huminloop status <run_id> --json # the same, as the contract a script should read
 uv run huminloop show <run_id> # read the manifest and every artifact in the terminal
 uv run huminloop render <run_id>                  # the same run as a reviewable HTML report
+uv run huminloop render <run_id> --dashboard      # or as a working dashboard for a live session
 uv run huminloop approve <run_id> --by "Your Name"
 uv run huminloop reject  <run_id> --by "Your Name" --reason "placeholder content"
 uv run huminloop serve         # the same queue in a browser, localhost only
 
 # a client engagement: a folder in ~/Cowork/Engagements that outlives any one run
 uv run huminloop engagement new "Acme Engineering" --brief "AI enablement for field techs"
-# drop discovery notes, transcripts, their architecture into context/ — the team reads them
+uv run huminloop engagement list
+# drop discovery notes, transcripts, their architecture into context/ — the team reads them.
+# It shows you the files, the size, the seats and the call count, then asks before sending any
+# of it; --context-cleared answers yes up front for a script. An engagement must already exist:
+# a mistyped slug is an error naming the near miss, never a new folder your work disappears into.
 uv run huminloop --engagement acme-engineering run "Design the enablement program"
 uv run huminloop render <run_id> --dashboard   # tabbed working surface, not a document
 uv run huminloop resynthesize <run_id>            # retry a failed Engagement Lead synthesis

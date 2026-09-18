@@ -1,0 +1,171 @@
+{
+  "artifacts": [
+    {
+      "critique": null,
+      "error": null,
+      "file": "data_scientist.md",
+      "process_flags": [],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": false,
+      "role": "data_scientist",
+      "sha256": "ae324af85e31fb6a3d40df29a64c834a0c8601c3ddc0504bef8f901b112d6162"
+    },
+    {
+      "critique": null,
+      "error": null,
+      "file": "engagement_lead.md",
+      "process_flags": [],
+      "review": {
+        "issues": [],
+        "ok": true,
+        "verdict": "APPROVE"
+      },
+      "revised": false,
+      "role": "engagement_lead",
+      "sha256": "862d828c8638b3fa47e91a5a69722a40b0fc53821437201378a48211064a0612"
+    }
+  ],
+  "context_clearance": null,
+  "context_read": [],
+  "created_at": "2026-09-17T15:02:18+00:00",
+  "plan": {
+    "matched_rules": [
+      "analytics"
+    ],
+    "roles": [
+      "data_scientist"
+    ],
+    "staffing": {
+      "absent": [
+        {
+          "role": "change_management_lead",
+          "title": "Change Management & Adoption Lead",
+          "would_join_on": "change_adoption ('change management', 'adoption', 'resistance', 'organizational readiness')"
+        },
+        {
+          "role": "cybersecurity",
+          "title": "Cybersecurity",
+          "would_join_on": "security ('threat', 'security', 'vendor review', 'key management')"
+        },
+        {
+          "role": "data_readiness_lead",
+          "title": "Data Readiness Lead",
+          "would_join_on": "data_readiness ('data readiness', 'data quality', 'data lineage', 'data pipeline')"
+        },
+        {
+          "role": "domain_owner",
+          "title": "Domain Owner",
+          "would_join_on": "domain_ownership ('process owner', 'business owner', 'end to end', 'end-to-end')"
+        },
+        {
+          "role": "enterprise_architect",
+          "title": "Enterprise AI Architect",
+          "would_join_on": "architecture ('target architecture', 'reference architecture', 'architecture review', 'integration blueprint')"
+        },
+        {
+          "role": "finance",
+          "title": "Accountant / Finance",
+          "would_join_on": "proposal ('rfp', 'rfi', 'sow', 'proposal'); finance ('invoice', 'forecast', 'pricing', 'budget')"
+        },
+        {
+          "role": "governance_advisor",
+          "title": "AI Governance & Risk Advisor",
+          "would_join_on": "ai_governance ('eu ai act', 'ai act', 'responsible ai', 'model risk')"
+        },
+        {
+          "role": "hr",
+          "title": "HR",
+          "would_join_on": "people ('onboard', 'onboarding', 'sop', 'skills matrix')"
+        },
+        {
+          "role": "ld",
+          "title": "Learning & Development",
+          "would_join_on": "people ('onboard', 'onboarding', 'sop', 'skills matrix'); enablement ('curriculum', 'training', 'training course', 'course design')"
+        },
+        {
+          "role": "legal",
+          "title": "Legal",
+          "would_join_on": "proposal ('rfp', 'rfi', 'sow', 'proposal'); privacy ('dpia', 'privacy', 'data retention', 'retention schedule'); legal ('nda', 'msa', 'contract', 'redline')"
+        },
+        {
+          "role": "operations",
+          "title": "Operations",
+          "would_join_on": "operations ('capacity', 'burn report', 'burn rate', 'vendor management')"
+        },
+        {
+          "role": "pre_sales",
+          "title": "Pre-Sales",
+          "would_join_on": "proposal ('rfp', 'rfi', 'sow', 'proposal')"
+        },
+        {
+          "role": "privacy",
+          "title": "Privacy",
+          "would_join_on": "privacy ('dpia', 'privacy', 'data retention', 'retention schedule')"
+        },
+        {
+          "role": "process_excellence_lead",
+          "title": "Process Excellence Lead",
+          "would_join_on": "process_design ('process map', 'process redesign', 'target state', 'target-state')"
+        },
+        {
+          "role": "product_developer",
+          "title": "Product Developer",
+          "would_join_on": "product ('prd', 'backlog', 'user story', 'user stories'); build ('poc', 'connector', 'python script', 'automation script')"
+        },
+        {
+          "role": "product_manager",
+          "title": "AI Product Manager",
+          "would_join_on": "product ('prd', 'backlog', 'user story', 'user stories')"
+        },
+        {
+          "role": "program_management_lead",
+          "title": "Program Management Lead",
+          "would_join_on": "program_delivery ('workstream', 'cross-workstream', 'sprint', 'delivery plan')"
+        },
+        {
+          "role": "qa_qc",
+          "title": "QA/QC",
+          "would_join_on": "product ('prd', 'backlog', 'user story', 'user stories'); build ('poc', 'connector', 'python script', 'automation script')"
+        },
+        {
+          "role": "sales",
+          "title": "Sales",
+          "would_join_on": "sales ('leads', 'lead list', 'sales lead', 'email sequence')"
+        },
+        {
+          "role": "strategist",
+          "title": "Strategist",
+          "would_join_on": "strategy ('roadmap', 'transformation', 'strategy', 'current state')"
+        },
+        {
+          "role": "value_realization_lead",
+          "title": "Value Realization Lead",
+          "would_join_on": "value_realization ('business case', 'value realization', 'value realisation', 'benefits realization')"
+        }
+      ],
+      "dispatched": [
+        {
+          "role": "data_scientist",
+          "title": "Data Scientist",
+          "why": "analytics ('kpis')"
+        }
+      ],
+      "unreachable": []
+    }
+  },
+  "provider": "dryrun",
+  "run_id": "20260917_150218_702000",
+  "status": "pending",
+  "synthesis": {
+    "decisions": 0,
+    "disagreements": 0,
+    "escalations": 0,
+    "role": "engagement_lead"
+  },
+  "task": "Define KPIs and a dashboard",
+  "version": "0.22.0"
+}

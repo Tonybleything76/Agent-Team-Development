@@ -11,8 +11,8 @@ from .critique import (
     numbered_points,
     parse_critique,
 )
-from .engagement import load_context
-from .governance import REQUIRED_SECTIONS, Review, flagged_roles, review_text
+from .engagement import LoadedContext, cleared_snapshot, prepare_context, snapshot_context
+from .governance import REQUIRED_SECTIONS, Review, flagged_roles, one_line, review_text
 from .llm import (
     LLMClient,
     ProviderConfigError,
@@ -71,6 +71,10 @@ class RunRecord:
     artifacts: list[ArtifactRecord] = field(default_factory=list)
     status: str = "running"
     context_read: list[dict] = field(default_factory=list)
+    # Who cleared this run's client material for the provider, when, and over exactly which
+    # bytes. None when the run had no engagement context to clear. See
+    # LoadedContext.cleared_by for why this is recorded rather than checked and forgotten.
+    context_clearance: dict | None = None
     created_at: str = ""
     # Counts derived from the synthesis artifact's registers; None when no synthesis ran.
     synthesis: dict | None = None
@@ -104,21 +108,26 @@ def critique_and_revise(
     artifact: str,
     llm: LLMClient,
     critic_key: str = CRITIC_ROLE,
+    engagement_context: str = "",
 ) -> tuple[str, Review, Critique, list[str]]:
     """One round: a critic challenges the draft, the author answers every point and reissues.
 
     The critic never edits. The author owns the revision, so authorship and accountability stay
     together, and a rejected challenge has to carry a reason that a human can read.
+
+    Both calls see the engagement context. A critic asked to challenge a draft's evidence while
+    holding none can only challenge its shape, and an author answering that challenge blind can
+    only concede or assert — neither is the argument this round exists to produce.
     """
     role, critic = get_role(role_key), get_role(critic_key)
-    c_system, c_prompt = build_critic_prompt(critic, role.title, task, artifact)
+    c_system, c_prompt = build_critic_prompt(critic, role.title, task, artifact, engagement_context)
     critique = parse_critique(llm.generate(c_system, c_prompt, role=critic_key).text, critic_key)
     if not critique.points:
         # Nothing to answer: keep the draft and the review it already earned, truncation and all.
         return artifact, review_text(artifact), critique, []
 
     a_system, a_prompt = build_response_prompt(
-        role, task, context, artifact, numbered_points(critique)
+        role, task, context, artifact, numbered_points(critique), engagement_context
     )
     answer = llm.generate(a_system, a_prompt, role=role_key)
     apply_responses(critique, answer.text)
@@ -192,7 +201,11 @@ def parse_registers(text: str) -> dict[str, list[str]]:
 
 
 def synthesize(
-    task: str, artifacts: list[ArtifactRecord], llm: LLMClient, run_out: Path | None = None
+    task: str,
+    artifacts: list[ArtifactRecord],
+    llm: LLMClient,
+    run_out: Path | None = None,
+    engagement_context: str = "",
 ) -> tuple[str, Review, list[str]]:
     """The Engagement Lead reads every successful artifact in full and integrates them.
 
@@ -225,7 +238,7 @@ def synthesize(
             "\n\n---\n\nSEATS THAT PRODUCED NOTHING (name this absence in your artifact): "
             + ", ".join(missing)
         )
-    system, prompt = build_prompt(role, task, context)
+    system, prompt = build_prompt(role, task, context, engagement_context)
     completion = llm.generate(system, prompt, role=SYNTHESIS_ROLE)
     flags = []
     if completion.truncated:
@@ -246,6 +259,7 @@ def _do_synthesis(
     run_id: str,
     log_file: Path | None,
     critique: bool,
+    engagement_context: str = "",
 ) -> None:
     """Attempt the Engagement Lead and record the outcome on `record`, success or failure.
 
@@ -265,7 +279,7 @@ def _do_synthesis(
         )
         return
     try:
-        s_text, s_review, s_flags = synthesize(task, record.artifacts, llm, out)
+        s_text, s_review, s_flags = synthesize(task, record.artifacts, llm, out, engagement_context)
     except ProviderConfigError:
         raise
     except Exception as exc:  # a failed synthesis must not lose the advisors' artifacts
@@ -278,7 +292,7 @@ def _do_synthesis(
     if critique:
         try:
             new_text, s_review, s_crit, c_flags = critique_and_revise(
-                SYNTHESIS_ROLE, task, "", s_text, llm
+                SYNTHESIS_ROLE, task, "", s_text, llm, engagement_context=engagement_context
             )
             s_revised = new_text != s_text
             s_text = new_text
@@ -325,11 +339,17 @@ def run(
     root: Path | None = None,
     log_file: Path | None = None,
     critique: bool = True,
+    context: LoadedContext | None = None,
 ) -> RunRecord:
     """Route a task, run specialists in order, governance-check each artifact, park in pending/.
 
     The manifest is written before the first specialist runs and after every artifact, so an
     interrupted run is still visible (status 'running') and can be rejected by a human.
+
+    `context` is the engagement material for this run, already assembled and already cleared by
+    a named human. Pass it when the caller has shown a human what is about to be sent (the CLI
+    does); leave it out and one is assembled here, in which case any material found is refused
+    for want of a clearance.
     """
     if not task or not task.strip():
         raise ValueError("task must be a non-empty string")
@@ -346,7 +366,20 @@ def run(
     # Everything the human put in the engagement's context folder, read once and given to every
     # advisor. `context_read` goes into the manifest so the report can say what was actually seen.
     # base_root(), not artifact_root(): context/ is a sibling of out/, at the engagement root.
-    engagement_context, context_read = load_context(Path(root) if root else base_root())
+    if context is None:
+        context = prepare_context(Path(root) if root else base_root())
+    if context.block and not context.is_cleared:
+        # The gate the approved design doc asked for and no shipped code had. It lives here
+        # rather than in the CLI so it holds for every caller: a gate only one front door
+        # honours is not a gate. Real client material does not reach a provider because a
+        # code path forgot to ask.
+        raise ValueError(
+            f"engagement context is present but not cleared to send: {len(context.sent_files)} "
+            f"file(s) from {one_line(context.source_dir)}. A named human must clear these "
+            "exact bytes "
+            "first (a clearance that does not match them does not count)"
+        )
+    engagement_context, context_read = context.block, context.read
     run_id = new_run_id()
     record = RunRecord(
         run_id=run_id,
@@ -359,10 +392,13 @@ def run(
             "staffing": router.staffing(task, plan),
         },
         context_read=context_read,
+        context_clearance=context.clearance,
         created_at=now_iso(),
     )
     out = run_dir(artifact_root(root), "pending", run_id)
     out.mkdir(parents=True, exist_ok=False)  # a collision is a bug, never a silent merge
+    # Before the first call, so a run that dies mid-flight still shows what it was working from.
+    snapshot_context(out, engagement_context)
     write_lock(out)  # tells the gate a live process owns this directory
     write_manifest(out, asdict(record))
     append_log(
@@ -408,7 +444,12 @@ def run(
             if critique and role_key != CRITIC_ROLE:
                 try:
                     new_text, review, crit, crit_flags = critique_and_revise(
-                        role_key, task, "\n\n".join(context_parts), text, llm
+                        role_key,
+                        task,
+                        "\n\n".join(context_parts),
+                        text,
+                        llm,
+                        engagement_context=engagement_context,
                     )
                     revised = new_text != text
                     text = new_text
@@ -470,7 +511,7 @@ def run(
     # ---- Engagement Lead: the one deliverable the client acts on -------------------------
     # Runs after every specialist, reads their artifacts in full, and integrates. A failure
     # here must never cost the specialist work that already succeeded.
-    _do_synthesis(record, task, llm, out, run_id, log_file, critique)
+    _do_synthesis(record, task, llm, out, run_id, log_file, critique, engagement_context)
     write_manifest(out, asdict(record))
 
     record.status = "pending"
@@ -535,12 +576,23 @@ def resynthesize(
         plan=manifest.get("plan", {}),
         artifacts=artifacts,
         status=manifest.get("status", "pending"),
+        # Carried, not re-derived. Rebuilding the record without these let write_manifest
+        # overwrite a real audit record with an empty list: the run's own account of what
+        # client material it was given, destroyed by the command meant to recover it.
+        context_read=manifest.get("context_read") or [],
+        context_clearance=manifest.get("context_clearance"),
         created_at=manifest.get("created_at", ""),
         version=manifest.get("version", __version__),
     )
+    # The run's own copy, not whatever `context/` holds now: a resynthesize an hour later
+    # must integrate the client material the specialists actually saw. Runs from before the
+    # snapshot existed have none, and get "" rather than today's folder contents. Checked
+    # against the recorded clearance, because this is a second door into the provider and a
+    # gate only the first door enforces is not a gate.
+    engagement_context = cleared_snapshot(out, record.context_clearance, record.context_read)
     write_lock(out)
     try:
-        _do_synthesis(record, record.task, llm, out, run_id, log_file, critique)
+        _do_synthesis(record, record.task, llm, out, run_id, log_file, critique, engagement_context)
     finally:
         write_manifest(out, asdict(record))
         clear_lock(out)
