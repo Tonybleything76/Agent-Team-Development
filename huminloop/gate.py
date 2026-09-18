@@ -36,21 +36,59 @@ class GateError(Exception):
     pass
 
 
-def _decision_shape_error(manifest: dict) -> str:
-    """Why the recorded decision fields cannot be trusted, or "" when their shape is sound.
+# The only states a recorded-but-unmoved decision can hold. `reopen` sets `decision` to None,
+# so "reopened" is never operative; anything else in `decision.state` is an edit.
+_COMPLETABLE_STATES = ("approved", "rejected")
 
-    `status` and `_decide` branch on these fields. A string where a mapping belongs used to
-    raise AttributeError from both, so a one-field edit left the run with no accepted command.
+
+def _is_decision(value: object) -> bool:
+    return (
+        isinstance(value, dict)
+        and value.get("state") in _COMPLETABLE_STATES
+        and all(isinstance(value.get(k), str | None) for k in ("by", "at", "note"))
+    )
+
+
+def recorded_decision(manifest: dict) -> dict | None:
+    """The recorded decision the gate may complete, or None when there is none or it is forged.
+
+    The one place the shape rule lives. `status`, `_decide`, `reopen` and the review inbox each
+    kept their own copy of it, the copies drifted, and a `decision` whose state was 5, null, a
+    list or "blocked" passed one check and failed the next: `status` recommended a move and the
+    gate refused it.
     """
     decision = manifest.get("decision")
-    if decision is not None and not (
-        isinstance(decision, dict)
-        and all(isinstance(decision.get(k), str | None) for k in ("state", "by", "at"))
-    ):
+    return decision if _is_decision(decision) else None
+
+
+def _history_is_sound(manifest: dict) -> bool:
+    history = manifest.get("decisions", [])
+    return isinstance(history, list) and all(isinstance(h, dict) for h in history)
+
+
+def _decision_shape_error(manifest: dict) -> str:
+    """Why the recorded decision fields cannot be trusted, or "" when their shape is sound."""
+    if manifest.get("decision") is not None and recorded_decision(manifest) is None:
         return "the recorded decision is malformed in the manifest"
-    if not isinstance(manifest.get("decisions", []), list):
+    if not _history_is_sound(manifest):
         return "the decision history is malformed in the manifest"
     return ""
+
+
+def _set_aside_malformed(manifest: dict) -> dict | None:
+    """Move untrustworthy decision fields to their own keys before a write, and return the
+    trustworthy prior decision. Nothing is erased; nothing malformed is ever acted on."""
+    prior = recorded_decision(manifest)
+    if manifest.get("decision") is not None and prior is None:
+        manifest["decision_malformed"] = manifest["decision"]
+        manifest["decision"] = None
+    if not _history_is_sound(manifest):
+        manifest["decisions_malformed"] = manifest.pop("decisions")
+    return prior
+
+
+def _supersedes(prior: dict | None) -> dict | None:
+    return {k: prior.get(k) for k in ("state", "by", "at")} if prior else None
 
 
 def verify_artifacts(d: Path, manifest: dict) -> None:
@@ -89,7 +127,9 @@ def verify_artifacts(d: Path, manifest: dict) -> None:
             # An absolute path, `..`, or a symlink would verify a file the run never wrote.
             inside = path.resolve().is_relative_to(d.resolve())
             present = inside and path.is_file()
-            text = path.read_text(encoding="utf-8") if present else ""
+            # Bytes, decoded: read_text translates \r\n to \n, so a deliverable containing a
+            # carriage return never matched its own digest and failed as tampered forever.
+            text = path.read_bytes().decode("utf-8") if present else ""
         except (OSError, ValueError, RuntimeError) as exc:
             # A binary file saved over a deliverable, an unreadable one, a name the filesystem
             # rejects (a null byte, too long) and a symlink loop (RuntimeError on 3.12) are all a
@@ -248,9 +288,8 @@ def status(run_id: str, root: Path | None = None) -> dict:
         except GateError as exc:
             verified, verify_error = False, str(exc)
 
-    decision = manifest.get("decision")
     # A malformed decision already failed verification above; branch as if none were recorded.
-    decision = decision if isinstance(decision, dict) else {}
+    decision = recorded_decision(manifest) or {}
     if state in ("approved", "rejected"):
         action = "done"
     elif live:
@@ -260,7 +299,7 @@ def status(run_id: str, root: Path | None = None) -> dict:
         # finishes it. The one exception mirrors `_decide`: a recorded approval whose bytes no
         # longer verify cannot be completed, and only a reject may supersede it.
         action = _DECISION_ACTION[decision["state"]]
-        if action == "approve" and not verified:
+        if action == "approve" and (not verified or recorded in INTERRUPTED_STATUSES):
             action = "reject"
     elif needs_resynthesize:
         action = "resynthesize"
@@ -359,18 +398,14 @@ def _decide(
     flagged = flagged_roles(manifest.get("artifacts", []))
     if manifest.get("status") in ("running", "incomplete") and decision == "approved":
         raise GateError(f"run '{run_id}' was interrupted before it finished; reject it instead")
-    prior = manifest.get("decision")
-    if not isinstance(prior, dict):
-        # Malformed, so verification already failed and only a reject reaches here. Kept under
-        # its own key, never erased, and never trusted as a decision to complete.
-        if prior is not None:
-            manifest["decision_malformed"] = prior
-        prior = None
-    if not isinstance(manifest.get("decisions", []), list):
-        manifest["decisions_malformed"] = manifest.pop("decisions")
-    # A recorded approval whose bytes have since failed the check can never be completed, so a
-    # reject may supersede it. It stays in `decisions`; nothing recorded is erased.
-    superseding = bool(prior) and prior.get("state") == "approved" and bool(unverified)
+    # A malformed decision failed verification, so only a reject reaches here; it is set aside
+    # under its own key and never trusted as a decision to complete.
+    prior = _set_aside_malformed(manifest)
+    # A recorded approval that can no longer be completed, because its bytes fail the check or
+    # its run is marked interrupted (which `approve` refuses above), may be superseded by a
+    # reject. It stays in `decisions`; nothing recorded is erased.
+    stale = bool(unverified) or manifest.get("status") in INTERRUPTED_STATUSES
+    superseding = bool(prior) and prior["state"] == "approved" and stale
     if prior and not superseding:
         # A decision was recorded but the move did not complete. Only the same decision may
         # finish it (the supersede above is the one exception); a different one is refused so
@@ -397,13 +432,13 @@ def _decide(
             _record_decision(
                 src,
                 manifest,
-                decision,
-                by,
-                note,
-                force,
-                flagged,
-                unverified,
-                prior if superseding else None,
+                decision=decision,
+                by=by,
+                note=note,
+                forced=bool(force and flagged),
+                flagged=flagged,
+                unverified=unverified,
+                superseded=prior if superseding else None,
             )
         except BaseException:
             # Nothing was recorded, so the claim must not outlive this attempt: a stale claim
@@ -437,10 +472,11 @@ def _decide(
 def _record_decision(
     src: Path,
     manifest: dict,
+    *,
     decision: str,
     by: str,
     note: str,
-    force: bool,
+    forced: bool,
     flagged: list[str],
     unverified: str,
     superseded: dict | None,
@@ -451,13 +487,13 @@ def _record_decision(
         "by": by.strip(),
         "note": note.strip(),
         "at": now_iso(),
-        "forced": bool(force and flagged),
+        "forced": forced,
         "flagged_roles": flagged,
     }
     if unverified:
         entry["verification_error"] = unverified
     if superseded:
-        entry["supersedes"] = {k: superseded.get(k) for k in ("state", "by", "at")}
+        entry["supersedes"] = _supersedes(superseded)
     # `decisions` is the append-only history, including anything later superseded by a reopen
     # or by a reject of an approval whose bytes no longer verify (see `supersedes`). `decision`
     # is whichever one is operative now, so existing readers and the rendered report keep
@@ -492,6 +528,9 @@ def annotate(run_id: str, by: str, note: str, *, root: Path | None = None, log_f
     state, d = found
     manifest = read_manifest(d)
     entry = {"by": by.strip(), "note": note.strip(), "at": now_iso(), "state_when_written": state}
+    if not isinstance(manifest.get("annotations", []), list):
+        # Kept, never erased; a non-list here crashed every annotation with AttributeError.
+        manifest["annotations_malformed"] = manifest.pop("annotations")
     manifest.setdefault("annotations", []).append(entry)
     write_manifest(d, manifest)
     append_log(
@@ -527,13 +566,15 @@ def reopen(run_id: str, by: str, reason: str, *, root: Path | None = None, log_f
     if dst.exists():
         raise GateError(f"destination {dst} already exists; refusing to merge directories")
     manifest = read_manifest(src)
-    superseded = manifest.get("decision")
+    # A decided run whose decision fields were edited offered reopen, and reopen then crashed
+    # on them. Set aside like everywhere else; `supersedes` names only a trustworthy decision.
+    superseded = _set_aside_malformed(manifest)
     entry = {
         "state": "reopened",
         "by": by.strip(),
         "note": reason.strip(),
         "at": now_iso(),
-        "supersedes": {k: superseded.get(k) for k in ("state", "by", "at")} if superseded else None,
+        "supersedes": _supersedes(superseded),
     }
     manifest.setdefault("decisions", []).append(entry)
     manifest["decision"] = None  # nothing is operative until someone decides again

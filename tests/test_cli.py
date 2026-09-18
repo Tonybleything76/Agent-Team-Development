@@ -1315,6 +1315,11 @@ def _loop(rid):
     art.symlink_to(art)  # RuntimeError from Path.resolve on 3.12, not OSError
 
 
+def _edit_decision(rid, **fields):
+    base = {"state": "approved", "by": "T", "at": "2026-09-18T00:00:00+00:00", "note": ""}
+    _edit_manifest(rid, lambda m: m.update(decision=base | fields))
+
+
 def _falsey_review_on_flagged_bytes(rid):
     """`review: ""` used to read as `{}`; it only verified when the bytes' own review failed."""
     d = _artifact_root() / "pending" / rid
@@ -1352,6 +1357,19 @@ _CRASHERS = {
         rid, lambda m: m.update(decision="approved")
     ),
     "decisions is a dict": lambda rid: _edit_manifest(rid, lambda m: m.update(decisions={})),
+    # Round 2: a mapping that is not a decision the gate wrote passed one copy of the shape rule
+    # and failed the next, so `status` recommended a move the gate then refused.
+    "decision state is a number": lambda rid: _edit_decision(rid, state=5),
+    "decision state is a list": lambda rid: _edit_decision(rid, state=["approved"]),
+    "decision state is null": lambda rid: _edit_decision(rid, state=None),
+    "decision state is unknown": lambda rid: _edit_decision(rid, state="blocked"),
+    "decision has no state": lambda rid: _edit_manifest(
+        rid, lambda m: m.update(decision={"by": "x"})
+    ),
+    "decision name is a number": lambda rid: _edit_decision(rid, by=5),
+    "decisions holds a non-mapping": lambda rid: _edit_manifest(
+        rid, lambda m: m.update(decisions=["x"])
+    ),
     "error beside a file": _error_beside_edited_file,
 }
 
@@ -1415,3 +1433,111 @@ def test_the_log_records_a_supersede(workdir, capsys, failing_rename):
     last = json.loads(log_path().read_text().splitlines()[-1])
     assert last["supersedes"]["state"] == "approved" and last["supersedes"]["by"] == "Tony"
     assert "changed since the run" in last["verification_error"]
+
+
+def test_a_recorded_approval_on_a_run_marked_interrupted_can_be_superseded(
+    workdir, capsys, failing_rename
+):
+    """status said approve, approve said interrupted, reject said already recorded: no move."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    brk, restore = failing_rename
+    brk()
+    with pytest.raises(OSError):
+        gate.approve(rid, by="Tony")
+    restore()
+    _edit_manifest(rid, lambda m: m.update(status="incomplete"))
+    assert _status_json(rid, capsys)["pending_action"] == "reject"
+    with pytest.raises(gate.GateError, match="interrupted"):
+        gate.approve(rid, by="Tony")
+    gate.reject(rid, by="Dana", reason="marked interrupted")
+    m = json.loads((_artifact_root() / "rejected" / rid / "manifest.json").read_text())
+    assert m["decision"]["supersedes"]["by"] == "Tony"
+
+
+@pytest.mark.parametrize(
+    "edit",
+    [{"decision": "x"}, {"decision": {"state": "blocked"}}, {"decisions": "zz"}],
+    ids=["decision-string", "decision-unknown-state", "history-string"],
+)
+def test_a_decided_run_with_edited_history_can_still_be_reopened(workdir, capsys, edit):
+    """`status` says done and the page offers reopen; reopen then crashed on the edit."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    gate.reject(rid, by="Tony", reason="no")
+    mf = _artifact_root() / "rejected" / rid / "manifest.json"
+    mf.write_text(json.dumps(json.loads(mf.read_text()) | edit))
+    assert _status_json(rid, capsys)["pending_action"] == "done"
+    gate.reopen(rid, by="Tony", reason="look again")
+    m = json.loads((_artifact_root() / "pending" / rid / "manifest.json").read_text())
+    key = "decisions" if "decisions" in edit else "decision"
+    assert m[f"{key}_malformed"] == edit[key]  # kept, never erased
+    assert m["decisions"][-1]["state"] == "reopened"
+
+
+def test_an_annotation_survives_an_edited_annotation_list(workdir, capsys):
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    _edit_manifest(rid, lambda m: m.update(annotations="x"))
+    gate.annotate(rid, by="Tony", note="still works")
+    m = json.loads((_artifact_root() / "pending" / rid / "manifest.json").read_text())
+    assert m["annotations_malformed"] == "x" and m["annotations"][0]["note"] == "still works"
+
+
+def test_a_deliverable_with_carriage_returns_verifies(workdir, capsys):
+    """read_text turned \\r\\n into \\n, so the digest never matched: a false tamper, forever."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    d = _artifact_root() / "pending" / rid
+    from huminloop.governance import review_text
+
+    def edit(m):
+        a = _first_file(m)
+        text = (d / a["file"]).read_text().replace("\n", "\r\n")
+        (d / a["file"]).write_bytes(text.encode("utf-8"))  # as the orchestrator writes it
+        a.update(sha256=sha256_text(text), review={"ok": review_text(text).ok})
+
+    _edit_manifest(rid, edit)
+    s = _status_json(rid, capsys)
+    assert s["artifacts_verified"] is True, s["verification_error"]
+
+
+def test_an_outside_path_is_refused_before_it_is_read(workdir, capsys):
+    """A path outside the run must be named as such, never opened and read first."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    (_artifact_root() / "outside.bin").write_bytes(b"\xff\xfe\x00binary")
+    _edit_manifest(rid, lambda m: _first_file(m).update(file="../../outside.bin"))
+    s = _status_json(rid, capsys)
+    assert s["artifacts_verified"] is False
+    assert "outside the run directory" in s["verification_error"], s
+
+
+def test_a_reject_stores_the_bare_verification_error(workdir, capsys):
+    """Text stored inside a successful reject must not say the gate refused to decide."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    d = _artifact_root() / "pending" / rid
+    name = _first_file(json.loads((d / "manifest.json").read_text()))["file"]
+    (d / name).write_text((d / name).read_text() + "\nedited\n")
+    gate.reject(rid, by="Tony", reason="edited")
+    m = json.loads((_artifact_root() / "rejected" / rid / "manifest.json").read_text())
+    assert m["decision"]["verification_error"] == f"artifact {name!r} changed since the run"
+
+
+def test_an_interrupt_during_the_write_does_not_leave_a_claim(workdir, capsys, monkeypatch):
+    """Ctrl-C mid-write is BaseException, not Exception; the claim must still be removed."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    d = _artifact_root() / "pending" / rid
+
+    def interrupted(*a):
+        raise KeyboardInterrupt
+
+    real = gate.write_manifest
+    monkeypatch.setattr(gate, "write_manifest", interrupted)
+    with pytest.raises(KeyboardInterrupt):
+        gate.approve(rid, by="Tony")
+    assert not (d / gate.DECISION_CLAIM).exists()
+    monkeypatch.setattr(gate, "write_manifest", real)
+    gate.approve(rid, by="Tony")

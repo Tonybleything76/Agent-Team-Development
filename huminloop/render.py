@@ -622,7 +622,9 @@ def _decision_bar(manifest: dict) -> str:
     decision = manifest.get("decision") or {}
     state = decision.get("state", "")
     forced = bool(decision.get("forced"))
-    verdict = state.upper()
+    # `state` is manifest text on the page that carries the inbox's POST token. Unescaped, one
+    # edited field ran script that could post approvals for any run.
+    verdict = esc(str(state).upper())
     if forced:
         verdict += " &mdash; FORCED"
     note = (

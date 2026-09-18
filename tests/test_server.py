@@ -344,3 +344,61 @@ def test_an_edited_run_is_told_it_failed_verification(workdir, capsys, state, li
     art.write_text(art.read_text() + "\nedited\n")
     _, page = _http(live, "GET", f"/run/{rid}")
     assert "cannot be verified" in page and "did not finish" not in page
+
+
+@pytest.mark.parametrize(
+    "fields",
+    [{"decisions": ["x"]}, {"decisions": "x"}, {"annotations": 5}],
+    ids=["history-entry", "history-string", "annotations-number"],
+)
+def test_edited_history_on_one_run_does_not_take_down_the_inbox(
+    workdir, capsys, state, live, fields
+):
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    _set_manifest(rid, **fields)
+    code, page = _http(live, "GET", "/")
+    assert code == 200 and rid in page
+
+
+def test_the_verdict_is_escaped():
+    """`decision.state` reached the page raw, beside the POST token: one edit ran script."""
+    from huminloop.render import _decision_bar
+
+    bar = _decision_bar({"status": "approved", "decision": {"state": "<img src=x onerror=1>"}})
+    assert "<IMG" not in bar and "&LT;IMG" in bar.upper()
+
+
+def test_an_edited_verdict_never_renders(workdir, capsys, state, live, failing_rename):
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    gate.approve(rid, by="Tony")
+    mf = artifact_root() / "approved" / rid / "manifest.json"
+    m = json.loads(mf.read_text())
+    m["decision"]["state"] = "<img src=x onerror=1>"
+    mf.write_text(json.dumps(m))
+    code, page = _http(live, "GET", f"/run/{rid}")
+    assert code == 200 and "<img src=x" not in page.lower()
+    assert "malformed" in page and "reopen" in _offered(page, rid)
+
+
+def test_a_scalar_process_flags_is_still_shown():
+    m = {"artifacts": [{"role": "r", "process_flags": "Escalated to the human: budget"}]}
+    assert server.escalations(m) == ["budget"]
+    assert server.other_flags({"artifacts": [{"role": "r", "process_flags": 5}]}) == ["r: 5"]
+
+
+def test_the_fallback_logs_the_render_failure(workdir, capsys, state, live, caplog):
+    """The broad fallback would otherwise hide a real renderer bug without a trace."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    _set_manifest(rid, plan="not a plan")
+    with caplog.at_level("ERROR", logger="huminloop.server"):
+        _http(live, "GET", f"/run/{rid}")
+    assert any(rid in r.getMessage() and r.exc_info for r in caplog.records)
+
+
+def test_a_flag_field_that_is_a_bare_string_shows_whole():
+    """Without the list check a string was iterated character by character."""
+    m = {"artifacts": [{"role": "analyst", "process_flags": "odd"}]}
+    assert server.other_flags(m) == ["analyst: odd"]

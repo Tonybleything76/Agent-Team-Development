@@ -18,9 +18,12 @@ with no recorded `sha256`, a `file` that resolves outside the run directory (abs
 `..`, or symlink), or an entry whose `file` or `review` has the wrong type now fails the check.
 Every run the orchestrator writes already carries a digest; a manifest without one was edited.
 An artifact that carries both an `error` and a `file` fails too, since the orchestrator never
-writes both, and a `decision` or `decisions` of the wrong shape fails rather than crashing. A
-reject keeps a malformed value under `decision_malformed` or `decisions_malformed`; nothing is
-erased. Verification messages no longer end in "refusing to decide": they are recorded inside
+writes both. A recorded `decision` is trusted only when it is a mapping whose `state` is
+`approved` or `rejected` and whose `by`, `at` and `note` are text; `decisions` only when it is a
+list of mappings. Anything else fails the check, one rule serves `status`, `approve`, `reject`,
+`reopen` and the inbox, and a write keeps the malformed value under `decision_malformed` or
+`decisions_malformed` (`annotations_malformed` for annotations); nothing is erased. Artifact
+bytes are hashed as written, so a deliverable containing carriage returns verifies. Verification messages no longer end in "refusing to decide": they are recorded inside
 successful rejects, and only `approve` adds "refusing to approve".
 
 ### Fixed
@@ -44,12 +47,24 @@ successful rejects, and only `approve` adds "refusing to approve".
 
 ### Security
 
+- **One edited manifest field could run script in the review inbox.** The decision bar printed
+  `decision.state` unescaped, on the same page that carries the form token, so a script there
+  could post approvals for any run. It is escaped, and a state other than `approved` or
+  `rejected` now fails verification and never renders. This was on `main` before this release.
 - **Deleting `sha256` from a manifest switched off the byte check.** With it gone, and `file`
   pointed at an absolute path, `approve` accepted bytes the run never wrote, from anywhere on
   disk, and the report displayed them. Reproduced before the fix; now refused.
 - **Two rejects superseding one recorded approval both wrote the manifest.** One decision was
   lost, the manifest and the log named different people, and the loser crashed with a raw
   `FileNotFoundError`.
+- **A recorded decision whose `state` was a number, a list, null, missing or unknown was a dead
+  end.** `status` recommended `approve` or `reject`, and the gate refused both. So was a recorded
+  approval on a run whose `status` was edited to `incomplete`: `status` said approve and
+  `approve` refused it as interrupted. Both now recommend `reject`, which supersedes the
+  approval.
+- **`reopen` and `annotate` crashed on edited history**, so a decided run whose decision was
+  edited showed a reopen form that failed. Malformed values are set aside and the move
+  completes.
 - **A manifest field of the wrong type crashed `status`, `reject` and the inbox alike**, so the
   run had no command the gate would accept. That covered `file`, `review` (including a falsey
   non-mapping such as `""`), `sha256`, `decision` and `decisions`, and a `file` the filesystem
@@ -65,8 +80,15 @@ successful rejects, and only `approve` adds "refusing to approve".
   the manifest, the file an attacker can edit. The log event now carries `supersedes` and
   `verification_error`.
 - **One non-string entry in `process_flags` took down the whole review inbox**, and a
-  non-string name on a recorded decision took down its page. Manifest values are now
-  stringified before escaping.
+  non-string name on a recorded decision took down its page. So did a `decisions` entry that
+  was not a mapping, or an `annotations` that was not a list. Manifest values are now
+  stringified before escaping, and the inbox counts only what has the shape the gate writes.
+
+### Fixed (also on `main` before this release)
+
+- **A deliverable containing a carriage return failed verification forever.** The check read
+  the file with newline translation, so its digest never matched, and a reject recorded a
+  false "changed since the run".
 
 ## 0.23.0 — 2026-09-17
 

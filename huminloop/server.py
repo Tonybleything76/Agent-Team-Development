@@ -68,8 +68,16 @@ def other_flags(manifest: dict) -> list[str]:
 def _row(manifest: dict, state: str) -> str:
     run_id = manifest.get("run_id", "?")
     task = esc(str(manifest.get("task") or "")[:120])
-    notes = len(manifest.get("annotations") or [])
-    reopens = sum(1 for d in manifest.get("decisions") or [] if d.get("state") == "reopened")
+    # One edited manifest must not take down the list for every run: count only what has the
+    # shape the gate writes.
+    annotations = manifest.get("annotations")
+    history = manifest.get("decisions")
+    notes = len(annotations) if isinstance(annotations, list) else 0
+    reopens = sum(
+        1
+        for d in (history if isinstance(history, list) else [])
+        if isinstance(d, dict) and d.get("state") == "reopened"
+    )
     asks = len(escalations(manifest))
     chips = ""
     if asks:
@@ -205,10 +213,9 @@ def _recorded_decision(state: ReviewState, run_id: str) -> dict:
     if not found:
         return {}
     try:
-        decision = read_manifest(found[1]).get("decision")
+        return gate.recorded_decision(read_manifest(found[1])) or {}
     except StorageError:
         return {}
-    return decision if isinstance(decision, dict) else {}
 
 
 def _unrenderable_page(
