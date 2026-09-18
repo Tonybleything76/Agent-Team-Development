@@ -10,6 +10,7 @@ from huminloop import gate
 from huminloop.cli import main
 from huminloop.llm import Completion
 from huminloop.storage import artifact_root as _artifact_root
+from huminloop.storage import log_path
 
 
 def test_full_cli_flow(workdir, capsys):
@@ -1017,3 +1018,135 @@ def test_a_live_run_is_not_reported_verified(workdir, capsys):
     assert s["status"] == "running"
     assert s["artifacts_verified"] is False
     assert "in progress" in s["verification_error"]
+
+
+# The property the status contract promises, checked for every state rather than one command at
+# a time. The first tampered-run test ran `approve` after `status` said `reject`, confirmed the
+# refusal, and never ran `reject` — which also refused, leaving the run with no legal move.
+
+
+def _edit_artifact(rid):
+    art = next((_artifact_root() / "pending" / rid).glob("*.md"))
+    art.write_text(art.read_text() + "\nSmuggled in after the run.\n")
+
+
+def _binary_artifact(rid):
+    next((_artifact_root() / "pending" / rid).glob("*.md")).write_bytes(b"\xff\xfe\x00binary")
+
+
+def _record_then_edit(decision):
+    def setup(rid, failing_rename):
+        break_rename, restore = failing_rename
+        break_rename()
+        with pytest.raises(OSError):
+            if decision == "approve":
+                gate.approve(rid, by="Tony")
+            else:
+                gate.reject(rid, by="Tony", reason="first look")
+        restore()
+        _edit_artifact(rid)
+
+    return setup
+
+
+def _interrupt(rid, failing_rename):
+    mf = _artifact_root() / "pending" / rid / "manifest.json"
+    mf.write_text(json.dumps(json.loads(mf.read_text()) | {"status": "running"}))
+
+
+def _lose_manifest(rid, failing_rename):
+    (_artifact_root() / "pending" / rid / "manifest.json").unlink()
+
+
+_STATES = {
+    "clean": (lambda rid, fr: None, "approve"),
+    "interrupted": (_interrupt, "reject"),
+    "no manifest": (_lose_manifest, "reject"),
+    "edited": (lambda rid, fr: _edit_artifact(rid), "reject"),
+    "binary": (lambda rid, fr: _binary_artifact(rid), "reject"),
+    "recorded approve, then edited": (_record_then_edit("approve"), "reject"),
+    "recorded reject, then edited": (_record_then_edit("reject"), "reject"),
+}
+
+
+@pytest.mark.parametrize("name", list(_STATES))
+def test_the_command_status_recommends_is_one_the_gate_accepts(
+    workdir, capsys, failing_rename, name
+):
+    setup, expected = _STATES[name]
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    setup(rid, failing_rename)
+
+    action = _status_json(rid, capsys)["pending_action"]
+    assert action == expected
+    cmd = ["approve", rid, "--by", "Tony"]
+    if action == "reject":
+        cmd = ["reject", rid, "--by", "Tony", "--reason", "failed verification"]
+    assert main(cmd) == 0, capsys.readouterr().err
+    capsys.readouterr()
+    assert _status_json(rid, capsys)["pending_action"] == "done"
+
+
+def test_a_reject_of_an_unverified_run_records_why(workdir, capsys):
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    _edit_artifact(rid)
+    assert main(["reject", rid, "--by", "Tony", "--reason", "edited"]) == 0
+    m = json.loads((_artifact_root() / "rejected" / rid / "manifest.json").read_text())
+    assert "changed since the run" in m["decision"]["verification_error"]
+
+
+def test_an_unverified_run_still_cannot_be_approved(workdir, capsys):
+    """Allowing reject must not have loosened approve."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    _binary_artifact(rid)
+    assert main(["approve", rid, "--by", "Tony"]) == 2
+    assert "cannot be read as text" in capsys.readouterr().err
+    assert (_artifact_root() / "pending" / rid).is_dir()
+
+
+def test_a_reject_supersedes_a_recorded_approval_without_erasing_it(
+    workdir, capsys, failing_rename
+):
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    _record_then_edit("approve")(rid, failing_rename)
+    assert main(["reject", rid, "--by", "Dana", "--reason", "edited after approval"]) == 0
+    m = json.loads((_artifact_root() / "rejected" / rid / "manifest.json").read_text())
+    assert [d["state"] for d in m["decisions"]] == ["approved", "rejected"]
+    assert m["decision"]["by"] == "Dana"
+    assert m["decision"]["supersedes"]["state"] == "approved"
+    assert m["status"] == "rejected"
+    # Dana made a new decision; she did not complete Tony's. The log must not say she did.
+    last = json.loads(log_path().read_text().splitlines()[-1])
+    assert last["event"] == "rejected" and last["by"] == "Dana" and last["completed_by"] is None
+
+
+def test_a_verified_recorded_approval_still_refuses_a_different_decision(
+    workdir, capsys, failing_rename
+):
+    """Supersession is only for bytes that fail the check; otherwise the recorded one stands."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    break_rename, restore = failing_rename
+    break_rename()
+    with pytest.raises(OSError):
+        gate.approve(rid, by="Tony")
+    restore()
+    assert main(["reject", rid, "--by", "Dana", "--reason", "changed my mind"]) == 2
+    assert "already has a recorded approved" in capsys.readouterr().err
+
+
+def test_status_of_an_approved_run_whose_file_is_no_longer_text(workdir, capsys):
+    """It exited 2 with a codec error instead of reporting the edit it exists to reveal."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    assert main(["approve", rid, "--by", "Tony"]) == 0
+    capsys.readouterr()
+    next((_artifact_root() / "approved" / rid).glob("*.md")).write_bytes(b"\xff\xfe\x00")
+    s = _status_json(rid, capsys)
+    assert s["artifacts_verified"] is False
+    assert "cannot be read as text" in s["verification_error"]
+    assert s["pending_action"] == "done"

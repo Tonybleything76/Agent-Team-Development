@@ -46,11 +46,19 @@ def verify_artifacts(d: Path, manifest: dict) -> None:
         if not a.get("file"):
             # Every artifact is either a file on disk or a recorded error. Neither means the
             # manifest was edited: clearing `error` alone would otherwise skip verification.
-            raise GateError(f"artifact for {a['role']!r} has neither a file nor an error")
+            raise GateError(f"artifact for {a.get('role')!r} has neither a file nor an error")
         path = d / a["file"]
         if not path.is_file():
             raise GateError(f"artifact {a['file']} is missing; refusing to decide")
-        text = path.read_text(encoding="utf-8")
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            # A binary file saved over a deliverable, or one made unreadable, is a failed check
+            # like any other. Letting the raw error escape made `status` answer an edited
+            # approved run with an exit code instead of `artifacts_verified: false`.
+            raise GateError(
+                f"artifact {a['file']} cannot be read as text ({exc}); refusing to decide"
+            ) from exc
         if a.get("sha256") and sha256_text(text) != a["sha256"]:
             raise GateError(f"artifact {a['file']} changed since the run; re-run before deciding")
         recomputed = review_text(text)
@@ -207,8 +215,11 @@ def status(run_id: str, root: Path | None = None) -> dict:
         action = "wait"
     elif decision.get("state") in _DECISION_ACTION:
         # A decision is recorded but the move did not complete; re-running that same command
-        # finishes it, and no other decision is allowed to.
+        # finishes it. The one exception mirrors `_decide`: a recorded approval whose bytes no
+        # longer verify cannot be completed, and only a reject may supersede it.
         action = _DECISION_ACTION[decision["state"]]
+        if action == "approve" and not verified:
+            action = "reject"
     elif needs_resynthesize:
         action = "resynthesize"
     elif interrupted or not verified:
@@ -292,12 +303,25 @@ def _decide(
         manifest = read_manifest(src)
     except StorageError as exc:
         raise GateError(str(exc)) from exc
-    verify_artifacts(src, manifest)
+    try:
+        verify_artifacts(src, manifest)
+        unverified = ""
+    except GateError as exc:
+        # Approving attests to the bytes, so bytes that fail the check cannot be approved.
+        # Rejecting attests to nothing. Refusing it too left a tampered run with no command the
+        # gate would accept while `status` recommended `reject` — the exact contradiction
+        # `pending_action` exists to prevent. The failure is recorded in the decision instead.
+        if decision == "approved":
+            raise
+        unverified = str(exc)
     flagged = flagged_roles(manifest.get("artifacts", []))
     if manifest.get("status") in ("running", "incomplete") and decision == "approved":
         raise GateError(f"run '{run_id}' was interrupted before it finished; reject it instead")
     prior = manifest.get("decision")
-    if prior:
+    # A recorded approval whose bytes have since failed the check can never be completed, so a
+    # reject may supersede it. It stays in `decisions`; nothing recorded is erased.
+    superseding = bool(prior) and prior.get("state") == "approved" and bool(unverified)
+    if prior and not superseding:
         # A decision was recorded but the move did not complete. Only the same decision may
         # finish it; a different one is refused so nobody overwrites a recorded decision.
         if prior.get("state") != decision:
@@ -310,13 +334,14 @@ def _decide(
     dst = run_dir(root, decision, run_id)
     if dst.exists():
         raise GateError(f"destination {dst} already exists; refusing to merge directories")
-    if not prior:
-        try:
-            # Whoever creates this wins; the loser gets a clear error instead of both
-            # "succeeding" and leaving the directory and the manifest disagreeing.
-            os.close(os.open(src / DECISION_CLAIM, os.O_CREAT | os.O_EXCL | os.O_WRONLY))
-        except FileExistsError as exc:
-            raise GateError(f"run '{run_id}' is being decided by another process") from exc
+    if not prior or superseding:
+        if not prior:
+            try:
+                # Whoever creates this wins; the loser gets a clear error instead of both
+                # "succeeding" and leaving the directory and the manifest disagreeing.
+                os.close(os.open(src / DECISION_CLAIM, os.O_CREAT | os.O_EXCL | os.O_WRONLY))
+            except FileExistsError as exc:
+                raise GateError(f"run '{run_id}' is being decided by another process") from exc
         entry = {
             "state": decision,
             "by": by.strip(),
@@ -325,6 +350,10 @@ def _decide(
             "forced": bool(force and flagged),
             "flagged_roles": flagged,
         }
+        if unverified:
+            entry["verification_error"] = unverified
+        if superseding:
+            entry["supersedes"] = {k: prior.get(k) for k in ("state", "by", "at")}
         # `decisions` is the append-only history, including anything later superseded by a
         # reopen. `decision` is whichever one is operative now, so existing readers and the
         # rendered report keep working.
@@ -346,7 +375,7 @@ def _decide(
             "by": decided["by"],
             "note": decided["note"],
             "forced": decided["forced"],
-            "completed_by": by.strip() if prior else None,
+            "completed_by": by.strip() if prior and not superseding else None,
         },
         log_file,
     )
