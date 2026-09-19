@@ -319,7 +319,8 @@ def _cmd_show(args) -> int:
             was = entry.get("supersedes") if isinstance(entry.get("supersedes"), dict) else {}
             by, at, note = (strip_controls(str(entry.get(k))) for k in ("by", "at", "note"))
             print(f"\n[reopened] by {by} at {at}: {note}")
-            print(f"           supersedes {was.get('state')} by {was.get('by')} at {was.get('at')}")
+            w_state, w_by, w_at = (strip_controls(str(was.get(k))) for k in ("state", "by", "at"))
+            print(f"           supersedes {w_state} by {w_by} at {w_at}")
     for note in gate.annotations(manifest):
         by, at, was = (strip_controls(str(note.get(k))) for k in ("by", "at", "state_when_written"))
         print(f"\n[note] {by} at {at} (run was {was}):")

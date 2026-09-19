@@ -77,6 +77,9 @@ they are recorded inside successful rejects, and only `approve` adds "refusing t
   the malformed history that had failed verification.
 - **The terminal `pending` list and `show` crashed** on the same edited history the inbox was
   fixed for.
+- **`show` printed a superseded decision's `state`, `by` and `at` unsanitised**, so a terminal
+  escape planted in the manifest reached the terminal. They pass through `strip_controls`
+  like the fields beside them.
 - **`reopen` and `annotate` crashed on edited history**, so a decided run whose decision was
   edited showed a reopen form that failed. Malformed values are set aside and the move
   completes.

@@ -1662,3 +1662,20 @@ def test_the_pending_list_does_not_call_a_forged_decision_recorded(workdir, caps
     _edit_manifest(rid, lambda m: m.update(decision="x", status="approved"))
     (row,) = [m for m in gate.list_runs("pending") if m["run_id"] == rid]
     assert "decision recorded" not in row["status"]
+
+
+def test_show_strips_control_characters_from_a_superseded_decision(workdir, capsys):
+    """The manifest is editable; a terminal escape planted in `supersedes` must not reach it."""
+    assert main(["run", "Define KPIs and a dashboard"]) == 0
+    rid = _run_id_from(capsys.readouterr().out)
+    gate.reject(rid, by="Tony", reason="no")
+    gate.reopen(rid, by="Tony", reason="again")
+    esc = "\x1b[2J\x1b]0;pwned\x07"
+    _edit_manifest(
+        rid,
+        lambda m: m["decisions"][-1].update(supersedes={"state": esc, "by": esc, "at": esc}),
+    )
+    assert main(["show", rid]) == 0
+    out = capsys.readouterr().out
+    assert "\x1b" not in out and "\x07" not in out
+    assert "supersedes [2J]0;pwned by" in out
