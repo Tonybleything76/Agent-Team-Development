@@ -1,5 +1,113 @@
 # Changelog
 
+## 0.23.1 — 2026-09-18
+
+A run whose files fail verification now has a way out of the queue, from the terminal and
+from the review inbox alike. One case still has none: a manifest the storage layer refuses to
+read at all (not valid JSON, an artifact entry that is not a mapping or has no `role`, or a
+`run_id` that does not match its directory). `status`, `reject` and the inbox all refuse it.
+
+**Changed.** `reject` is accepted on a run whose artifacts fail verification, and records the
+failure as `verification_error` in the decision. `approve` stays refused. A reject may
+supersede a recorded but unfinished approval only when that approval can no longer be
+completed: its bytes fail the check, or its run is marked interrupted. The approval stays in
+`decisions` and the new entry names it under `supersedes`. Supersession takes its own claim
+file, so only one reject can supersede a given approval.
+
+**Changed.** Verification no longer trusts the manifest to say how strict it is. An artifact
+with no recorded `sha256`, a `file` that resolves outside the run directory (absolute path,
+`..`, or symlink), or an entry whose `file` or `review` has the wrong type now fails the check.
+Every run the orchestrator writes already carries a digest; a manifest without one was edited.
+An artifact that carries both an `error` and a `file` fails too, since the orchestrator never
+writes both.
+
+**Changed.** A recorded `decision` is trusted only when it is a mapping whose `state` is
+`approved` or `rejected`, whose `by` and `at` are non-empty text, and whose `note` is text or
+null; `decisions` only when it is a list of mappings. One rule, `gate.recorded_decision`,
+serves `status`, `approve`, `reject`, `reopen`, `pending`, `show` and the inbox. Anything else
+fails the check, and a write keeps the malformed value under `decision_malformed`,
+`decisions_malformed` or `annotations_malformed`; nothing is erased.
+
+**Changed.** Artifacts are written as the exact bytes that were hashed, and verification
+accepts a file whose only difference from its digest is `\r\n` for `\n`, as a Windows
+text-mode write or a git `autocrlf` checkout produces. A deliverable that really contains
+carriage returns verifies too. Verification messages no longer end in "refusing to decide":
+they are recorded inside successful rejects, and only `approve` adds "refusing to approve".
+
+### Fixed
+
+- **A tampered pending run had no legal move.** `status` recommended `reject`, and `reject`
+  refused it too, because every decision re-verified the bytes. A test now runs, for seven run
+  states, exactly the command `status` recommends and asserts that the gate accepts it.
+- **`status` recommended `approve` for a recorded, unfinished approval whose file was edited
+  afterwards.** `approve` then refused it. It now says `reject`.
+- **`status` exited 2 with a codec error** when an approved run's deliverable had been
+  overwritten with non-text bytes, instead of reporting `artifacts_verified: false`.
+- **The review inbox crashed on every rejected run, interrupted run and edited run**, and
+  answered 404 for a run with no manifest, so the web could not reject exactly the runs that
+  most need rejecting. Such a run now gets a page that shows why it cannot be displayed, none
+  of its content, and only the move `status` recommends: a reject form, a reopen form for a
+  decided run, or the terminal command when the move has no form, including `approve`, which
+  this page cannot vouch for because it shows nothing. It says why truthfully: a failed check,
+  an unfinished run, or a recorded reject waiting to complete. A manifest shaped in a way the
+  renderer never expected gets the same page instead of a dropped connection. The same
+  seven-state test runs against a live server.
+
+### Security
+
+- **One edited manifest field could run script in the review inbox.** The decision bar printed
+  `decision.state` unescaped, on the same page that carries the form token, so a script there
+  could post approvals for any run. It is escaped, and a state other than `approved` or
+  `rejected` now fails verification and never renders. This was on `main` before this release.
+- **Deleting `sha256` from a manifest switched off the byte check.** With it gone, and `file`
+  pointed at an absolute path, `approve` accepted bytes the run never wrote, from anywhere on
+  disk, and the report displayed them. Reproduced before the fix; now refused.
+- **Two rejects superseding one recorded approval both wrote the manifest.** One decision was
+  lost, the manifest and the log named different people, and the loser crashed with a raw
+  `FileNotFoundError`.
+- **A recorded decision whose `state` was a number, a list, null, missing or unknown was a dead
+  end.** `status` recommended `approve` or `reject`, and the gate refused both. It now
+  recommends `reject`, which sets the forged decision aside under `decision_malformed`. So was
+  a recorded approval on a run whose `status` was edited to `incomplete`: `status` said approve
+  and `approve` refused it as interrupted. It now recommends `reject`, which supersedes the
+  approval.
+- **A recorded decision that named nobody could be completed**, moving a run with no named
+  approver. A decision now needs a non-empty `by` and `at` to be trusted.
+- **Completing a recorded decision did not write a set-aside to disk**, so the decided run kept
+  the malformed history that had failed verification.
+- **The terminal `pending` list and `show` crashed** on the same edited history the inbox was
+  fixed for.
+- **`show` printed a superseded decision's `state`, `by` and `at` unsanitised**, so a terminal
+  escape planted in the manifest reached the terminal. They pass through `strip_controls`
+  like the fields beside them.
+- **`reopen` and `annotate` crashed on edited history**, so a decided run whose decision was
+  edited showed a reopen form that failed. Malformed values are set aside and the move
+  completes.
+- **A manifest field of the wrong type crashed `status`, `reject` and the inbox alike**, so the
+  run had no command the gate would accept. That covered `file`, `review` (including a falsey
+  non-mapping such as `""`), `sha256`, `decision` and `decisions`, and a `file` the filesystem
+  cannot resolve: a null byte, a name too long, or a symlink loop, which raises RuntimeError on
+  Python 3.12. Each is now a failed check that `reject` records.
+- **Setting `error` on an artifact that has a file skipped every check on it.** `approve
+  --force` then accepted bytes replaced after the run.
+- **A claim file outlived a failed attempt.** If writing the manifest failed after the claim was
+  taken, every later decision was refused as "being decided by another process", including the
+  reject `status` recommends. The claim is now removed when the attempt fails. A crash hard
+  enough to skip that cleanup still leaves the file, and it must be deleted by hand.
+- **The log did not record that a reject superseded an approval.** That evidence lived only in
+  the manifest, the file an attacker can edit. The log event now carries `supersedes` and
+  `verification_error`.
+- **One non-string entry in `process_flags` took down the whole review inbox**, and a
+  non-string name on a recorded decision took down its page. So did a `decisions` entry that
+  was not a mapping, or an `annotations` that was not a list. Manifest values are now
+  stringified before escaping, and the inbox counts only what has the shape the gate writes.
+
+### Fixed (also on `main` before this release)
+
+- **A deliverable containing a carriage return failed verification forever.** The check read
+  the file with newline translation, so its digest never matched, and a reject recorded a
+  false "changed since the run".
+
 ## 0.23.0 — 2026-09-17
 
 Every silent omission the engineering review found, closed. A run can no longer give you a

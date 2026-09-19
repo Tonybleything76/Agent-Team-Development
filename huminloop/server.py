@@ -14,6 +14,7 @@ in the same browser cannot post decisions on your behalf. The gate records *that
 decided; it still does not authenticate *who*, and a localhost server does not change that.
 """
 
+import logging
 import secrets
 import threading
 import webbrowser
@@ -22,9 +23,10 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from . import gate
-from .render import esc, render_run
+from .render import RenderError, esc, render_run
 from .storage import StorageError, artifact_root, find_run, read_manifest
 
+log = logging.getLogger(__name__)
 ALLOWED_HOSTS = {"localhost", "127.0.0.1", "[::1]"}
 ESCALATION_PREFIX = "Escalated to the human:"
 MAX_BODY = 64 * 1024
@@ -38,10 +40,17 @@ class ReviewState:
         self.token = secrets.token_urlsafe(24)
 
 
+def _flags(artifact: dict) -> list[str]:
+    # The manifest is editable. One non-string flag crashed the inbox list for every run, so
+    # each is stringified; an odd value still shows up rather than disappearing.
+    flags = artifact.get("process_flags") or []
+    return [str(f) for f in flags] if isinstance(flags, list) else [str(flags)]
+
+
 def escalations(manifest: dict) -> list[str]:
     out = []
     for artifact in manifest.get("artifacts", []):
-        for flag in artifact.get("process_flags") or []:
+        for flag in _flags(artifact):
             if flag.startswith(ESCALATION_PREFIX):
                 out.append(flag[len(ESCALATION_PREFIX) :].strip())
     return out
@@ -50,7 +59,7 @@ def escalations(manifest: dict) -> list[str]:
 def other_flags(manifest: dict) -> list[str]:
     out = []
     for artifact in manifest.get("artifacts", []):
-        for flag in artifact.get("process_flags") or []:
+        for flag in _flags(artifact):
             if not flag.startswith(ESCALATION_PREFIX):
                 out.append(f"{artifact['role']}: {flag}")
     return out
@@ -59,8 +68,10 @@ def other_flags(manifest: dict) -> list[str]:
 def _row(manifest: dict, state: str) -> str:
     run_id = manifest.get("run_id", "?")
     task = esc(str(manifest.get("task") or "")[:120])
-    notes = len(manifest.get("annotations") or [])
-    reopens = sum(1 for d in manifest.get("decisions") or [] if d.get("state") == "reopened")
+    # One edited manifest must not take down the list for every run: count only what has the
+    # shape the gate writes, by the gate's own rule.
+    notes = len(gate.annotations(manifest))
+    reopens = sum(1 for d in gate.history(manifest) if d.get("state") == "reopened")
     asks = len(escalations(manifest))
     chips = ""
     if asks:
@@ -178,16 +189,110 @@ def _actions_html(state: ReviewState, run_id: str, bucket: str, manifest: dict) 
     return "".join(parts)
 
 
+_NO_WEB_FORM = {
+    "wait": "The run is still being written. Reload this page when it finishes.",
+    "resynthesize": "The lead's synthesis is missing. Run `huminloop resynthesize {run_id}` "
+    "from the terminal, then reload this page.",
+    # The gate would accept approve, but this page shows none of the content, and approving
+    # what you cannot see here is exactly what the renderer's refusal exists to prevent.
+    "approve": "The gate would accept an approval, but this page cannot show what you would "
+    "be approving. Read it with `huminloop show {run_id}`, then run "
+    "`huminloop approve {run_id} --by <your name>` from the terminal.",
+}
+
+
+def _recorded_decision(state: ReviewState, run_id: str) -> dict:
+    """The recorded but unfinished decision, if any. Best effort: the page is a fallback."""
+    found = find_run(state.root, run_id)
+    if not found:
+        return {}
+    try:
+        return gate.recorded_decision(read_manifest(found[1])) or {}
+    except StorageError:
+        return {}
+
+
+def _unrenderable_page(
+    state: ReviewState, run_id: str, reason: str, error: str | None
+) -> tuple[int, str]:
+    """A run the renderer refuses still needs a way out of the queue.
+
+    Rendering attests to the bytes on disk, so this page shows none of them: only why the run
+    cannot be shown, and the one move `gate.status` says the gate will accept. Offering any
+    other would repeat the contradiction `pending_action` exists to prevent.
+    """
+    try:
+        s = gate.status(run_id, root=state.root)
+    except gate.GateError as exc:
+        return 404, _shell("Not found", f'<p class="err">{esc(str(exc))}</p>')
+    action = s["pending_action"]
+    t = f'<input type="hidden" name="token" value="{esc(state.token)}">'
+    who = '<input type="text" name="by" placeholder="Your name" required>'
+    parts = [
+        '<p><a class="back" href="/">&larr; Review inbox</a></p>',
+        f"<h1>Run {esc(run_id)}</h1>",
+        f'<div class="err">{esc(error)}</div>' if error else "",
+        f"<p>This run cannot be shown: {esc(reason)}</p>",
+        '<div class="panel" id="decide"><h3>Your decision</h3>',
+    ]
+    if action == "reject":
+        recorded = _recorded_decision(state, run_id)
+        if recorded.get("state") == "rejected":
+            # Completing a recorded reject keeps that decision; the gate does not take a new one.
+            why = (
+                f"A reject by {esc(recorded.get('by'))} is already recorded but the move did not "
+                "finish. Submitting completes that decision; its original reason is the one kept."
+            )
+        elif not s["artifacts_verified"] and not s["interrupted"]:
+            why = (
+                "Its contents cannot be verified, so it cannot be approved. Reject it and run the "
+                "task again; the reason it failed verification is recorded with your decision."
+            )
+        else:
+            why = "It did not finish, so it cannot be approved. Reject it and run the task again."
+        parts.append(
+            f"<p>{why}</p>"
+            f'<form method="post" action="/run/{esc(run_id)}/reject">{t}{who}'
+            '<input type="text" name="reason" placeholder="Why" required>'
+            '<button class="warn" type="submit">Reject</button></form>'
+        )
+    elif action == "done":
+        parts.append(
+            f"<p>This run is <b>{esc(s['status'])}</b>. Reopening supersedes that decision "
+            "without erasing it.</p>"
+            f'<form method="post" action="/run/{esc(run_id)}/reopen">{t}{who}'
+            '<input type="text" name="reason" placeholder="Why you are reopening" required>'
+            '<button class="ghost" type="submit">Reopen</button></form>'
+        )
+    else:
+        parts.append(f"<p>{esc(_NO_WEB_FORM.get(action, action).format(run_id=run_id))}</p>")
+    parts.append("</div>")
+    return 200, _shell(f"Run {run_id}", "".join(parts))
+
+
 def run_page(state: ReviewState, run_id: str, error: str | None = None) -> tuple[int, str]:
     try:
         found = find_run(state.root, run_id)
     except StorageError as exc:
         return 400, _shell("Not found", f'<p class="err">{esc(str(exc))}</p>')
     if not found:
-        return 404, _shell("Not found", f"<p>Run {esc(run_id)} not found.</p>")
+        # `find_run` needs a manifest; a run that died before writing one still sits in the
+        # inbox, and `gate.status` knows what to do with it.
+        return _unrenderable_page(state, run_id, "no manifest was written", error)
     bucket, d = found
-    manifest = read_manifest(d)
-    page = render_run(manifest, d)
+    try:
+        manifest = read_manifest(d)
+        page = render_run(manifest, d)
+    except (gate.GateError, RenderError, StorageError) as exc:
+        return _unrenderable_page(state, run_id, str(exc), error)
+    except Exception as exc:  # noqa: BLE001
+        # A manifest edited into a shape the renderer never expected (a `plan` that is a
+        # string) used to drop the connection, leaving the web no way to reject the run.
+        # Logged, because the same fallback would otherwise hide a real renderer bug.
+        log.exception("run %s could not be rendered; serving the fallback page", run_id)
+        return _unrenderable_page(
+            state, run_id, f"the page could not be built ({type(exc).__name__})", error
+        )
     banner = f'<div class="err">{esc(error)}</div>' if error else ""
     nav = '<p><a class="back" href="/">&larr; Review inbox</a></p>'
     panel = _actions_html(state, run_id, bucket, manifest)

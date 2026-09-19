@@ -234,9 +234,10 @@ def _cmd_pending(args) -> int:
         flag = "" if status == args.state else f"  [{status}]"
         task = str(m.get("task") or "")[:50]
         created = str(m.get("created_at") or "")
-        notes = len(m.get("annotations") or [])
+        # The same shape rule as the inbox: one edited manifest crashed this list for every run.
+        notes = len(gate.annotations(m))
         # A reopened run looks identical to a fresh one in the directory, so say so here.
-        reopens = sum(1 for d in (m.get("decisions") or []) if d.get("state") == "reopened")
+        reopens = sum(1 for d in gate.history(m) if d.get("state") == "reopened")
         marks = ""
         if notes:
             marks += f"  {notes} note(s)"
@@ -313,14 +314,17 @@ def _cmd_show(args) -> int:
     print(json.dumps(manifest, indent=2))
     # Human commentary leads, because it is the part a reviewer most needs before deciding
     # and the part most easily lost in a long manifest.
-    for entry in manifest.get("decisions") or []:
+    for entry in gate.history(manifest):
         if entry.get("state") == "reopened":
-            was = entry.get("supersedes") or {}
-            print(f"\n[reopened] by {entry['by']} at {entry['at']}: {entry['note']}")
-            print(f"           supersedes {was.get('state')} by {was.get('by')} at {was.get('at')}")
-    for note in manifest.get("annotations") or []:
-        print(f"\n[note] {note['by']} at {note['at']} (run was {note['state_when_written']}):")
-        print(f"       {strip_controls(note['note'])}")
+            was = entry.get("supersedes") if isinstance(entry.get("supersedes"), dict) else {}
+            by, at, note = (strip_controls(str(entry.get(k))) for k in ("by", "at", "note"))
+            print(f"\n[reopened] by {by} at {at}: {note}")
+            w_state, w_by, w_at = (strip_controls(str(was.get(k))) for k in ("state", "by", "at"))
+            print(f"           supersedes {w_state} by {w_by} at {w_at}")
+    for note in gate.annotations(manifest):
+        by, at, was = (strip_controls(str(note.get(k))) for k in ("by", "at", "state_when_written"))
+        print(f"\n[note] {by} at {at} (run was {was}):")
+        print(f"       {strip_controls(str(note.get('note')))}")
     for f in sorted(d.glob("*.md")):
         body = strip_controls(f.read_text(encoding="utf-8"))
         print(f"\n===== {state}/{f.name} =====\n{body}")
